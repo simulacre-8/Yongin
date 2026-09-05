@@ -2226,3 +2226,73 @@ a {
   color: #93601b;
   background: #fff2d7;
 }
+
+/* ADOMS source-screen readability override
+ * Preserve the original dense layout, but keep operational copy readable on
+ * modern 1440–1920px displays. Inline source-matching styles are overridden
+ * only for body copy, controls, and table cells; headings and KPI numerals keep
+ * their intended hierarchy.
+ */
+.adoms-shell .top-nav :is(a, .top-nav-label) {
+  font-size: 15px !important;
+}
+
+.adoms-shell
+  :is(
+    .connection-pill,
+    .user-copy span,
+    .user-copy strong,
+    .role-select-wrap select,
+    .header-actions button
+  ) {
+  font-size: 14px !important;
+}
+
+.adoms-shell
+  :is(.side-group-title, .side-item, .side-target label, .side-target select) {
+  font-size: 15px !important;
+  line-height: 1.5;
+}
+
+.page-stage :is(p, label, input, select, textarea, button, th, td, small, li) {
+  font-size: 15px !important;
+  line-height: 1.55;
+}
+
+.page-stage
+  :is(
+    .adoms-targets-page,
+    .adoms-laws,
+    .adoms-obligations-page,
+    .adoms-evidence-page,
+    .adoms-inspection-page,
+    .adoms-summary-page
+  )
+  span:not(.side-dot) {
+  font-size: 15px !important;
+  line-height: 1.5;
+}
+
+.page-stage
+  :is(
+    .adoms-targets-page,
+    .adoms-laws,
+    .adoms-obligations-page,
+    .adoms-evidence-page,
+    .adoms-inspection-page,
+    .adoms-summary-page
+  )
+  :is(h1, h2, h3) {
+  line-height: 1.35;
+}
+
+@media (max-width: 1440px) {
+  .adoms-shell .top-nav :is(a, .top-nav-label) {
+    font-size: 14px !important;
+  }
+
+  .page-stage
+    :is(p, label, input, select, textarea, button, th, td, small, li) {
+    font-size: 14px !important;
+  }
+}
