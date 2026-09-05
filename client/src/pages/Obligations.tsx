@@ -10,6 +10,12 @@ import {
   loadTargetObligations,
   type MappedObligation,
 } from "@/lib/facility-obligation-api";
+import {
+  dueValueToInput,
+  loadFacilityWorkflow,
+  saveDueSchedules,
+  type FacilityWorkflowItem,
+} from "@/lib/facility-workflow-api";
 import { useDemo } from "@/contexts/DemoContext";
 
 const facilityTypes = [
@@ -452,8 +458,7 @@ function ordinanceSpan(items: MappedObligation[], index: number) {
 }
 
 export default function Obligations() {
-  const { selectedTargetId, setSelectedTargetId, dueDates, updateDueDate } =
-    useDemo();
+  const { selectedTargetId, setSelectedTargetId } = useDemo();
   const [screen, setScreen] = useState<Screen>("list");
   const [facilityType, setFacilityType] =
     useState<(typeof facilityTypes)[number]>("전체");
@@ -472,6 +477,11 @@ export default function Obligations() {
     "idle" | "loading" | "supabase" | "fallback"
   >("idle");
   const [loadReason, setLoadReason] = useState("");
+  const [workflowItems, setWorkflowItems] = useState<FacilityWorkflowItem[]>(
+    []
+  );
+  const [dueDrafts, setDueDrafts] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -501,13 +511,9 @@ export default function Obligations() {
         .map(target => ({
           target,
           facilityType: facilityTypeOf(target),
-          progress: Object.keys(dueDates).some(key =>
-            key.startsWith(`${target.id}:`)
-          )
-            ? "입력중"
-            : "미입력",
+          progress: target.obligationCount > 0 ? "입력중" : "미입력",
         })),
-    [dueDates, managedTargets]
+    [managedTargets]
   );
 
   const filteredFacilities = useMemo(
@@ -532,17 +538,38 @@ export default function Obligations() {
     () => buildLawGroups(mappedObligations),
     [mappedObligations]
   );
+  const workflowByObligation = useMemo(
+    () => new Map(workflowItems.map(item => [item.obligationId, item])),
+    [workflowItems]
+  );
 
   useEffect(() => {
     if (screen !== "detail") return;
     let active = true;
     setObligationSource("loading");
     setLoadReason("");
-    loadTargetObligations(selectedTargetId).then(result => {
+    Promise.all([
+      loadTargetObligations(selectedTargetId),
+      loadFacilityWorkflow(selectedTargetId),
+    ]).then(([mappingResult, workflowResult]) => {
       if (!active) return;
-      setMappedObligations(result.items);
-      setObligationSource(result.source);
-      setLoadReason(result.reason || "");
+      setMappedObligations(mappingResult.items);
+      setWorkflowItems(workflowResult.items);
+      setDueDrafts(
+        Object.fromEntries(
+          workflowResult.items.map(item => [
+            `${item.targetRef}:${item.obligationId}`,
+            dueValueToInput(item.dueType, item.dueValue),
+          ])
+        )
+      );
+      setObligationSource(
+        mappingResult.source === "supabase" &&
+          workflowResult.source === "supabase"
+          ? "supabase"
+          : "fallback"
+      );
+      setLoadReason(mappingResult.reason || workflowResult.reason || "");
     });
     return () => {
       active = false;
@@ -555,10 +582,45 @@ export default function Obligations() {
   };
 
   const resetDueDates = () => {
-    mappedObligations.forEach(item =>
-      updateDueDate(`${selectedTarget.id}:${item.id}`, item.defaultDue)
+    setDueDrafts(
+      Object.fromEntries(
+        workflowItems.map(item => [
+          `${item.targetRef}:${item.obligationId}`,
+          dueValueToInput(item.dueType, item.dueValue),
+        ])
+      )
     );
     toast.success("법 의무사항의 이행 시기를 초기화했습니다.");
+  };
+
+  const saveDueDates = async () => {
+    if (!workflowItems.length) {
+      toast.error("저장할 시설별 의무가 없습니다.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveDueSchedules(workflowItems, dueDrafts);
+      const refreshed = await loadFacilityWorkflow(selectedTargetId);
+      setWorkflowItems(refreshed.items);
+      setDueDrafts(
+        Object.fromEntries(
+          refreshed.items.map(item => [
+            `${item.targetRef}:${item.obligationId}`,
+            dueValueToInput(item.dueType, item.dueValue),
+          ])
+        )
+      );
+      toast.success("이행 시기가 Supabase에 저장되었습니다.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "이행 시기 저장에 실패했습니다."
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (screen === "detail") {
@@ -645,6 +707,8 @@ export default function Obligations() {
                 lawGroups.map(lawGroup =>
                   lawGroup.items.map((item, itemIndex) => {
                     const span = ordinanceSpan(lawGroup.items, itemIndex);
+                    const workflowItem = workflowByObligation.get(item.id);
+                    const dueKey = `${selectedTarget.id}:${item.id}`;
                     return (
                       <tr
                         key={item.id}
@@ -699,21 +763,22 @@ export default function Obligations() {
                           className="adoms-obligations-due-cell"
                           style={styles.dueCell}
                         >
-                          {item.scheduleType === "month" ? (
+                          {workflowItem?.dueType === "event" ? (
+                            <span style={{ color: "#555", fontSize: 12 }}>
+                              발생 시
+                            </span>
+                          ) : item.scheduleType === "month" ? (
                             <input
                               className="adoms-obligations-month-input"
                               style={styles.monthInput}
                               type="month"
                               aria-label={`${item.title} 이행 시기`}
-                              value={
-                                dueDates[`${selectedTarget.id}:${item.id}`] ||
-                                ""
-                              }
+                              value={dueDrafts[dueKey] || ""}
                               onChange={event =>
-                                updateDueDate(
-                                  `${selectedTarget.id}:${item.id}`,
-                                  event.target.value
-                                )
+                                setDueDrafts(current => ({
+                                  ...current,
+                                  [dueKey]: event.target.value,
+                                }))
                               }
                             />
                           ) : (
@@ -733,16 +798,12 @@ export default function Obligations() {
                                     type="radio"
                                     name={`due-date-${item.id}`}
                                     value={half}
-                                    checked={
-                                      dueDates[
-                                        `${selectedTarget.id}:${item.id}`
-                                      ] === half
-                                    }
+                                    checked={dueDrafts[dueKey] === half}
                                     onChange={event =>
-                                      updateDueDate(
-                                        `${selectedTarget.id}:${item.id}`,
-                                        event.target.value
-                                      )
+                                      setDueDrafts(current => ({
+                                        ...current,
+                                        [dueKey]: event.target.value,
+                                      }))
                                     }
                                   />
                                   {half}
@@ -773,11 +834,11 @@ export default function Obligations() {
             type="button"
             className="adoms-obligations-save-button"
             style={styles.saveButton}
-            onClick={() =>
-              toast.success("법 의무사항의 이행 시기가 저장되었습니다.")
-            }
+            disabled={saving || obligationSource !== "supabase"}
+            onClick={saveDueDates}
           >
-            <Save size={15} aria-hidden="true" /> 저장
+            <Save size={15} aria-hidden="true" />
+            {saving ? "저장 중" : "저장"}
           </button>
         </div>
       </main>

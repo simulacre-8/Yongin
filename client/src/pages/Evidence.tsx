@@ -1,4 +1,6 @@
 import {
+  useEffect,
+  useMemo,
   useState,
   type ChangeEvent,
   type CSSProperties,
@@ -14,10 +16,24 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { targets } from "@/lib/demo-data";
+import type { ComplianceStatus } from "@/lib/demo-data";
 import { useDemo } from "@/contexts/DemoContext";
+import {
+  loadManagedTargets,
+  LOCAL_MANAGED_TARGETS,
+  type ManagedTargetRow,
+} from "@/lib/facility-api";
+import {
+  downloadEvidenceFile,
+  loadEvidenceMetadata,
+  loadFacilityWorkflow,
+  saveEvidenceRecord,
+  toKoreanStatus,
+  type EvidenceMetadata,
+  type FacilityWorkflowItem,
+} from "@/lib/facility-workflow-api";
 
-type StepId = "OBL-01" | "OBL-02" | "OBL-03" | "OBL-05" | "OBL-06" | "OBL-10";
+type StepId = string;
 type TableKind =
   | "personnel"
   | "budget"
@@ -30,6 +46,7 @@ type Attachment = {
   id: string;
   name: string;
   file?: File;
+  metadata?: EvidenceMetadata;
 };
 
 type EvidenceRow = {
@@ -302,6 +319,17 @@ function getSeedRows(
         },
       ];
   }
+
+  return [
+    {
+      ...common,
+      category: "법률",
+      lawName: "관계 법령",
+      article: "근거 조항",
+      content: "이행·조치 내용을 입력하세요",
+      detail: "",
+    },
+  ];
 }
 
 function getEducationSeed(): EvidenceRow[] {
@@ -483,14 +511,124 @@ const smallButtonStyle: CSSProperties = {
 };
 
 export default function Evidence() {
-  const { selectedTargetId, evidence, saveEvidence } = useDemo();
-  const target =
-    targets.find(item => item.id === selectedTargetId) || targets[0];
+  const { selectedTargetId, setSelectedTargetId, evidence, saveEvidence } =
+    useDemo();
+  const [managedTargets, setManagedTargets] = useState<ManagedTargetRow[]>(
+    LOCAL_MANAGED_TARGETS
+  );
+  const [workflowItems, setWorkflowItems] = useState<FacilityWorkflowItem[]>(
+    []
+  );
+  const [workflowLoading, setWorkflowLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [statusByObligation, setStatusByObligation] = useState<
+    Record<string, ComplianceStatus>
+  >({});
   const [activeId, setActiveId] = useState<StepId>("OBL-01");
   const [rowSets, setRowSets] = useState<Record<string, EvidenceRow[]>>({});
   const [educationRows, setEducationRows] =
     useState<EvidenceRow[]>(getEducationSeed);
-  const activeDuty = dutyMap[activeId];
+  const activeWorkflow = useMemo(
+    () => workflowItems.find(item => item.obligationId === activeId),
+    [activeId, workflowItems]
+  );
+  const target =
+    managedTargets.find(item => item.id === selectedTargetId) ||
+    managedTargets.find(item => item.name === "고기상수도") ||
+    managedTargets.find(item => item.obligationCount > 0) ||
+    LOCAL_MANAGED_TARGETS[0];
+  const activeDuty: DutyStep = activeWorkflow
+    ? {
+        id: activeWorkflow.obligationId,
+        step: "",
+        title: activeWorkflow.title,
+        law: `${activeWorkflow.lawName} ${activeWorkflow.article}`,
+        tableTitle: activeWorkflow.title,
+        kind: "law",
+        inputGuide:
+          "선택 시설에 적용된 의무의 조치일자·조치내용·상태·비고와 증빙파일을 저장합니다.",
+        addLabel: "이행 내역 추가",
+        evidenceExamples: [activeWorkflow.evidenceRequirement],
+        requiredItems: ["조치일자", "조치내용", "상태", "증빙자료"],
+      }
+    : dutyMap[activeId] || dutyMap["OBL-10"];
+
+  useEffect(() => {
+    let active = true;
+    loadManagedTargets().then(async result => {
+      if (!active) return;
+      setManagedTargets(result.rows);
+      let targetRef = selectedTargetId;
+      let workflow = await loadFacilityWorkflow(targetRef);
+      if (!workflow.items.length) {
+        const preferred =
+          result.rows.find(item => item.name === "고기상수도") ||
+          result.rows.find(item => item.obligationCount > 0);
+        if (preferred) {
+          targetRef = preferred.id;
+          setSelectedTargetId(preferred.id);
+          workflow = await loadFacilityWorkflow(targetRef);
+        }
+      }
+      if (!active) return;
+      setWorkflowItems(workflow.items);
+      setStatusByObligation(
+        Object.fromEntries(
+          workflow.items.map(item => [
+            item.obligationId,
+            toKoreanStatus(item.complianceStatus || "NONE"),
+          ])
+        )
+      );
+      if (workflow.items[0]) setActiveId(workflow.items[0].obligationId);
+      setWorkflowLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [selectedTargetId, setSelectedTargetId]);
+
+  useEffect(() => {
+    if (!activeWorkflow) return;
+    let active = true;
+    loadEvidenceMetadata(activeWorkflow.complianceId)
+      .then(metadata => {
+        if (!active) return;
+        const seed = getSeedRows(activeWorkflow.obligationId)[0];
+        setRowSets(current => ({
+          ...current,
+          [activeWorkflow.obligationId]: [
+            {
+              ...seed,
+              date: activeWorkflow.actionDate || DEFAULT_DATE,
+              category: activeWorkflow.group,
+              lawName: activeWorkflow.lawName,
+              article: activeWorkflow.article,
+              content: activeWorkflow.actionDetail || "",
+              detail: activeWorkflow.detail,
+              note: activeWorkflow.note || "",
+              attachments: metadata.map(file => ({
+                id: file.evidenceId,
+                name: file.originalName,
+                metadata: file,
+              })),
+            },
+          ],
+        }));
+      })
+      .catch(error => {
+        if (active) {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "저장된 증빙 목록을 불러오지 못했습니다."
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeWorkflow]);
 
   const getRows = (id: StepId) => rowSets[id] || getSeedRows(id, evidence[id]);
   const activeRows = getRows(activeId);
@@ -596,9 +734,20 @@ export default function Evidence() {
     );
   };
 
-  const downloadAttachment = (attachment: Attachment) => {
+  const downloadAttachment = async (attachment: Attachment) => {
     if (attachment.file) {
       downloadBlob(attachment.file, attachment.name);
+      return;
+    }
+    if (attachment.metadata) {
+      try {
+        const blob = await downloadEvidenceFile(attachment.metadata);
+        downloadBlob(blob, attachment.name);
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "증빙 다운로드 실패"
+        );
+      }
       return;
     }
     downloadBlob(
@@ -613,7 +762,10 @@ export default function Evidence() {
     toast.info("저장된 파일명 정보로 안내 파일을 내려받았습니다.");
   };
 
-  const saveCurrent = (rows = activeRows, label = activeDuty.tableTitle) => {
+  const saveCurrent = async (
+    rows = activeRows,
+    label = activeDuty.tableTitle
+  ) => {
     const firstRow = rows[0];
     if (!firstRow) return;
     const names = rows.flatMap(row =>
@@ -625,7 +777,43 @@ export default function Evidence() {
       fileName: names.length ? names.join(" | ") : "선택된 파일 없음",
       uploadedAt: new Date().toISOString(),
     });
-    toast.success(`${label} 실적과 증빙자료를 저장했습니다.`);
+    if (!activeWorkflow) {
+      toast.info(`${label} 실적을 현재 브라우저에 저장했습니다.`);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const files = rows.flatMap(row =>
+        row.attachments
+          .filter(attachment => Boolean(attachment.file))
+          .map(attachment => attachment.file as File)
+      );
+      const payload = {
+        actionDate: firstRow.date,
+        actionDetail: [firstRow.content, firstRow.detail]
+          .filter(Boolean)
+          .join(" · "),
+        note: firstRow.note,
+        status: statusByObligation[activeWorkflow.obligationId] || "미이행",
+      };
+      await saveEvidenceRecord(activeWorkflow, {
+        ...payload,
+        file: files[0],
+      });
+      for (const file of files.slice(1)) {
+        await saveEvidenceRecord(activeWorkflow, { ...payload, file });
+      }
+      const refreshed = await loadFacilityWorkflow(activeWorkflow.targetRef);
+      setWorkflowItems(refreshed.items);
+      toast.success(`${label} 실적과 증빙자료가 Supabase에 저장되었습니다.`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "실적·증빙 저장 실패"
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updateEducationRow = (rowId: string, patch: Partial<EvidenceRow>) => {
@@ -1568,7 +1756,7 @@ export default function Evidence() {
               fontSize: 13,
             }}
           >
-            ● 공중이용시설·교통수단
+            ● {target.category}
           </div>
           <div
             className="adoms-group-label"
@@ -1582,69 +1770,34 @@ export default function Evidence() {
               fontSize: 12,
             }}
           >
-            ① 안전보건관리체계 구축 및 이행
+            시설별 적용 의무 · {workflowItems.length}건
           </div>
           <div
             className="adoms-step-list"
             style={{ padding: "2px 10px 14px", display: "grid", gap: 3 }}
           >
-            {DUTY_STEPS.filter(duty => duty.id !== "OBL-10").map(duty => (
-              <button
-                key={duty.id}
-                className="adoms-step-button"
-                type="button"
-                onClick={() => setActiveId(duty.id)}
-                style={{
-                  ...stepButtonStyle,
-                  ...(activeId === duty.id ? activeStepButtonStyle : {}),
-                }}
-              >
-                <b>{duty.step}</b> {duty.title}
-              </button>
-            ))}
-          </div>
-          <div
-            className="adoms-inactive-group"
-            style={{
-              margin: "0 10px 7px",
-              padding: "8px 10px",
-              borderTop: "1px solid #d7e0d5",
-              color: "#839087",
-              fontSize: 11,
-            }}
-          >
-            ② 재해발생시 재발방지 대책 수립 및 이행
-          </div>
-          <div
-            className="adoms-inactive-group"
-            style={{
-              margin: "0 10px 7px",
-              padding: "8px 10px",
-              borderTop: "1px solid #d7e0d5",
-              color: "#839087",
-              fontSize: 11,
-            }}
-          >
-            ③ 개선·시정 등을 명한 사항 이행
-          </div>
-          <div
-            className="adoms-law-step"
-            style={{
-              padding: "10px 10px 16px",
-              borderTop: "1px solid #d7e0d5",
-            }}
-          >
-            <button
-              className="adoms-step-button"
-              type="button"
-              onClick={() => setActiveId("OBL-10")}
-              style={{
-                ...stepButtonStyle,
-                ...(activeId === "OBL-10" ? activeStepButtonStyle : {}),
-              }}
-            >
-              <b>④</b> 관계 법령상 의무 이행
-            </button>
+            {workflowLoading ? (
+              <span style={{ padding: 10, color: "#777", fontSize: 12 }}>
+                의무를 불러오고 있습니다.
+              </span>
+            ) : (
+              workflowItems.map(duty => (
+                <button
+                  key={duty.obligationId}
+                  className="adoms-step-button"
+                  type="button"
+                  onClick={() => setActiveId(duty.obligationId)}
+                  style={{
+                    ...stepButtonStyle,
+                    ...(activeId === duty.obligationId
+                      ? activeStepButtonStyle
+                      : {}),
+                  }}
+                >
+                  {duty.title}
+                </button>
+              ))
+            )}
           </div>
         </aside>
 
@@ -1693,40 +1846,62 @@ export default function Evidence() {
                   근거: {activeDuty.law}
                 </p>
               </div>
-              <div
-                className="adoms-target-display"
-                style={{
-                  minWidth: 190,
-                  border: "1px solid #bec9c0",
-                  background: "#f7f8f7",
-                  display: "grid",
-                  gridTemplateColumns: "52px 1fr",
-                  fontSize: 12,
-                }}
-              >
-                <span
+              <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+                <select
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "8px 5px",
-                    color: "#fff",
-                    background: "#55565c",
-                    fontWeight: 700,
-                  }}
-                >
-                  대상
-                </span>
-                <strong
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "8px 10px",
+                    minWidth: 230,
+                    border: "1px solid #bec9c0",
+                    background: "#fff",
                     color: "#2f3f34",
+                    padding: "0 10px",
+                    fontSize: 12,
+                  }}
+                  value={target.id}
+                  onChange={event => setSelectedTargetId(event.target.value)}
+                >
+                  {managedTargets
+                    .filter(item => item.obligationCount > 0)
+                    .map(item => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} ({item.obligationCount})
+                      </option>
+                    ))}
+                </select>
+                <div
+                  className="adoms-target-display"
+                  style={{
+                    minWidth: 190,
+                    border: "1px solid #bec9c0",
+                    background: "#f7f8f7",
+                    display: "grid",
+                    gridTemplateColumns: "52px 1fr",
+                    fontSize: 12,
                   }}
                 >
-                  {target.name}
-                </strong>
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "8px 5px",
+                      color: "#fff",
+                      background: "#55565c",
+                      fontWeight: 700,
+                    }}
+                  >
+                    대상
+                  </span>
+                  <strong
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      padding: "8px 10px",
+                      color: "#2f3f34",
+                    }}
+                  >
+                    {target.name}
+                  </strong>
+                </div>
               </div>
             </div>
             <p style={{ margin: "9px 0 0", color: "#6e7971", fontSize: 12 }}>
@@ -1770,6 +1945,36 @@ export default function Evidence() {
               {activeDuty.inputGuide}
             </p>
             <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 8,
+              }}
+            >
+              <label htmlFor="evidence-status" style={{ fontSize: 12 }}>
+                이행상태
+              </label>
+              <select
+                id="evidence-status"
+                value={statusByObligation[activeId] || "미이행"}
+                onChange={event =>
+                  setStatusByObligation(current => ({
+                    ...current,
+                    [activeId]: event.target.value as ComplianceStatus,
+                  }))
+                }
+                style={{ ...inputStyle, width: 126 }}
+              >
+                {(["이행완료", "보완필요", "미이행", "해당없음"] as const).map(
+                  status => (
+                    <option key={status}>{status}</option>
+                  )
+                )}
+              </select>
+            </div>
+            <div
               className="adoms-grid-wrap"
               style={{ overflowX: "auto", border: "1px solid #c8ced0" }}
             >
@@ -1803,10 +2008,11 @@ export default function Evidence() {
               <button
                 className="adoms-save-button"
                 type="button"
-                onClick={() => saveCurrent()}
+                disabled={saving || !activeWorkflow}
+                onClick={() => void saveCurrent()}
                 style={saveButtonStyle}
               >
-                <Save size={14} /> 저장
+                <Save size={14} /> {saving ? "저장 중" : "저장"}
               </button>
             </div>
           </section>

@@ -28,6 +28,7 @@ const tables = [
   "ref_rule_obligation",
   "ref_managed_target",
   "ref_managed_target_obligation",
+  "v_facility_workflow",
   "demo_scenario",
   "org",
   "profile",

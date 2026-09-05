@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { ChevronDown, Database, RefreshCcw } from "lucide-react";
-import { targets, type Role } from "@/lib/demo-data";
+import { targets as demoTargets, type Role } from "@/lib/demo-data";
+import { loadManagedTargets } from "@/lib/facility-api";
 import { checkSupabaseConnection } from "@/lib/supabase";
 import { useDemo } from "@/contexts/DemoContext";
 
@@ -291,6 +292,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const [location, navigate] = useLocation();
   const { role, setRole, selectedTargetId, setSelectedTargetId, resetDemo } =
     useDemo();
+  const [targets, setTargets] = useState(
+    demoTargets.map(target => ({ id: target.id, name: target.name }))
+  );
   const [connection, setConnection] = useState({
     connected: false,
     reason: "연결 확인 중",
@@ -300,6 +304,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     checkSupabaseConnection().then(setConnection);
+    loadManagedTargets().then(result => {
+      setTargets(
+        result.rows
+          .filter(target => target.obligationCount > 0)
+          .map(target => ({ id: target.id, name: target.name }))
+      );
+    });
   }, []);
 
   const activeHref =

@@ -12,7 +12,7 @@ SOURCE_DIR = (
     if os.name == 'nt'
     else Path(os.environ.get('YONGIN_DATA_DIR', '/home/ubuntu/upload'))
 )
-FACILITY = SOURCE_DIR / '데모대상_시설_용인시소관_20260906.csv'
+FACILITY = SOURCE_DIR / '데모대상_용인시소관_20260906.csv'
 MAPPING = SOURCE_DIR / '의무매핑_시설_용인시_20260906.csv'
 
 

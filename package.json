@@ -13,6 +13,8 @@
     "smoke:supabase": "tsx scripts/supabase-smoke.ts",
     "smoke:adoms": "tsx scripts/adoms-seed-smoke.ts",
     "smoke:facility": "tsx scripts/facility-catalog-smoke.ts",
+    "smoke:core": "tsx scripts/yongin-core-data-smoke.ts",
+    "smoke:workflow": "tsx scripts/facility-workflow-smoke.ts",
     "format": "prettier --write ."
   },
   "dependencies": {

@@ -1,7 +1,21 @@
-import { useMemo, useState, type CSSProperties } from "react";
-import { ChevronDown, Search } from "lucide-react";
-import { obligations, targets, type ComplianceStatus } from "@/lib/demo-data";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { ChevronDown, Save, Search } from "lucide-react";
+import { toast } from "sonner";
 import { useDemo } from "@/contexts/DemoContext";
+import type { ComplianceStatus } from "@/lib/demo-data";
+import {
+  loadManagedTargets,
+  LOCAL_MANAGED_TARGETS,
+  type ManagedTargetRow,
+} from "@/lib/facility-api";
+import {
+  loadEvidenceMetadata,
+  loadFacilityWorkflow,
+  saveInspectionResult,
+  toKoreanStatus,
+  type EvidenceMetadata,
+  type FacilityWorkflowItem,
+} from "@/lib/facility-workflow-api";
 
 type InspectionStage = "scope" | "review";
 
@@ -17,33 +31,17 @@ const pageStyle: CSSProperties = {
   margin: "0 auto",
   color: "#30383d",
 };
-
 const headingStyle: CSSProperties = {
   margin: "0 0 5px",
   fontSize: 28,
   fontWeight: 750,
-  letterSpacing: "-0.055em",
+  letterSpacing: "-0.04em",
 };
-
 const subtitleStyle: CSSProperties = {
   margin: 0,
-  color: "#68756d",
+  color: "#687078",
   fontSize: 14,
 };
-
-const roundButtonStyle = (selected: boolean): CSSProperties => ({
-  width: 20,
-  height: 20,
-  flex: "0 0 20px",
-  display: "inline-grid",
-  placeItems: "center",
-  border: `1px solid ${selected ? "#84256f" : "#c4cdd3"}`,
-  borderRadius: "50%",
-  background: selected ? "#a93193" : "#fff",
-  color: "#fff",
-  cursor: "pointer",
-  padding: 0,
-});
 
 function SelectionButton({
   selected,
@@ -57,411 +55,433 @@ function SelectionButton({
   return (
     <button
       type="button"
-      className="adoms-selection-button"
-      style={roundButtonStyle(selected)}
       aria-pressed={selected}
       aria-label={label}
-      title={label}
       onClick={onClick}
+      style={{
+        width: 20,
+        height: 20,
+        flex: "0 0 20px",
+        display: "grid",
+        placeItems: "center",
+        border: `1px solid ${selected ? "#84256f" : "#c4c8ce"}`,
+        borderRadius: "50%",
+        background: selected ? "#a93193" : "#fff",
+        color: "#fff",
+        padding: 0,
+      }}
     >
-      {selected && (
-        <span aria-hidden="true" style={{ fontSize: 12, lineHeight: 1 }}>
-          ✓
-        </span>
-      )}
+      {selected ? "✓" : ""}
     </button>
   );
 }
 
 export default function Inspection() {
   const {
-    statuses,
-    updateStatus,
-    evidence,
-    inspectionNotes,
-    saveInspectionNote,
+    selectedTargetId: selectedTargetRef,
+    setSelectedTargetId: setSelectedTargetRef,
   } = useDemo();
   const [stage, setStage] = useState<InspectionStage>("scope");
-  const [facilityType, setFacilityType] = useState("전체");
+  const [targets, setTargets] = useState<ManagedTargetRow[]>(
+    LOCAL_MANAGED_TARGETS
+  );
+  const [workflowItems, setWorkflowItems] = useState<FacilityWorkflowItem[]>(
+    []
+  );
+  const [selectedObligationIds, setSelectedObligationIds] = useState<string[]>(
+    []
+  );
+  const [openId, setOpenId] = useState("");
   const [query, setQuery] = useState("");
-  const [targetIds, setTargetIds] = useState<string[]>(() =>
-    targets.map(target => target.id)
-  );
-  const [obligationIds, setObligationIds] = useState<string[]>(() =>
-    obligations.map(obligation => obligation.id)
-  );
-  const [openId, setOpenId] = useState("OBL-01");
+  const [category, setCategory] = useState("전체");
+  const [statusDrafts, setStatusDrafts] = useState<
+    Record<string, ComplianceStatus>
+  >({});
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [evidenceByCompliance, setEvidenceByCompliance] = useState<
+    Record<string, EvidenceMetadata[]>
+  >({});
+  const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState("");
 
-  const visibleTargets = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    return targets.filter(target => {
-      const matchesType =
-        facilityType === "전체" || target.type.includes(facilityType);
-      const matchesQuery =
-        !normalizedQuery ||
-        target.name.toLowerCase().includes(normalizedQuery) ||
-        target.department.toLowerCase().includes(normalizedQuery);
-      return matchesType && matchesQuery;
+  useEffect(() => {
+    let active = true;
+    loadManagedTargets().then(result => {
+      if (!active) return;
+      const available = result.rows.filter(item => item.obligationCount > 0);
+      setTargets(available);
+      const preferred =
+        available.find(
+          item =>
+            item.id === selectedTargetRef && item.sourceKind !== "LOCAL_DEMO"
+        ) ||
+        available.find(item => item.name === "고기상수도") ||
+        available[0];
+      if (preferred) setSelectedTargetRef(preferred.id);
     });
-  }, [facilityType, query]);
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  const selectedTargets = targets.filter(target =>
-    targetIds.includes(target.id)
-  );
-  const selectedObligations = obligations.filter(obligation =>
-    obligationIds.includes(obligation.id)
-  );
+  useEffect(() => {
+    if (!selectedTargetRef) return;
+    let active = true;
+    setLoading(true);
+    loadFacilityWorkflow(selectedTargetRef).then(result => {
+      if (!active) return;
+      setWorkflowItems(result.items);
+      setSelectedObligationIds(result.items.map(item => item.obligationId));
+      setOpenId(result.items[0]?.obligationId || "");
+      setStatusDrafts(
+        Object.fromEntries(
+          result.items.map(item => [
+            item.obligationId,
+            toKoreanStatus(
+              item.inspectionStatus || item.complianceStatus || "NA"
+            ),
+          ])
+        )
+      );
+      setNoteDrafts(
+        Object.fromEntries(
+          result.items.map(item => [
+            item.obligationId,
+            item.inspectionNote || "",
+          ])
+        )
+      );
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [selectedTargetRef]);
 
-  const toggleTarget = (targetId: string) => {
-    setTargetIds(current =>
-      current.includes(targetId)
-        ? current.filter(id => id !== targetId)
-        : [...current, targetId]
-    );
-  };
+  useEffect(() => {
+    const complianceIds = workflowItems
+      .map(item => item.complianceId)
+      .filter((id): id is string => Boolean(id));
+    if (!complianceIds.length) {
+      setEvidenceByCompliance({});
+      return;
+    }
+    let active = true;
+    Promise.all(
+      complianceIds.map(
+        async id => [id, await loadEvidenceMetadata(id)] as const
+      )
+    ).then(entries => {
+      if (active) setEvidenceByCompliance(Object.fromEntries(entries));
+    });
+    return () => {
+      active = false;
+    };
+  }, [workflowItems]);
+
+  const selectedTarget =
+    targets.find(item => item.id === selectedTargetRef) || targets[0];
+  const visibleTargets = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return targets.filter(item => {
+      const categoryMatch = category === "전체" || item.category === category;
+      const queryMatch =
+        !normalized ||
+        `${item.name} ${item.department} ${item.address}`
+          .toLowerCase()
+          .includes(normalized);
+      return categoryMatch && queryMatch;
+    });
+  }, [category, query, targets]);
+  const selectedItems = workflowItems.filter(item =>
+    selectedObligationIds.includes(item.obligationId)
+  );
 
   const toggleObligation = (obligationId: string) => {
-    setObligationIds(current =>
+    setSelectedObligationIds(current =>
       current.includes(obligationId)
         ? current.filter(id => id !== obligationId)
         : [...current, obligationId]
     );
   };
 
-  const toggleAllTargets = () => {
-    const visibleIds = visibleTargets.map(target => target.id);
-    const allVisibleSelected =
-      visibleIds.length > 0 && visibleIds.every(id => targetIds.includes(id));
-    setTargetIds(current =>
-      allVisibleSelected
-        ? current.filter(id => !visibleIds.includes(id))
-        : Array.from(new Set([...current, ...visibleIds]))
-    );
+  const saveInspection = async (item: FacilityWorkflowItem) => {
+    setSavingId(item.obligationId);
+    try {
+      const result = await saveInspectionResult(
+        item,
+        statusDrafts[item.obligationId] || "해당없음",
+        noteDrafts[item.obligationId] || ""
+      );
+      setWorkflowItems(current =>
+        current.map(currentItem =>
+          currentItem.obligationId === item.obligationId
+            ? {
+                ...currentItem,
+                inspectionResultId: result.inspection_result_id,
+                inspectionStatus: result.status,
+                inspectionNote: result.inspection_note || "",
+                inspectedAt: result.inspected_at,
+              }
+            : currentItem
+        )
+      );
+      toast.success(`${item.title} 점검 결과가 저장되었습니다.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "점검 저장 실패");
+    } finally {
+      setSavingId("");
+    }
   };
 
-  const toggleAllObligations = () => {
-    setObligationIds(current =>
-      current.length === obligations.length
-        ? []
-        : obligations.map(obligation => obligation.id)
-    );
-  };
+  const renderScope = () => (
+    <>
+      <header style={{ marginBottom: 25 }}>
+        <h1 style={headingStyle}>이행점검(관리대상)</h1>
+        <p style={subtitleStyle}>취합 대상 설정</p>
+      </header>
 
-  const renderScope = () => {
-    const allVisibleTargetsSelected =
-      visibleTargets.length > 0 &&
-      visibleTargets.every(target => targetIds.includes(target.id));
-    const allObligationsSelected = obligationIds.length === obligations.length;
-
-    return (
-      <>
-        <header className="adoms-scope-heading" style={{ marginBottom: 25 }}>
-          <h1 style={headingStyle}>이행점검(사업장)</h1>
-          <p style={subtitleStyle}>취합 대상 설정</p>
-        </header>
-
-        <section
-          className="adoms-scope-search"
-          aria-label="사업장 검색"
-          style={{
-            display: "flex",
-            alignItems: "end",
-            gap: 10,
-            padding: 17,
-            marginBottom: 17,
-            border: "1px solid #d8dfe3",
-            background: "#f5f7f8",
-          }}
-        >
-          <label
-            className="adoms-search-field"
-            style={{ display: "grid", gap: 6, minWidth: 118 }}
-          >
-            <span style={{ fontSize: 12, fontWeight: 700 }}>사업장</span>
-            <select
-              className="adoms-type-select"
-              value={facilityType}
-              onChange={event => setFacilityType(event.target.value)}
-              style={{
-                height: 38,
-                border: "1px solid #c7d0d6",
-                background: "#fff",
-                padding: "0 10px",
-              }}
-            >
-              <option>전체</option>
-              <option>공중이용시설</option>
-              <option>교통수단</option>
-            </select>
-          </label>
-          <label
-            className="adoms-search-field"
-            style={{
-              display: "grid",
-              gap: 6,
-              flex: "1 1 330px",
-              maxWidth: 510,
-            }}
-          >
-            <span style={{ fontSize: 12, fontWeight: 700 }}>사업장명</span>
-            <input
-              className="adoms-name-input"
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-              placeholder="사업장명을 입력하세요"
-              style={{
-                height: 36,
-                border: "1px solid #c7d0d6",
-                background: "#fff",
-                padding: "0 10px",
-              }}
-            />
-          </label>
-          <button
-            type="button"
-            className="adoms-search-button"
-            onClick={() => setQuery(current => current.trim())}
+      <section
+        aria-label="관리대상 검색"
+        style={{
+          display: "flex",
+          alignItems: "end",
+          gap: 10,
+          padding: 17,
+          marginBottom: 17,
+          border: "1px solid #d8dfe3",
+          borderRadius: 10,
+          background: "#f5f6f8",
+        }}
+      >
+        <label style={{ display: "grid", gap: 6, minWidth: 170 }}>
+          <span style={{ fontSize: 12, fontWeight: 700 }}>관리대상 분류</span>
+          <select
+            value={category}
+            onChange={event => setCategory(event.target.value)}
             style={{
               height: 38,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              border: "1px solid #b23d99",
-              background: "#fff",
-              color: "#84256f",
-              padding: "0 16px",
-              fontWeight: 700,
-              cursor: "pointer",
+              border: "1px solid #c7d0d6",
+              padding: "0 10px",
             }}
           >
-            <Search size={15} /> 검색
-          </button>
-        </section>
+            {["전체", "시설물", "공중교통수단", "도급·용역·위탁"].map(value => (
+              <option key={value}>{value}</option>
+            ))}
+          </select>
+        </label>
+        <label style={{ display: "grid", gap: 6, flex: "1 1 330px" }}>
+          <span style={{ fontSize: 12, fontWeight: 700 }}>대상명</span>
+          <input
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+            placeholder="시설·교통수단·도급 대상을 검색하세요"
+            style={{
+              height: 36,
+              border: "1px solid #c7d0d6",
+              padding: "0 10px",
+            }}
+          />
+        </label>
+        <button type="button" className="secondary-btn">
+          <Search size={15} /> 검색
+        </button>
+      </section>
 
-        <section
-          className="adoms-scope-lists"
-          aria-label="취합 대상 및 점검 항목 선택"
+      <section
+        aria-label="취합 대상 및 점검 항목"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, .9fr) minmax(0, 1.1fr)",
+          gap: 18,
+        }}
+      >
+        <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
-            gap: 18,
+            border: "1px solid #cfd4da",
+            borderRadius: 10,
+            overflow: "hidden",
           }}
         >
           <div
-            className="adoms-selection-panel"
-            style={{ border: "1px solid #cfd7dc", background: "#fff" }}
+            style={{
+              minHeight: 50,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0 16px",
+              background: "#eceef2",
+            }}
           >
-            <div
-              className="adoms-selection-panel-header"
-              style={{
-                minHeight: 51,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "0 16px",
-                borderBottom: "1px solid #cfd7dc",
-                background: "#eef2f5",
-              }}
-            >
-              <strong style={{ fontSize: 13 }}>사업장명</strong>
-              <span
-                className="adoms-select-all"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 7,
-                  fontSize: 12,
-                }}
-              >
-                <SelectionButton
-                  selected={allVisibleTargetsSelected}
-                  onClick={toggleAllTargets}
-                  label="표시된 사업장 전체 선택 또는 해제"
-                />
-                전체 선택
-              </span>
-            </div>
-            <div className="adoms-selection-list" style={{ minHeight: 414 }}>
-              {visibleTargets.length ? (
-                visibleTargets.map(target => {
-                  const selected = targetIds.includes(target.id);
-                  return (
-                    <div
-                      className="adoms-selection-row"
-                      key={target.id}
-                      style={{
-                        minHeight: 62,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 11,
-                        padding: "0 16px",
-                        borderBottom: "1px solid #e1e6e9",
-                        background: selected ? "#fbf0f8" : "#fff",
-                      }}
-                    >
-                      <SelectionButton
-                        selected={selected}
-                        onClick={() => toggleTarget(target.id)}
-                        label={`${target.name} 선택 또는 해제`}
-                      />
-                      <div
-                        className="adoms-target-copy"
-                        style={{ display: "grid", gap: 3 }}
-                      >
-                        <strong style={{ fontSize: 13 }}>{target.name}</strong>
-                        <span style={{ color: "#718078", fontSize: 11 }}>
-                          {target.department}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <p
-                  className="adoms-empty-results"
+            <strong style={{ fontSize: 14 }}>관리대상</strong>
+            <span style={{ fontSize: 12 }}>{visibleTargets.length}건</span>
+          </div>
+          <div
+            style={{ maxHeight: 450, overflowY: "auto", background: "#fff" }}
+          >
+            {visibleTargets.map(item => {
+              const selected = item.id === selectedTargetRef;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setSelectedTargetRef(item.id)}
                   style={{
-                    margin: 0,
-                    padding: 24,
-                    color: "#707b82",
-                    fontSize: 12,
+                    width: "100%",
+                    minHeight: 60,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 11,
+                    padding: "8px 16px",
+                    border: 0,
+                    borderBottom: "1px solid #e1e4e8",
+                    background: selected ? "#fbf0f8" : "#fff",
+                    textAlign: "left",
                   }}
                 >
-                  검색 조건에 맞는 사업장이 없습니다.
-                </p>
-              )}
-            </div>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 20,
+                      height: 20,
+                      flex: "0 0 20px",
+                      display: "grid",
+                      placeItems: "center",
+                      border: `1px solid ${selected ? "#84256f" : "#c4c8ce"}`,
+                      borderRadius: "50%",
+                      background: selected ? "#a93193" : "#fff",
+                      color: "#fff",
+                    }}
+                  >
+                    {selected ? "✓" : ""}
+                  </span>
+                  <span style={{ display: "grid", gap: 3 }}>
+                    <strong style={{ fontSize: 13 }}>{item.name}</strong>
+                    <span style={{ color: "#6f767d", fontSize: 11 }}>
+                      {item.category} · 의무 {item.obligationCount}건
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
+        </div>
 
+        <div
+          style={{
+            border: "1px solid #cfd4da",
+            borderRadius: 10,
+            overflow: "hidden",
+          }}
+        >
           <div
-            className="adoms-selection-panel"
-            style={{ border: "1px solid #cfd7dc", background: "#fff" }}
+            style={{
+              minHeight: 50,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0 16px",
+              background: "#eceef2",
+            }}
           >
-            <div
-              className="adoms-selection-panel-header"
-              style={{
-                minHeight: 51,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "0 16px",
-                borderBottom: "1px solid #cfd7dc",
-                background: "#eef2f5",
-              }}
+            <strong style={{ fontSize: 14 }}>점검 항목</strong>
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedObligationIds(
+                  selectedObligationIds.length === workflowItems.length
+                    ? []
+                    : workflowItems.map(item => item.obligationId)
+                )
+              }
+              style={{ border: 0, background: "transparent", color: "#84256f" }}
             >
-              <strong style={{ fontSize: 13 }}>항목</strong>
-              <span
-                className="adoms-select-all"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 7,
-                  fontSize: 12,
-                }}
-              >
-                <SelectionButton
-                  selected={allObligationsSelected}
-                  onClick={toggleAllObligations}
-                  label="점검 항목 전체 선택 또는 해제"
-                />
-                전체 선택
-              </span>
-            </div>
-            <div className="adoms-selection-list">
-              {obligations.map((obligation, index) => {
-                const selected = obligationIds.includes(obligation.id);
+              전체 선택
+            </button>
+          </div>
+          <div
+            style={{ maxHeight: 450, overflowY: "auto", background: "#fff" }}
+          >
+            {loading ? (
+              <p style={{ padding: 18, fontSize: 12 }}>
+                의무를 불러오고 있습니다.
+              </p>
+            ) : (
+              workflowItems.map((item, index) => {
+                const selected = selectedObligationIds.includes(
+                  item.obligationId
+                );
                 return (
                   <div
-                    className="adoms-selection-row"
-                    key={obligation.id}
+                    key={item.obligationId}
                     style={{
-                      minHeight: 41,
+                      minHeight: 48,
                       display: "flex",
                       alignItems: "center",
-                      gap: 11,
-                      padding: "0 16px",
-                      borderBottom: "1px solid #e1e6e9",
+                      gap: 10,
+                      padding: "7px 14px",
+                      borderBottom: "1px solid #e1e4e8",
                       background: selected ? "#fbf0f8" : "#fff",
                     }}
                   >
                     <SelectionButton
                       selected={selected}
-                      onClick={() => toggleObligation(obligation.id)}
-                      label={`${obligation.title} 선택 또는 해제`}
+                      onClick={() => toggleObligation(item.obligationId)}
+                      label={`${item.title} 선택 또는 해제`}
                     />
                     <span style={{ fontSize: 12 }}>
-                      <b
-                        style={{
-                          display: "inline-block",
-                          minWidth: 25,
-                          color: "#a93193",
-                        }}
-                      >
+                      <b style={{ color: "#a93193", marginRight: 7 }}>
                         {index + 1}.
                       </b>
-                      {obligation.title}
+                      {item.title}
                     </span>
                   </div>
                 );
-              })}
-            </div>
+              })
+            )}
           </div>
-        </section>
-
-        <div
-          className="adoms-scope-actions"
-          style={{ display: "flex", justifyContent: "flex-end", marginTop: 24 }}
-        >
-          <button
-            type="button"
-            className="adoms-start-button"
-            disabled={!selectedTargets.length || !selectedObligations.length}
-            onClick={() => {
-              setOpenId(selectedObligations[0]?.id || "OBL-01");
-              setStage("review");
-            }}
-            style={{
-              minWidth: 118,
-              minHeight: 42,
-              border: "1px solid #b23d99",
-              background: "#fff",
-              color: "#84256f",
-              fontSize: 13,
-              fontWeight: 750,
-              cursor:
-                !selectedTargets.length || !selectedObligations.length
-                  ? "not-allowed"
-                  : "pointer",
-              opacity:
-                !selectedTargets.length || !selectedObligations.length
-                  ? 0.45
-                  : 1,
-            }}
-          >
-            취합 시작
-          </button>
         </div>
-      </>
-    );
-  };
+      </section>
+
+      <div
+        style={{ display: "flex", justifyContent: "flex-end", marginTop: 24 }}
+      >
+        <button
+          type="button"
+          className="primary-btn"
+          disabled={!selectedTarget || !selectedItems.length}
+          onClick={() => {
+            setOpenId(selectedItems[0]?.obligationId || "");
+            setStage("review");
+          }}
+        >
+          취합 시작
+        </button>
+      </div>
+    </>
+  );
 
   const renderReview = () => (
     <>
-      <header className="adoms-review-heading" style={{ marginBottom: 25 }}>
-        <h1 style={headingStyle}>이행점검(사업장)</h1>
-        <p style={subtitleStyle}>의무이행(사업장) 점검</p>
+      <header style={{ marginBottom: 25 }}>
+        <h1 style={headingStyle}>이행점검(관리대상)</h1>
+        <p style={subtitleStyle}>
+          {selectedTarget?.name} · 대상별 의무이행 점검
+        </p>
       </header>
 
       <section
-        className="adoms-review-list"
         aria-label="의무이행 점검 항목"
         style={{ borderTop: "1px solid #cbd4da" }}
       >
-        {selectedObligations.map((obligation, index) => {
-          const isOpen = openId === obligation.id;
+        {selectedItems.map((item, index) => {
+          const isOpen = openId === item.obligationId;
+          const files = item.complianceId
+            ? evidenceByCompliance[item.complianceId] || []
+            : [];
           return (
             <article
-              className={`adoms-review-accordion ${isOpen ? "adoms-open" : "adoms-closed"}`}
-              key={obligation.id}
+              key={item.obligationId}
               style={{
                 border: "1px solid #cbd4da",
                 borderTop: 0,
@@ -470,11 +490,10 @@ export default function Inspection() {
             >
               <button
                 type="button"
-                className="adoms-review-accordion-trigger"
                 aria-expanded={isOpen}
                 onClick={() =>
                   setOpenId(current =>
-                    current === obligation.id ? "" : obligation.id
+                    current === item.obligationId ? "" : item.obligationId
                   )
                 }
                 style={{
@@ -486,63 +505,36 @@ export default function Inspection() {
                   gap: 12,
                   border: 0,
                   padding: "0 16px",
-                  background: "#f1f3f4",
-                  color: "#28373f",
+                  background: "#f1f2f4",
                   textAlign: "left",
-                  cursor: "pointer",
                 }}
               >
                 <b style={{ color: "#a93193", fontSize: 13 }}>{index + 1}.</b>
                 <span style={{ fontSize: 13, fontWeight: 750 }}>
-                  {obligation.title}
+                  {item.title}
                 </span>
-                <span
-                  className="adoms-accordion-circle"
-                  aria-hidden="true"
-                  style={{
-                    width: 28,
-                    height: 28,
-                    display: "grid",
-                    placeItems: "center",
-                    borderRadius: "50%",
-                    background: "#a93193",
-                    color: "#fff",
-                  }}
-                >
-                  <ChevronDown
-                    size={18}
-                    style={{
-                      transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                      transition: "transform 160ms ease",
-                    }}
-                  />
-                </span>
+                <ChevronDown
+                  size={18}
+                  style={{ transform: isOpen ? "rotate(180deg)" : "none" }}
+                />
               </button>
 
               {isOpen && (
                 <div
-                  className="adoms-review-table-wrap"
                   style={{
                     overflowX: "auto",
                     padding: 12,
-                    background: "#f8faf9",
+                    background: "#f8f8fa",
                   }}
                 >
-                  <div
-                    className="adoms-review-table"
-                    role="table"
-                    aria-label={`${obligation.title} 점검표`}
-                    style={{ minWidth: 1250, border: "1px solid #d3dbe0" }}
-                  >
+                  <div style={{ minWidth: 1220, border: "1px solid #d3d8de" }}>
                     <div
-                      className="adoms-review-table-header"
-                      role="row"
                       style={{
                         display: "grid",
                         gridTemplateColumns:
-                          "120px minmax(220px,1.7fr) minmax(115px,.9fr) 115px 140px minmax(190px,1.15fr) minmax(160px,1fr)",
+                          "125px minmax(220px,1.5fr) 150px 150px 125px minmax(180px,1fr) minmax(170px,1fr) 120px",
                         minHeight: 40,
-                        background: "#eeeeF1",
+                        background: "#eceef1",
                         fontSize: 11,
                         fontWeight: 750,
                         textAlign: "center",
@@ -551,168 +543,131 @@ export default function Inspection() {
                       {[
                         "상태",
                         "점검내용",
-                        "사업장",
-                        "부서",
-                        "의무이행 일자",
+                        "관리대상",
+                        "소관",
+                        "이행일자",
                         "증빙자료",
                         "비고",
+                        "저장",
                       ].map(label => (
                         <span
-                          className="adoms-review-header-cell"
-                          role="columnheader"
                           key={label}
                           style={{
-                            display: "grid",
-                            placeItems: "center",
-                            padding: "6px 8px",
-                            borderRight: "1px solid #d3dbe0",
+                            padding: 10,
+                            borderRight: "1px solid #d3d8de",
                           }}
                         >
                           {label}
                         </span>
                       ))}
                     </div>
-
-                    {selectedTargets.map(target => {
-                      const key = `${target.id}:${obligation.id}`;
-                      const record = evidence[obligation.id];
-                      const value =
-                        statuses[target.id]?.[obligation.id] ?? "해당없음";
-                      const readonlyCellStyle: CSSProperties = {
-                        display: "flex",
-                        alignItems: "center",
-                        padding: "8px 10px",
-                        borderRight: "1px solid #dce3e6",
-                        background: "#f2f4f4",
-                        color: "#59675f",
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "125px minmax(220px,1.5fr) 150px 150px 125px minmax(180px,1fr) minmax(170px,1fr) 120px",
+                        minHeight: 82,
+                        background: "#fff",
                         fontSize: 11,
-                        overflow: "hidden",
-                      };
-                      return (
-                        <div
-                          className="adoms-review-table-row"
-                          role="row"
-                          key={target.id}
+                      }}
+                    >
+                      <span
+                        style={{ padding: 8, borderRight: "1px solid #dce1e6" }}
+                      >
+                        <select
+                          value={statusDrafts[item.obligationId] || "해당없음"}
+                          onChange={event =>
+                            setStatusDrafts(current => ({
+                              ...current,
+                              [item.obligationId]: event.target
+                                .value as ComplianceStatus,
+                            }))
+                          }
                           style={{
-                            minHeight: 78,
-                            display: "grid",
-                            gridTemplateColumns:
-                              "120px minmax(220px,1.7fr) minmax(115px,.9fr) 115px 140px minmax(190px,1.15fr) minmax(160px,1fr)",
-                            background: "#fff",
-                            borderTop: "1px solid #dce3e6",
+                            width: "100%",
+                            height: 34,
+                            border: "1px solid #bfc6cd",
                           }}
                         >
-                          <span
-                            className="adoms-status-cell"
-                            role="cell"
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              padding: 8,
-                              borderRight: "1px solid #dce3e6",
-                            }}
-                          >
-                            <select
-                              className="adoms-status-select"
-                              aria-label={`${target.name} ${obligation.title} 상태`}
-                              value={value}
-                              onChange={event =>
-                                updateStatus(
-                                  target.id,
-                                  obligation.id,
-                                  event.target.value as ComplianceStatus
-                                )
-                              }
-                              style={{
-                                width: "100%",
-                                height: 33,
-                                border: "1px solid #bfcbd1",
-                                background: "#fff",
-                                padding: "0 7px",
-                                fontSize: 11,
-                              }}
-                            >
-                              {statusOptions.map(option => (
-                                <option key={option}>{option}</option>
-                              ))}
-                            </select>
-                          </span>
-                          <span
-                            className="adoms-note-cell"
-                            role="cell"
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              padding: 8,
-                              borderRight: "1px solid #dce3e6",
-                            }}
-                          >
-                            <textarea
-                              className="adoms-note-input"
-                              aria-label={`${target.name} ${obligation.title} 점검내용`}
-                              value={inspectionNotes[key] ?? ""}
-                              onChange={event =>
-                                saveInspectionNote(key, event.target.value)
-                              }
-                              placeholder="점검 결과 또는 보완 지시를 입력하세요"
-                              style={{
-                                width: "100%",
-                                minHeight: 54,
-                                resize: "vertical",
-                                border: "1px solid #bfcbd1",
-                                padding: 7,
-                                fontSize: 11,
-                                lineHeight: 1.45,
-                              }}
-                            />
-                          </span>
-                          <span
-                            className="adoms-readonly-cell"
-                            role="cell"
-                            style={readonlyCellStyle}
-                          >
-                            {target.name}
-                          </span>
-                          <span
-                            className="adoms-readonly-cell"
-                            role="cell"
-                            style={readonlyCellStyle}
-                          >
-                            {target.department}
-                          </span>
-                          <span
-                            className="adoms-readonly-cell"
-                            role="cell"
-                            style={readonlyCellStyle}
-                          >
-                            {record?.actionDate || "-"}
-                          </span>
-                          <span
-                            className="adoms-readonly-cell"
-                            role="cell"
-                            style={readonlyCellStyle}
-                            title={record?.fileName || "등록 파일 없음"}
-                          >
-                            <span
-                              style={{
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {record?.fileName || "등록 파일 없음"}
-                            </span>
-                          </span>
-                          <span
-                            className="adoms-readonly-cell"
-                            role="cell"
-                            style={{ ...readonlyCellStyle, borderRight: 0 }}
-                          >
-                            {record?.note || "-"}
-                          </span>
-                        </div>
-                      );
-                    })}
+                          {statusOptions.map(status => (
+                            <option key={status}>{status}</option>
+                          ))}
+                        </select>
+                      </span>
+                      <span
+                        style={{ padding: 8, borderRight: "1px solid #dce1e6" }}
+                      >
+                        <textarea
+                          value={noteDrafts[item.obligationId] || ""}
+                          onChange={event =>
+                            setNoteDrafts(current => ({
+                              ...current,
+                              [item.obligationId]: event.target.value,
+                            }))
+                          }
+                          placeholder="점검 결과 또는 보완 지시"
+                          style={{
+                            width: "100%",
+                            minHeight: 58,
+                            border: "1px solid #bfc6cd",
+                            padding: 7,
+                          }}
+                        />
+                      </span>
+                      {[
+                        selectedTarget?.name || "-",
+                        item.department,
+                        item.actionDate || "-",
+                      ].map((value, cellIndex) => (
+                        <span
+                          key={`${value}-${cellIndex}`}
+                          style={{
+                            padding: 10,
+                            borderRight: "1px solid #dce1e6",
+                            background: "#f4f4f6",
+                          }}
+                        >
+                          {value}
+                        </span>
+                      ))}
+                      <span
+                        style={{
+                          padding: 10,
+                          borderRight: "1px solid #dce1e6",
+                          background: "#f4f4f6",
+                        }}
+                      >
+                        {files.length
+                          ? files.map(file => file.originalName).join(" · ")
+                          : "등록 파일 없음"}
+                      </span>
+                      <span
+                        style={{
+                          padding: 10,
+                          borderRight: "1px solid #dce1e6",
+                          background: "#f4f4f6",
+                        }}
+                      >
+                        {item.note || item.actionDetail || "-"}
+                      </span>
+                      <span
+                        style={{
+                          display: "grid",
+                          placeItems: "center",
+                          padding: 8,
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="primary-btn"
+                          disabled={savingId === item.obligationId}
+                          onClick={() => void saveInspection(item)}
+                        >
+                          <Save size={14} />
+                          {savingId === item.obligationId ? "저장 중" : "저장"}
+                        </button>
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -720,13 +675,19 @@ export default function Inspection() {
           );
         })}
       </section>
-      <p
-        className="adoms-review-guidance"
-        style={{ margin: "13px 0 0", color: "#69736b", fontSize: 11 }}
-      >
-        상태와 점검내용만 수정할 수 있으며, 사업장·부서·의무이행
-        일자·증빙자료·비고는 담당자가 등록한 값을 읽기 전용으로 표시합니다.
+      <p style={{ margin: "13px 0 0", color: "#697078", fontSize: 11 }}>
+        상태와 점검내용만 수정합니다. 관리대상·소관·이행일자·증빙·비고는
+        담당자가 같은 의무 ID로 등록한 값을 읽기 전용으로 표시합니다.
       </p>
+      <div style={{ marginTop: 14 }}>
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={() => setStage("scope")}
+        >
+          대상 다시 선택
+        </button>
+      </div>
     </>
   );
 

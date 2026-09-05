@@ -158,7 +158,7 @@ def main():
     parser.add_argument(
         "--facility",
         type=Path,
-        default=DEFAULT_SOURCE_DIR / "데모대상_시설_용인시소관_20260906.csv",
+        default=DEFAULT_SOURCE_DIR / "데모대상_용인시소관_20260906.csv",
     )
     parser.add_argument(
         "--mapping",
@@ -294,7 +294,7 @@ def main():
             "public.ref_obligation",
             ["obl_id", "anchor_unit_id", "title_ko", "detail_ko", "obligation_group", "cycle", "evidence_required", "review_status", "source_version", "display_order", "metadata"],
             obligation_rows,
-            "on conflict (obl_id) do update set anchor_unit_id=excluded.anchor_unit_id, title_ko=excluded.title_ko, detail_ko=excluded.detail_ko, obligation_group=excluded.obligation_group, cycle=excluded.cycle, evidence_required=excluded.evidence_required, review_status=excluded.review_status, source_version=excluded.source_version, display_order=excluded.display_order, metadata=excluded.metadata where public.ref_obligation.review_status <> 'approved'",
+            "on conflict (obl_id) do update set anchor_unit_id=excluded.anchor_unit_id, title_ko=excluded.title_ko, detail_ko=excluded.detail_ko, obligation_group=excluded.obligation_group, cycle=excluded.cycle, evidence_required=excluded.evidence_required, review_status=excluded.review_status, source_version=excluded.source_version, display_order=excluded.display_order, metadata=excluded.metadata where public.ref_obligation.review_status not in ('approved','client_provided')",
         ),
         f"delete from public.ref_managed_target where source_version in ({sql(SOURCE_VERSION)},{sql(SCENARIO_VERSION)});",
         values_statement(

@@ -1,68 +1,76 @@
-# 용인시 시설·의무 매핑 데이터 반영
+# 용인시 의무×시설 핵심 데이터 구축
 
 **원천일:** 2026-09-06  
-**원천 파일:**
+**대상:** 호스팅형 Supabase 프로젝트 `gxpfnszbwvfyogwshvas`
 
-- `데모대상_시설_용인시소관_20260906.csv`: FMS 중 용인시 관할 시설 마스터
-- `의무매핑_시설_용인시_20260906.csv`: 시설별 적용 의무 매핑 결과
-- 기존 Supabase `ref_obligation`: 앞서 적재한 ADOMS 의무 마스터
+## 결론
 
-## 분석 결과
+용인시 서비스의 기준 데이터는 클라이언트가 제공한 세 CSV를 하나의 집합으로 관리한다. **시설 150건**, **전체 의무풀 3,688건**, **시설–의무 매핑 2,906건**이 정본이다. 의무풀 파일은 인용문 안에 줄바꿈이 있어 물리적으로 5,056개 데이터 줄이지만, 표준 CSV 방식으로 파싱하면 헤더를 제외한 논리 레코드는 3,688건이다.
 
-| 항목                               |      결과 |
-| ---------------------------------- | --------: |
-| FMS 시설                           |     150건 |
-| 시설 ID 중복                       |       0건 |
-| 시설별 의무 매핑                   |   2,906건 |
-| 시설-의무 복합키 중복              |       0건 |
-| 매핑된 시설                        | 150/150건 |
-| 매핑 고유 의무 ID                  |      71건 |
-| 동일 의무 ID의 제목·법령·경로 충돌 |       0건 |
-| 법령 종류                          |       8개 |
-| `l2_result=해당` 시설              |      10건 |
-| `검토필요` 시설                    |     138건 |
-| `제외` 시설                        |       2건 |
+시연 시나리오에 필요한 용인경전철 1건과 도급·용역 2건은 원천 CSV에 없는 별도 레코드다. 이 세 대상과 매핑 23건은 `DEMO_VIRTUAL`로 명확히 구분한다. 따라서 원격 참조 계층의 최종 수량은 대상 153건과 매핑 2,929건이다.
 
-시설 종류는 건축물 7, 교량 84, 댐 4, 기타 1, 옹벽 16, 절토사면 3, 상하수도 16, 터널 15, 하천 4건이다. 의무 매핑은 시설당 11·19·23·31건이며 전체 2,906건이 시설 마스터와 조인된다.
+## 원천 파일과 역할
 
-## 데이터 품질 판단
+| 파일                                 | 논리 행 | 기본키             | 역할                                                      |
+| ------------------------------------ | ------: | ------------------ | --------------------------------------------------------- |
+| `데모대상_용인시소관_20260906.csv`   |     150 | `facilNo`          | 용인시가 실질적으로 보유·운영·관리하는 FMS 시설 마스터    |
+| `의무풀_용인시관련법령_20260906.csv` |   3,688 | `obl_id`           | 용인시에 적용 가능한 중대재해처벌법 및 관계법령 의무 전체 |
+| `의무매핑_시설_용인시_20260906.csv`  |   2,906 | `facilNo + obl_id` | 시설마다 적용되는 의무의 다대다 연결                      |
 
-시설·의무 조인은 완전하지만 법적 적용 확정 데이터는 아니다. 150개 시설 중 138개가 `검토필요`이며 연면적은 144건에서 비어 있다. 따라서 화면에서 CSV의 `l2_result`, `l2_confidence`, `l2_need_data`를 그대로 보여주며 `검토필요`를 `해당`으로 승격하지 않는다.
+세 파일의 검증 결과 시설 ID, 의무 ID, 시설–의무 복합키 중복은 모두 0건이다. 매핑에 등장하는 시설 150개는 시설 마스터와 완전히 일치한다. 매핑이 참조하는 고유 의무 71개는 전체 의무풀에 모두 존재하며 제목, 법령명, 조문 경로도 일치한다.
 
-CSV의 71개 의무 ID는 기존 `seed_adoms.sql`의 축소 의무 마스터와 겹치지 않는다. 그러나 매핑 파일 자체에 `obl_id`, `law_name`, `unit_path`, `obl_title`, `cycle`, `evidence`, 근거와 신뢰도가 포함되어 있고 동일 ID의 값 충돌이 없으므로, 시연용 의무 마스터를 재구성할 수 있다. 이 데이터의 `review_status`는 `client_mapped`, `source_version`은 `yongin-fms-20260906`으로 기록한다.
+## Supabase 투영
 
-## 경전철·도급 공백과 보완 원칙
+| 원천 개념          | Supabase 리소스                 | 저장 원칙                                                     |
+| ------------------ | ------------------------------- | ------------------------------------------------------------- |
+| 전체 의무풀        | `ref_obligation`                | `obl_id`, `law_id`, `doc_id`, `unit_path`, 조문·인용문을 보존 |
+| 시설 마스터        | `ref_managed_target`            | `FMS:{facilNo}`를 `target_ref`로 사용                         |
+| 시설–의무 매핑     | `ref_managed_target_obligation` | `target_ref + obl_id`를 복합키로 사용                         |
+| 업무 대상          | `target`                        | 참조 대상 중 `l2_result <> '제외'`인 151건을 운영 투영        |
+| 대상별 업무 의무   | `target_obligation`             | 같은 `obl_id`로 이행시기·실적·점검을 연결                     |
+| 폐쇄루프 읽기 모델 | `v_facility_workflow`           | `target_ref + obl_id + period_key`로 화면을 통합              |
 
-두 CSV에는 `경전철`, `에버라인`, 실제 계약원장이 없다. 이는 단순 누락으로만 보면 안 된다. **용인경전철은 FMS에서 관리되는 시설물이 아니라 도시철도법 제2조제2호의 궤도에 의한 교통시설·교통수단이며, 중대재해처벌법 제2조제5호와 시행령 별표 2·3에서 연결되는 공중교통수단 트랙으로 관리한다.** 도급 관련 의무는 `OBL-0000027 도급 기준절차`가 실제 시설 10건에 매핑되어 있으나, 실제 계약 레코드는 없다.
+전체 의무풀의 법령·문서·조문 식별자는 향후 그래프 DB 투영에 그대로 사용할 수 있다. 현재 시연에서는 별도 GraphDB 또는 외부 Graph API가 필요하지 않다.
 
-시연 시나리오를 완주하기 위해 다음 3개 대상만 보완한다.
+## 경전철과 도급 데이터
 
-| 대상                              | 분류           | 출처           |
-| --------------------------------- | -------------- | -------------- |
-| 용인경전철(에버라인)              | 공중교통수단   | `DEMO_VIRTUAL` |
-| OO로 확·포장 공사                 | 도급·용역·위탁 | `DEMO_VIRTUAL` |
-| 용인경전철 차량기지 시설관리 용역 | 도급·용역·위탁 | `DEMO_VIRTUAL` |
+용인경전철은 FMS 시설물이 아니다. 도시철도법상 궤도에 의한 **공중교통수단**으로 분류한다. 현재 원천 CSV에는 경전철 및 실제 계약원장이 없으므로 다음 레코드는 시연 전용이다.
 
-가상 레코드는 `source_kind=DEMO_VIRTUAL`, `is_demo_virtual=true`, `source_version=client-scenario-v1-20260906`으로 저장하고 화면에 **가상 데이터** 배지를 표시한다. 실제 자산·계약 원장이 오면 동일 source ID를 교체한다.
+| 대상                              | 분류           | 출처           | 교체 조건                   |
+| --------------------------------- | -------------- | -------------- | --------------------------- |
+| 용인경전철(에버라인)              | 공중교통수단   | `DEMO_VIRTUAL` | 운영주체·관리부서 정본 수신 |
+| OO로 확·포장 공사                 | 도급·용역·위탁 | `DEMO_VIRTUAL` | 실제 계약원장 수신          |
+| 용인경전철 차량기지 시설관리 용역 | 도급·용역·위탁 | `DEMO_VIRTUAL` | 실제 계약원장 수신          |
 
-경전철 5개와 도급 8개 시나리오 의무는 클라이언트 시나리오에 명시된 ID·제목을 사용하되 정본 조문 앵커가 없으므로 `review_status=demo_virtual`로 저장한다. 법적 확정이나 검수 완료로 표시하지 않는다. CSV에서 직접 제공된 `OBL-0000027`은 `client_mapped`로 유지한다.
+## 재현 절차
 
-## 구현 구조
-
-- `ref_managed_target`: FMS 시설과 시나리오 보완 대상을 함께 조회하는 읽기 전용 참조 테이블
-- `ref_managed_target_obligation`: 관리대상과 의무의 읽기 전용 조인 테이블
-- `v_managed_target_summary`: 대상별 매핑·해당·검토필요 건수를 제공하는 화면용 뷰
-- `ref_obligation`: CSV의 71개 의무와 시나리오 보완 의무를 기존 ADOMS 식별자로 보존
-- `target` 이하 업무 테이블: 실제 저장·이행·증빙·점검 기록용으로 계속 분리
-
-## 생성·검증
-
-Windows에서는 두 원천 CSV를 `C:\Yongin_test\data\source\`에 둔다. Linux·샌드박스에서는 `YONGIN_DATA_DIR` 환경변수로 같은 원천 폴더를 지정할 수 있다.
+Windows 원천 경로는 `C:\Yongin_test\data\source\`로 고정한다. 세 CSV를 이 폴더에 둔 후 다음 명령으로 SQL을 다시 생성한다.
 
 ```bash
-python3 scripts/analyze-facility-import.py
+python3 scripts/build-yongin-core-data.py
 python3 scripts/build-facility-seed.py
 python3 /home/ubuntu/skills/compliance-demo-factory/scripts/validate_sql.py .
 ```
 
-생성 파일은 `supabase/seed_facility_catalog.sql`이며 손으로 수정하지 않는다.
+호스팅형 Supabase에는 다음 순서로 적용한다.
+
+1. `supabase/migrations/001_demo_schema.sql`
+2. `supabase/migrations/002_security_and_index_hardening.sql`
+3. `supabase/migrations/004_remove_project_plan_progress.sql`
+4. `supabase/migrations/005_yongin_cityhall_only.sql`
+5. `supabase/migrations/006_facility_catalog.sql`
+6. `supabase/migrations/007_facility_workflow_bridge.sql`
+7. `supabase/migrations/008_yongin_obligation_pool.sql`
+8. `supabase/seed.sql`
+9. `supabase/seed_adoms.sql`
+10. `supabase/seed_facility_catalog.sql`
+11. `supabase/seed_yongin_obligation_pool.sql`
+12. `supabase/seed_facility_workflow.sql`
+
+모든 시드는 `on conflict` 기반으로 재실행할 수 있다. 시설 업무 시드는 사용자가 바꾼 이행시기·실적·증빙·점검 결과를 덮어쓰지 않는다. 시설 시드도 `client_provided` 전체 의무풀을 축소 매핑 데이터로 되돌리지 않는다.
+
+## References
+
+[1]: https://github.com/simulacre-8/Yongin/blob/main/scripts/build-yongin-core-data.py "Yongin core data validation and seed generator"
+[2]: https://github.com/simulacre-8/Yongin/blob/main/supabase/migrations/008_yongin_obligation_pool.sql "Yongin obligation pool schema migration"
+[3]: https://github.com/simulacre-8/Yongin/blob/main/supabase/migrations/007_facility_workflow_bridge.sql "Facility workflow bridge migration"

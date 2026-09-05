@@ -2,9 +2,9 @@
 
 화면명세 ZIP의 공공기관 UI를 React로 유사 재구성한 **법령 적용 가능성 판정·의무이행·점검 폐쇄 루프 영업 시연**입니다. 최우선 첫 화면은 Supabase에 투영한 ADOMS 지식그래프 데이터에서 승인 규칙·의무·조문을 조회하고, 상시근로자 수·시설 연면적 변화에 따라 **L1 법령 후보 → L2 대상 후보 → L3 의무 후보**와 근거 경로를 다시 계산합니다.
 
-첫 적용범위 판정은 용인시청 가정값으로 시작합니다. 관리대상과 법 의무사항 화면은 Supabase에서 **용인시 관할 FMS 시설 150건, 시연 대상 3건, 대상–의무 매핑 2,929건**을 조회합니다. 법 의무사항 목록에서는 공중이용시설·공중교통수단 151개와 대상별 의무 건수가 보이고, 행 선택 시 관계법령·근거·의무 상세가 나타납니다. FMS 시설물이 아닌 용인경전철은 도시철도법상 **공중교통수단**으로 별도 분류했고, 실제 계약원장이 없는 경전철 운영·유지관리 도급 2건은 `시연값`으로 명확히 표시했습니다. 좌측 업무 메뉴는 자동으로 접지 않고 `#090909` 외곽 컨테이너 안에 고정합니다.
+첫 적용범위 판정은 용인시청 가정값으로 시작합니다. 기준 데이터는 클라이언트가 제공한 **시설 150건, 용인시 전체 의무풀 3,688건, 시설–의무 매핑 2,906건**이다. 시나리오 보완 대상 3건과 매핑 23건을 `DEMO_VIRTUAL`로 분리해 원격 참조 계층은 대상 153건·매핑 2,929건이 된다. `l2_result <> '제외'`인 대상 151건과 의무 2,891건은 업무 계층으로 투영되며, 이행시기 → 실적·증빙 → 점검 → 총괄표가 `target_ref + obl_id + 2026-H2`로 이어진다. FMS 시설물이 아닌 용인경전철은 도시철도법상 **공중교통수단**으로 별도 분류했다.
 
-> 이 앱의 자동 결과는 축소·검수된 규칙에 의한 적용 가능성 후보이며 최종 법률 판단 또는 용인시 전체 적용 의무 목록이 아닙니다.
+> 전체 의무풀은 클라이언트 제공 원천을 보존하지만, 화면의 자동 적용범위 결과는 검수된 시연 규칙에 의한 후보이다. 최종 법률 판단으로 사용해서는 안 된다.
 
 ## 실행
 
@@ -63,13 +63,19 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 3. `supabase/migrations/004_remove_project_plan_progress.sql`
 4. `supabase/migrations/005_yongin_cityhall_only.sql`
 5. `supabase/migrations/006_facility_catalog.sql`
-6. `supabase/seed.sql`
-7. `supabase/seed_adoms.sql`
-8. `supabase/seed_facility_catalog.sql`
+6. `supabase/migrations/007_facility_workflow_bridge.sql`
+7. `supabase/migrations/008_yongin_obligation_pool.sql`
+8. `supabase/seed.sql`
+9. `supabase/seed_adoms.sql`
+10. `supabase/seed_facility_catalog.sql`
+11. `supabase/seed_yongin_obligation_pool.sql`
+12. `supabase/seed_facility_workflow.sql`
 
 `seed_adoms.sql`은 스키마 변경 없이 ADOMS 그래프 식별자를 보존한 법령 104건·조문 304건·의무 216건·규칙 128건·연결 128건을 추가합니다. 실제 SQL에서 `demo_approved=true`인 ADOMS 규칙·연결은 31건이며, 첫 화면에서는 용인시청 시연과 직접 관련된 승인 규칙 4개를 실행합니다.
 
-`seed_facility_catalog.sql`은 클라이언트 CSV의 FMS 시설 150건과 의무 조인 2,906건을 적재하고, 시나리오에 필요한 공중교통수단 1건·도급 2건과 해당 의무 23건을 `DEMO_VIRTUAL`로 분리해 총 153개 대상·2,929개 매핑을 구성합니다.
+`seed_yongin_obligation_pool.sql`은 클라이언트 CSV의 전체 의무 3,688건을 적재한다. 파일의 5,056개 데이터 물리 줄은 인용문 내부 줄바꿈을 포함하며, 표준 CSV 파서 기준 논리 레코드는 3,688건이다. `law_id`·`doc_id`·`unit_path`·`obl_id`를 보존한다.
+
+`seed_facility_catalog.sql`은 FMS 시설 150건과 의무 조인 2,906건을 적재하고, 공중교통수단 1건·도급 2건과 해당 의무 23건을 `DEMO_VIRTUAL`로 분리해 총 153개 대상·2,929개 매핑을 구성합니다. `seed_facility_workflow.sql`은 제외 대상을 빼고 151개 대상·2,891개 의무를 실제 업무 테이블에 idempotent 투영합니다.
 
 ## 검증
 
@@ -81,7 +87,9 @@ pnpm exec vitest run client/src/lib/supabase.secrets.test.ts
 pnpm check:supabase
 pnpm smoke:supabase
 pnpm smoke:adoms
+pnpm smoke:core
 pnpm smoke:facility
+pnpm smoke:workflow
 ```
 
 ## ADOMS 데이터 연동
@@ -100,9 +108,10 @@ pnpm smoke:facility
 - `docs/DB_GRAPH_HANDOFF.md`: 축소 법령 데이터와 RDB/그래프 경계
 - `docs/SUPABASE_RUNBOOK.md`: 원격 DB·RLS·Storage·스모크 테스트 운영 기록
 - `docs/FACILITY_DATA_IMPORT.md`: FMS 시설·의무 매핑·공중교통수단·도급 시연값 구분
+- `docs/YONGIN_CORE_DATA_VERIFICATION.md`: 세 CSV 해시·논리 행·조인 무결성·원격 적재 검증
 - `docs/REDESIGN_BRIEF_20260906.md`: 초기 용인시 브랜드 톤 복원과 공통 디자인 토큰
 - `docs/FONT_SIZE_SPEC.md`: Inter·Noto Sans KR 기반 통일 폰트 규격
-- `docs/CURRENT_DATA_SCREEN_GAP_20260906.md`: 화면별 원격 DB·로컬 저장·미구현 기능 구분
+- `docs/CURRENT_DATA_SCREEN_GAP_20260906.md`: 원격 연결 완료 범위와 남은 local-only 화면 구분
 - `docs/FACILITY_OBLIGATION_UI_VERIFICATION.md`: 시설 151개·의무 2,929개 화면 연결과 상세 클릭 검증
 - `scripts/build_demo_projection.py`: 승인 목록 기준 RDB·그래프 투영 ETL
 

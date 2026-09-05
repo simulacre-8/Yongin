@@ -1,45 +1,66 @@
 # 검증 기록
 
-**검증일:** 2026-09-05
+**검증일:** 2026-09-06
 
-| 검증                          | 결과                                                                                           |
-| ----------------------------- | ---------------------------------------------------------------------------------------------- |
-| TypeScript `pnpm check`       | 통과                                                                                           |
-| Production build `pnpm build` | 통과                                                                                           |
-| 적용판정 단위 테스트          | 5개 통과: 20~49명 AND, 400㎡ 또는 50명 OR, 50명 경계, 중복 병합                                |
-| ADOMS 원격 데이터             | 법령 104·조문 304·의무 216·규칙 128·연결 128건 추가 적재                                       |
-| ADOMS 승인 범위               | 실제 `demo_approved=true` 규칙·연결 31건; 첫 화면 선택 실행 4건                                |
-| ADOMS 화면 스모크             | 승인 규칙 4·연결 4·의무 2·원문 조문 2 조회, 판정 스냅숏 4건 저장 후 원복 통과                  |
-| Supabase 공개키 보안 테스트   | 3개 통과: Auth API, 서비스키 비노출, private RPC 비노출                                        |
-| Supabase 필수 리소스          | 핵심 테이블 19개와 비공개 버킷, 총 20개 리소스 준비 완료                                       |
-| Supabase CRUD·Storage         | Target CRUD, Storage 왕복, 감사로그 3건 및 임시 데이터 정리 통과                               |
-| 내부 추진현황 제거            | UI 라우트·메뉴·소스 삭제, 원격 3개 테이블과 Realtime 등록 제거                                 |
-| 첫 화면                       | `/`와 `/applicability`에서 Supabase ADOMS 출처, 인원·면적 변경에 따른 L1/L2/L3 후보·근거 표시  |
-| 기존 시연 흐름                | `/dashboard`, `/targets`, `/laws`, `/obligations`, `/evidence`, `/inspection`, `/summary` 유지 |
-| 화면 단순화                   | PPT형 경영목표·경영방침 상단 줄 제거                                                           |
-| 좌측 메뉴                     | 자동 접기 제거, `#090909` 외곽과 밝은 내부 컨테이너로 고정                                     |
-| 이행현황                      | 카드 간격 24px, 일반 보더 1px, 기한초과 보더·수치 주조색, 동일 숫자 위계 적용                  |
-| 관리대상                      | Supabase FMS 시설 150건·공중교통수단 1건·도급 2건을 분류 탭으로 표시                           |
-| 시설 의무 매핑                | CSV 2,906건과 명시적 시연값 23건, 총 2,929건 원격 적재                                         |
-| 법 의무사항 원격 조회         | 공중이용시설·공중교통수단 151개와 대상별 의무 건수 표시, 고기상수도 31개 상세 조인 확인        |
-| 시설 의무 브라우저 검증       | 목록 행 선택 후 의무분류·관계법령·근거·의무사항·이행시기 표 전환 확인                          |
-| 단일 대상 종속 데이터         | 적용판정 4건, 대상의무·이행·점검범위·점검결과 각 10건                                          |
-| 민감정보 검사                 | GitHub PAT, JWT anon key, 실제 publishable/비공개 Graph API 키를 추적 파일에 포함하지 않음     |
-| Supabase Security Advisor     | 경고 0건                                                                                       |
-| Supabase Performance Advisor  | 신규 DB의 미사용 인덱스 INFO만 존재                                                            |
+## 핵심 결과
 
-## 적용범위 판정 안전장치
+| 검증                      | 결과                                                      |
+| ------------------------- | --------------------------------------------------------- |
+| 클라이언트 시설 CSV       | 150건, 고유 ID 150, 중복 0                                |
+| 클라이언트 전체 의무풀    | 논리 레코드 3,688건, 고유 `obl_id` 3,688, 중복 0          |
+| 클라이언트 시설–의무 매핑 | 2,906건, 고유 복합키 2,906, 중복 0                        |
+| 매핑 조인 완전성          | 시설 150/150, 고유 의무 71/71, 제목·법령·조문 경로 충돌 0 |
+| 원격 전체 의무풀          | `source_version=yongin-obligation-pool-20260906` 3,688건  |
+| 원격 참조 대상            | 153건 = FMS 150 + `DEMO_VIRTUAL` 3                        |
+| 원격 참조 매핑            | 2,929건 = CSV 2,906 + 시나리오 23                         |
+| 운영 workflow             | 대상 151건, 대상별 의무 2,891건                           |
+| 고아 매핑                 | 대상 0, 의무 0                                            |
+| TypeScript                | `pnpm check` 통과                                         |
+| Production build          | `pnpm build` 통과                                         |
+| 단위 테스트               | 전체 Vitest 통과                                          |
+| Supabase CRUD·Storage     | 생성·조회·수정·삭제와 비공개 파일 왕복 통과               |
+| 시설 업무 스모크          | 이행시기·실적·증빙·점검·총괄 뷰 왕복 및 정리 통과         |
+| Storage 잔존 검사         | `evidence-private/demo/smoke/` 0건                        |
+| 민감정보 검사             | PAT, JWT, service-role, 비공개 Graph API 키 추적 파일 0건 |
 
-첫 화면은 ‘규칙상 조건 충족 후보’, ‘프로필 연관·조건 확인 필요’, ‘원천 검수 필요’를 동시에 표시한다. 검수된 축소 시연 규칙만 실행하며, 조건 불충족은 법적 비적용 확정이 아니라 검토 보류로 표시한다. 각 상세에는 규칙 ID, 조건, 입력값, 근거 단위 ID, 인용문과 판정 설명을 제공한다.
+## 원천 파일 판독
 
-첫 화면은 Supabase에 투영한 ADOMS `ref_rule`·`ref_rule_obligation`·`ref_obligation`·`ref_unit`을 실제 조회한다. 원격 조회 실패 시에만 동일한 `rul_id`·`unit_id`·`obl_id`를 가진 내장 폴백 4개를 사용한다. 판정 저장 시 `facts_effective_at`과 시스템 `recorded_at`을 분리해 `target_applicability.input_snapshot`에 함께 기록한다.
+의무풀 파일은 물리적으로 헤더 포함 5,057줄이다. `anchor_text`의 따옴표 안에 줄바꿈이 포함되어 있어 물리 줄 수는 의무 수가 아니다. 표준 CSV 파서로 읽은 논리 레코드는 3,688건이며 이 값을 원격 적재 기준으로 사용했다.
 
-1600×1000 전체 화면 캡처에서 `/`와 `/applicability`가 동일한 판정 첫 화면을 표시했고, 용인시 브랜드 셸 안에서 입력·L1/L2/L3 요약·3구간 후보·근거 패널이 한 화면에 렌더링됐다. 기존 `/dashboard`, `/laws`, `/obligations` 화면도 정상 유지됐다.
+세 CSV의 SHA-256, 논리 행 수, 키 검증 결과는 `docs/YONGIN_CORE_DATA_VERIFICATION.md`에 기록했다. 재현 스크립트 `scripts/build-yongin-core-data.py`는 수량, 중복, 매핑 완전성, 제목·법령·조문 경로 충돌을 모두 검사한 뒤 전체 의무풀 시드를 생성한다.
 
-## 원격 DB 상태
+## 업무 폐쇄루프
 
-Supabase 프로젝트 `gxpfnszbwvfyogwshvas`에는 법령·대상·적용판정·의무·이행·증빙·점검·감사 핵심 스키마가 유지된다. 웹 추진현황용 `project_plan`, `project_plan_item`, `project_plan_event`는 사용자 요청에 따라 제거했다.
+`007_facility_workflow_bridge.sql`은 읽기 전용 시설 참조와 쓰기 업무 계층을 연결한다. `target.target_ref`와 `target_obligation.obl_id`가 원천 ID를 유지한다. `v_facility_workflow`는 `target_ref + obl_id + period_key`를 기준으로 기한, 이행, 증빙 연결점, 점검 결과를 제공한다.
 
-시설 참조 계층은 `ref_managed_target`, `ref_managed_target_obligation`으로 분리했다. 원격 검증 기준 대상 153건 중 150건은 FMS 원천이고 3건은 시연값이다. 용인경전철은 FMS 시설물이 아닌 `공중교통수단`으로 분류했으며 경전철 도급 2건은 실제 계약원장 연계 전 `DEMO_VIRTUAL`로 보존한다.
+대표 브라우저 검증은 `고기상수도(FMS:WS2013-0000051)`와 `긴급안전점검의 실시(OBL-0002590)`로 수행했다. 실적 저장 성공 토스트를 확인한 후 원격 뷰에서 같은 `target_obligation_id`, `period_key=2026-H2`, `compliance_status=NONE`, `action_date=2026-09-05`를 재조회했다. 이 레코드는 시연에서 결과가 실제로 남는 것을 보여주기 위해 유지한다.
 
-법 의무사항 화면은 두 참조 테이블과 `ref_obligation`을 결합한다. 1600×900 목록에서 `Supabase 시설 151건`과 각 대상의 적용 의무 건수를 확인했고, 고기상수도 선택 시 시설물안전법·중대재해처벌법·수도법 그룹의 원격 의무 31건이 표시됐다. 이행시기 입력은 현재 대상별 localStorage이며 원격 업무기록 승격은 별도 과제다.
+`facility-workflow-smoke.ts`는 테스트 전의 이행시기 값을 기억한다. 이후 이행시기 업데이트, `compliance_record` upsert, 비공개 Storage 업로드, `evidence` 메타데이터 저장, `inspection_scope`, `inspection_result`, 총괄 뷰 재조회를 수행한다. 마지막에는 테스트 레코드와 파일을 삭제하고 이행시기를 원복한다.
+
+## 화면 연결 상태
+
+| 화면               | 원격 연결                          | 저장                                             |
+| ------------------ | ---------------------------------- | ------------------------------------------------ |
+| 적용범위 판정      | ADOMS 법령·조문·규칙·의무          | `target_applicability`                           |
+| 관리대상 현황      | `v_managed_target_summary`         | 참조 읽기 전용                                   |
+| 법 의무사항        | 시설 매핑 + 전체 의무풀 + workflow | `target_obligation.due_value`                    |
+| 의무이행(실적증빙) | 시설별 실제 `obl_id`               | `compliance_record`, private Storage, `evidence` |
+| 이행점검 및 조치   | 같은 대상·의무·기간                | `inspection_scope`, `inspection_result`          |
+| 점검 총괄표        | `v_facility_workflow`              | 점검 우선, 이행상태 보조 집계                    |
+| 이행현황           | 레거시 시연 집계                   | 아직 localStorage 중심                           |
+
+공통 LNB와 네 업무 화면은 동일한 `selectedTargetId`를 사용한다. 고기상수도를 기본 시설 업무 대상으로 선택하면 법 의무사항, 실적증빙, 점검, 총괄표에 같은 대상이 유지된다.
+
+## 상태 집계 정책
+
+총괄표는 점검결과가 있으면 `inspection_result.status`를 우선한다. 점검결과가 없고 이행기록이 있으면 `compliance_record.status`를 사용한다. 두 값이 모두 없으면 `해당없음(-)`으로 표시한다. 이행률 분모에서는 `해당없음`을 제외한다.
+
+## 남은 범위
+
+전체 의무풀과 시설별 매핑은 원격 DB에 구축됐다. 남은 주요 갭은 대시보드의 업무 DB 집계, 도급 계약원장 상세, 조직·인사 검색, 결재·반려·잠금, 메시지·조치지시 이력이다. 경전철과 도급 2건은 실제 원천을 받을 때까지 `DEMO_VIRTUAL` 표시를 유지한다.
+
+## References
+
+[1]: https://github.com/simulacre-8/Yongin/blob/main/docs/YONGIN_CORE_DATA_VERIFICATION.md "Yongin core data verification report"
+[2]: https://github.com/simulacre-8/Yongin/blob/main/scripts/facility-workflow-smoke.ts "Facility workflow smoke test"
+[3]: https://github.com/simulacre-8/Yongin/blob/main/supabase/migrations/007_facility_workflow_bridge.sql "Facility workflow bridge migration"
