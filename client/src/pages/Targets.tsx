@@ -694,20 +694,25 @@ export default function Targets() {
               fontWeight: 800,
             }}
           >
-            {["번호", "의무 ID", "법령", "의무", "근거", "주기·증빙"].map(
-              label => (
-                <span
-                  key={label}
-                  style={{
-                    ...tableCellStyle,
-                    display: "grid",
-                    placeItems: "center",
-                  }}
-                >
-                  {label}
-                </span>
-              )
-            )}
+            {[
+              "번호",
+              "의무 ID",
+              "법령",
+              "의무",
+              "근거(법령·조문)",
+              "주기·증빙",
+            ].map(label => (
+              <span
+                key={label}
+                style={{
+                  ...tableCellStyle,
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                {label}
+              </span>
+            ))}
           </div>
           {targetObligations.map((obligation, index) => (
             <div
@@ -736,7 +741,9 @@ export default function Targets() {
               <span style={{ ...tableCellStyle, fontWeight: 700 }}>
                 {obligation.title}
               </span>
-              <span style={tableCellStyle}>{obligation.article}</span>
+              <span style={tableCellStyle}>
+                {obligation.lawName} {obligation.article}
+              </span>
               <span style={tableCellStyle}>
                 {obligation.scheduleType === "half"
                   ? "반기"

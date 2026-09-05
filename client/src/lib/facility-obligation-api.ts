@@ -22,6 +22,9 @@ type ObligationRow = {
   title_ko: string;
   detail_ko: string | null;
   obligation_group: string;
+  law_name: string | null;
+  unit_path: string | null;
+  article_no: string | null;
   cycle: string | null;
   evidence_required: boolean;
   review_status: string;
@@ -58,6 +61,39 @@ export function cycleToSchedule(cycle?: string | null): {
     : { scheduleType: "month", defaultDue: "2026-09" };
 }
 
+export function formatLegalArticlePath(
+  unitPath?: string | null,
+  articleNo?: string | null
+): string {
+  const rawPath = String(unitPath ?? "").trim();
+  if (/^제\d+조/.test(rawPath)) return rawPath;
+
+  const labels = rawPath
+    .split("/")
+    .map(segment => {
+      const article = segment.match(/^a(\d+)(?:g(\d+))?$/i);
+      if (article) {
+        return `제${article[1]}조${article[2] ? `의${article[2]}` : ""}`;
+      }
+      const paragraph = segment.match(/^p(\d+)$/i);
+      if (paragraph) return `제${paragraph[1]}항`;
+      const item = segment.match(/^n(\d+)$/i);
+      if (item) return `제${item[1]}호`;
+      return "";
+    })
+    .filter(Boolean);
+
+  if (labels.length > 0) return labels.join(" ");
+
+  const normalizedArticleNo = String(articleNo ?? "")
+    .trim()
+    .replace(/^제/, "")
+    .replace(/조$/, "");
+  return /^\d+(?:의\d+)?$/.test(normalizedArticleNo)
+    ? `제${normalizedArticleNo}조`
+    : "조문 확인 필요";
+}
+
 export function joinMappedObligations(
   mappings: MappingRow[],
   masters: ObligationRow[]
@@ -68,6 +104,11 @@ export function joinMappedObligations(
     .map(mapping => {
       const master = masterById.get(mapping.obl_id);
       const schedule = cycleToSchedule(mapping.cycle ?? master?.cycle);
+      const lawName = mapping.law_name || master?.law_name || "관계 법령";
+      const article = formatLegalArticlePath(
+        master?.unit_path || mapping.unit_path,
+        master?.article_no
+      );
       const detailParts = Array.from(
         new Set(
           [
@@ -85,8 +126,8 @@ export function joinMappedObligations(
         group: master?.obligation_group || mapping.layer || "관계 법령상 의무",
         title: master?.title_ko || mapping.obl_id,
         detail: detailParts.join(" · ") || "시설별 적용 의무",
-        lawName: mapping.law_name,
-        article: mapping.unit_path || mapping.map_basis || "근거 경로 확인",
+        lawName,
+        article,
         scheduleType: schedule.scheduleType,
         defaultDue: schedule.defaultDue,
         layer: mapping.layer,
@@ -164,7 +205,7 @@ export async function loadTargetObligations(
   const { data: masterData, error: masterError } = await supabase
     .from("ref_obligation")
     .select(
-      "obl_id,title_ko,detail_ko,obligation_group,cycle,evidence_required,review_status,display_order"
+      "obl_id,title_ko,detail_ko,obligation_group,law_name,unit_path,article_no,cycle,evidence_required,review_status,display_order"
     )
     .in("obl_id", obligationIds)
     .limit(500);
