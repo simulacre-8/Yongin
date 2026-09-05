@@ -1,0 +1,16 @@
+{
+  "source_version": "adoms-fact-20260901+official-law-20260906",
+  "official_checked_at": "2026-09-06",
+  "canonical_obligations": 89,
+  "cityhall_aliases": 10,
+  "source_rows": 100,
+  "documents": 13,
+  "official_matches": 13,
+  "official_errors": {},
+  "source_kinds": {
+    "CLIENT_ADOMS": 89,
+    "DEMO_ALIAS": 11
+  },
+  "output": "supabase/seed_legal_source_popup.sql",
+  "output_bytes": 74095
+}

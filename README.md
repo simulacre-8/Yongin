@@ -45,7 +45,7 @@ pnpm dev
 | --------------------- | ------------------------------------------------------ |
 | `/`, `/applicability` | 프로필·인원·면적 변화에 따른 L1/L2/L3 후보와 근거 경로 |
 | `/dashboard`          | 역할별 대시보드와 집계                                 |
-| `/targets`            | 관리대상 검색·선택                                     |
+| `/targets`            | 관리대상 검색·선택·법령 조문 원문·개정/시행일 팝업     |
 | `/laws`               | 핵심 법령 축소본 검색·근거                             |
 | `/obligations`        | 검수된 대상별 의무와 이행시기                          |
 | `/evidence`           | 조치일자·상태·증빙·비고                                |
@@ -65,17 +65,21 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 5. `supabase/migrations/006_facility_catalog.sql`
 6. `supabase/migrations/007_facility_workflow_bridge.sql`
 7. `supabase/migrations/008_yongin_obligation_pool.sql`
-8. `supabase/seed.sql`
-9. `supabase/seed_adoms.sql`
-10. `supabase/seed_facility_catalog.sql`
-11. `supabase/seed_yongin_obligation_pool.sql`
-12. `supabase/seed_facility_workflow.sql`
+8. `supabase/migrations/009_legal_source_popup.sql`
+9. `supabase/seed.sql`
+10. `supabase/seed_adoms.sql`
+11. `supabase/seed_facility_catalog.sql`
+12. `supabase/seed_yongin_obligation_pool.sql`
+13. `supabase/seed_facility_workflow.sql`
+14. `supabase/seed_legal_source_popup.sql`
 
 `seed_adoms.sql`은 스키마 변경 없이 ADOMS 그래프 식별자를 보존한 법령 104건·조문 304건·의무 216건·규칙 128건·연결 128건을 추가합니다. 실제 SQL에서 `demo_approved=true`인 ADOMS 규칙·연결은 31건이며, 첫 화면에서는 용인시청 시연과 직접 관련된 승인 규칙 4개를 실행합니다.
 
 `seed_yongin_obligation_pool.sql`은 클라이언트 CSV의 전체 의무 3,688건을 적재한다. 파일의 5,056개 데이터 물리 줄은 인용문 내부 줄바꿈을 포함하며, 표준 CSV 파서 기준 논리 레코드는 3,688건이다. `law_id`·`doc_id`·`unit_path`·`obl_id`를 보존한다.
 
 `seed_facility_catalog.sql`은 FMS 시설 150건과 의무 조인 2,906건을 적재하고, 공중교통수단 1건·도급 2건과 해당 의무 23건을 `DEMO_VIRTUAL`로 분리해 총 153개 대상·2,929개 매핑을 구성합니다. `seed_facility_workflow.sql`은 제외 대상을 빼고 151개 대상·2,891개 의무를 실제 업무 테이블에 idempotent 투영합니다.
+
+`seed_legal_source_popup.sql`은 관리대상 화면에서 사용하는 ADOMS 정식 조문 원문 100행과 법령 문서 13건을 적재합니다. 용인시청 로컬 의무 `OBL-01`~`OBL-10`은 별칭 브리지로 정식 `unit_id`에 연결되며 `OBL-10`은 제6조·제11조 두 원문을 함께 보여준다. 법령 최근 개정일·현행법령 시행일은 2026-09-06 국가법령정보센터 조회 스냅숏이고, 조문 효력일과 원문은 ADOMS 사실층 기준이다.
 
 ## 검증
 
@@ -89,6 +93,7 @@ pnpm smoke:supabase
 pnpm smoke:adoms
 pnpm smoke:core
 pnpm smoke:facility
+pnpm smoke:legal-source
 pnpm smoke:workflow
 ```
 
@@ -109,6 +114,7 @@ pnpm smoke:workflow
 - `docs/SUPABASE_RUNBOOK.md`: 원격 DB·RLS·Storage·스모크 테스트 운영 기록
 - `docs/FACILITY_DATA_IMPORT.md`: FMS 시설·의무 매핑·공중교통수단·도급 시연값 구분
 - `docs/YONGIN_CORE_DATA_VERIFICATION.md`: 세 CSV 해시·논리 행·조인 무결성·원격 적재 검증
+- `docs/LEGAL_SOURCE_POPUP.md`: ADOMS 원문·국가법령정보센터 날짜·별칭 연결 기준
 - `docs/REDESIGN_BRIEF_20260906.md`: 초기 용인시 브랜드 톤 복원과 공통 디자인 토큰
 - `docs/FONT_SIZE_SPEC.md`: Inter·Noto Sans KR 기반 통일 폰트 규격
 - `docs/CURRENT_DATA_SCREEN_GAP_20260906.md`: 원격 연결 완료 범위와 남은 local-only 화면 구분

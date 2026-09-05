@@ -20,6 +20,8 @@
 | 단위 테스트               | 전체 Vitest 통과                                          |
 | Supabase CRUD·Storage     | 생성·조회·수정·삭제와 비공개 파일 왕복 통과               |
 | 시설 업무 스모크          | 이행시기·실적·증빙·점검·총괄 뷰 왕복 및 정리 통과         |
+| 법령 원문 스모크          | 용인시청 10개 별칭·11개 원문·13개 법령 날짜 검증 통과     |
+| 원문 팝업 브라우저        | 다중 조문·복사 payload·인쇄 호출·콘솔 무오류 확인         |
 | Storage 잔존 검사         | `evidence-private/demo/smoke/` 0건                        |
 | 민감정보 검사             | PAT, JWT, service-role, 비공개 Graph API 키 추적 파일 0건 |
 
@@ -51,6 +53,14 @@
 
 공통 LNB와 네 업무 화면은 동일한 `selectedTargetId`를 사용한다. 고기상수도를 기본 시설 업무 대상으로 선택하면 법 의무사항, 실적증빙, 점검, 총괄표에 같은 대상이 유지된다.
 
+## 법령 원문 팝업
+
+`009_legal_source_popup.sql`은 `ref_legal_document`와 `ref_obligation_legal_source`를 추가한다. 용인시청 로컬 의무 `OBL-01`~`OBL-10` 모두 ADOMS 정식 `unit_id`에 연결했다. 의무 마스터가 없던 비상대피훈련 `OBL-07`은 `UNIT-0011597`(재난 및 안전관리 기본법 제35조 제1항)에 직접 연결했고, 관계 법령상 의무이행 `OBL-10`은 시설물안전법 제6조 제1항과 제11조 제1항 두 원문을 순서대로 연결했다.
+
+팝업은 법령명·한글 조문·원문을 표시하고 내부 코드 경로는 숨긴다. 날짜는 **법령 최근 개정일**, **현행법령 시행일**, **해당 조문 효력일**을 분리 표시한다. 앞의 두 값은 2026-09-06 국가법령정보센터 현행법령 조회 스냅숏이며, 원문과 조문 효력일은 ADOMS 사실층 기준이다.
+
+브라우저에서 비상대피훈련 복사 payload 474자를 검사해 의무명, 최근 개정일, 시행일, 본문을 모두 확인했다. 인쇄 버튼은 제어된 `window.print` 스텁에서 1회 호출됐으며, 인쇄 CSS는 앱 외곽과 액션 버튼을 숨기고 팝업 본문만 A4로 출력하도록 구성했다. 다중 조문·복사·인쇄 전환 후 브라우저 콘솔 오류는 없었다.
+
 ## 상태 집계 정책
 
 총괄표는 점검결과가 있으면 `inspection_result.status`를 우선한다. 점검결과가 없고 이행기록이 있으면 `compliance_record.status`를 사용한다. 두 값이 모두 없으면 `해당없음(-)`으로 표시한다. 이행률 분모에서는 `해당없음`을 제외한다.
@@ -64,3 +74,4 @@
 [1]: https://github.com/simulacre-8/Yongin/blob/main/docs/YONGIN_CORE_DATA_VERIFICATION.md "Yongin core data verification report"
 [2]: https://github.com/simulacre-8/Yongin/blob/main/scripts/facility-workflow-smoke.ts "Facility workflow smoke test"
 [3]: https://github.com/simulacre-8/Yongin/blob/main/supabase/migrations/007_facility_workflow_bridge.sql "Facility workflow bridge migration"
+[4]: https://github.com/simulacre-8/Yongin/blob/main/docs/LEGAL_SOURCE_POPUP.md "Legal source popup data basis"

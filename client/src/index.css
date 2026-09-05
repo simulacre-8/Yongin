@@ -2763,3 +2763,90 @@ a {
     grid-template-columns: minmax(205px, 0.76fr) minmax(540px, 2fr) !important;
   }
 }
+
+/* Managed-target legal source popup */
+.legal-source-date-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  padding: 1px 0;
+  background: #e4e6e5;
+}
+.legal-source-date-grid > div {
+  min-width: 0;
+  padding: 11px 14px;
+  background: #f5f7f6;
+}
+.legal-source-date-grid span,
+.legal-source-date-grid strong {
+  display: block;
+}
+.legal-source-date-grid span {
+  margin-bottom: 4px;
+  color: #727b75;
+  font-size: 10px;
+}
+.legal-source-date-grid strong {
+  color: #27302b;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .legal-source-date-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  [data-radix-dialog-overlay] {
+    display: none !important;
+  }
+
+  .legal-source-dialog,
+  .legal-source-dialog * {
+    visibility: visible !important;
+  }
+
+  .legal-source-dialog {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .legal-source-dialog > button,
+  .legal-source-print-actions {
+    display: none !important;
+  }
+
+  .legal-source-print-header {
+    padding: 0 0 16px !important;
+  }
+
+  .legal-source-print-body {
+    max-height: none !important;
+    padding: 18px 0 0 !important;
+    overflow: visible !important;
+  }
+
+  .legal-source-print-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

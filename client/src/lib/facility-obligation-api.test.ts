@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildLegalSourceMap,
   cycleToSchedule,
   formatLegalArticlePath,
   joinMappedObligations,
@@ -112,5 +113,73 @@ describe("facility obligation adapter", () => {
     const [item] = joinMappedObligations(mappings, masters);
     expect(item.lawName).toBe("산업안전보건법");
     expect(item.article).toBe("제61조");
+  });
+
+  it("joins official amendment and effective dates to ordered ADOMS provisions", () => {
+    const rows = [
+      {
+        obligation_key: "OBL-10",
+        source_order: 2,
+        source_obl_id: "OBL-0002584",
+        source_unit_id: "UNIT-SAFETY-11",
+        doc_id: "DOC-SAFETY",
+        law_id: "LAW-SAFETY",
+        law_name: "시설물안전법",
+        document_title: "시설물의 안전 및 유지관리에 관한 특별법",
+        unit_path: "a11/p1",
+        article_no: "11",
+        article_title: "안전점검의 실시",
+        source_text: "① 관리주체는 정기적으로 안전점검을 실시하여야 한다.",
+        provision_last_amended_at: null,
+        effective_from: "2025-12-04",
+        source_version: "adoms-fact-20260901+official-law-20260906",
+        source_kind: "DEMO_ALIAS",
+      },
+      {
+        obligation_key: "OBL-10",
+        source_order: 1,
+        source_obl_id: "OBL-0002576",
+        source_unit_id: "UNIT-SAFETY-06",
+        doc_id: "DOC-SAFETY",
+        law_id: "LAW-SAFETY",
+        law_name: "시설물안전법",
+        document_title: "시설물의 안전 및 유지관리에 관한 특별법",
+        unit_path: "a6/p1",
+        article_no: "6",
+        article_title: "시설물관리계획",
+        source_text: "① 관리주체는 시설물관리계획을 수립하여야 한다.",
+        provision_last_amended_at: "2024-12-03",
+        effective_from: "2025-12-04",
+        source_version: "adoms-fact-20260901+official-law-20260906",
+        source_kind: "DEMO_ALIAS",
+      },
+    ] as Parameters<typeof buildLegalSourceMap>[0];
+    const documents = [
+      {
+        doc_id: "DOC-SAFETY",
+        document_title: "시설물의 안전 및 유지관리에 관한 특별법",
+        promulgated_no: "20810",
+        last_amended_at: "2025-03-11",
+        effective_from: "2026-08-28",
+        amendment_kind: "일부개정",
+        official_law_id: "001712",
+        official_serial_no: "281234",
+        official_detail_url: "https://www.law.go.kr/example",
+        source_version: "adoms-fact-20260901+official-law-20260906",
+        official_checked_at: "2026-09-06",
+      },
+    ] as Parameters<typeof buildLegalSourceMap>[1];
+
+    const sources = buildLegalSourceMap(rows, documents).get("OBL-10") || [];
+    expect(sources).toHaveLength(2);
+    expect(sources.map(source => source.article)).toEqual([
+      "제6조 제1항",
+      "제11조 제1항",
+    ]);
+    expect(sources[0].provisionLastAmendedAt).toBe("2024-12-03");
+    expect(sources[0].provisionEffectiveFrom).toBe("2025-12-04");
+    expect(sources[0].lastAmendedAt).toBe("2025-03-11");
+    expect(sources[0].effectiveFrom).toBe("2026-08-28");
+    expect(sources[0].officialCheckedAt).toBe("2026-09-06");
   });
 });

@@ -8,8 +8,10 @@ import {
 import {
   Check,
   ChevronDown,
+  Copy,
   FileText,
   Plus,
+  Printer,
   Search,
   Trash2,
   X,
@@ -21,6 +23,7 @@ import {
 } from "@/lib/facility-api";
 import {
   loadTargetObligations,
+  type LegalSource,
   type MappedObligation,
 } from "@/lib/facility-obligation-api";
 import { useDemo } from "@/contexts/DemoContext";
@@ -69,6 +72,53 @@ type ContractDraft = {
   participants: string;
   workplace: string;
 };
+
+function formatLegalDate(value: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "원천 미표기";
+  const [year, month, day] = value.split("-");
+  return `${year}.${month}.${day}.`;
+}
+
+function legalSourceVersionLabel(source: LegalSource): string {
+  if (source.sourceVersion.includes("official-law-20260906")) {
+    return "ADOMS 사실층 + 국가법령정보센터 현행법령 (2026-09-06 확인)";
+  }
+  return source.sourceVersion || "용인시청 기본 시연 의무";
+}
+
+function buildLegalBasisCopyText(obligation: MappedObligation): string {
+  const sources = obligation.legalSources;
+  const header = [
+    `[적용 의무] ${obligation.title}`,
+    `[표시 근거] ${obligation.lawName} ${obligation.article}`,
+  ];
+  if (sources.length === 0) {
+    return [...header, "", "연결된 조문 원문이 없습니다."].join("\n");
+  }
+
+  const bodies = sources.map((source, index) =>
+    [
+      sources.length > 1 ? `[근거 ${index + 1}]` : "[근거]",
+      `${source.documentTitle} ${source.article}`,
+      source.articleTitle ? `조문명: ${source.articleTitle}` : "",
+      `법령 최근 개정일: ${formatLegalDate(source.lastAmendedAt)}`,
+      `현행법령 시행일: ${formatLegalDate(source.effectiveFrom)}`,
+      source.provisionEffectiveFrom &&
+      source.provisionEffectiveFrom !== source.effectiveFrom
+        ? `해당 조문 효력일: ${formatLegalDate(source.provisionEffectiveFrom)}`
+        : "",
+      source.provisionLastAmendedAt
+        ? `조문 내 최종 개정 표기: ${formatLegalDate(source.provisionLastAmendedAt)}`
+        : "",
+      `데이터 기준: ${legalSourceVersionLabel(source)}`,
+      "",
+      source.sourceText,
+    ]
+      .filter(Boolean)
+      .join("\n")
+  );
+  return [...header, "", ...bodies].join("\n\n");
+}
 
 const employmentTypes = [
   "공무원",
@@ -467,6 +517,30 @@ export default function Targets() {
       () => setToast(current => (current === message ? "" : current)),
       2600
     );
+  };
+  const copyLegalBasis = async () => {
+    if (!selectedLegalBasis) return;
+    const text = buildLegalBasisCopyText(selectedLegalBasis);
+    try {
+      await navigator.clipboard.writeText(text);
+      announce("법령명·조문·날짜·원문을 복사했습니다.");
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      textarea.remove();
+      announce(
+        copied ? "법령 원문을 복사했습니다." : "원문 복사에 실패했습니다."
+      );
+    }
+  };
+  const printLegalBasis = () => {
+    if (!selectedLegalBasis) return;
+    window.print();
   };
   const addPerson = (kind: "worker" | "supervisor") => {
     const newPerson: Person = {
@@ -2615,11 +2689,11 @@ export default function Targets() {
       >
         <DialogContent
           aria-describedby="legal-basis-description"
-          className="max-h-[86vh] overflow-hidden border-[#d7d0d8] bg-[#fbfbfc] p-0 sm:max-w-[760px]"
+          className="legal-source-dialog max-h-[88vh] overflow-hidden border-[#d7d0d8] bg-[#fbfbfc] p-0 sm:max-w-[820px]"
         >
           {selectedLegalBasis && (
             <>
-              <DialogHeader className="gap-3 border-b border-[#e4e0e5] bg-white px-7 py-6 text-left">
+              <DialogHeader className="legal-source-print-header gap-3 border-b border-[#e4e0e5] bg-white px-7 py-6 text-left">
                 <span
                   style={{
                     width: "fit-content",
@@ -2636,21 +2710,23 @@ export default function Targets() {
                   법령 조문 원문
                 </span>
                 <DialogTitle className="pr-8 text-[20px] leading-[1.45] text-[#202624]">
-                  {selectedLegalBasis.lawName} {selectedLegalBasis.article}
+                  {selectedLegalBasis.title}
                 </DialogTitle>
                 <DialogDescription
                   id="legal-basis-description"
                   className="text-[12px] leading-5 text-[#68716b]"
                 >
-                  {selectedLegalBasis.articleTitle || selectedLegalBasis.title}
+                  {selectedLegalBasis.lawName} {selectedLegalBasis.article} ·
+                  정식 원문 {selectedLegalBasis.legalSources.length}건
                 </DialogDescription>
               </DialogHeader>
 
               <div
+                className="legal-source-print-body"
                 style={{
                   display: "grid",
                   gap: 16,
-                  maxHeight: "calc(86vh - 210px)",
+                  maxHeight: "calc(88vh - 220px)",
                   padding: "22px 28px",
                   overflowY: "auto",
                 }}
@@ -2676,46 +2752,191 @@ export default function Targets() {
                   <span style={{ color: "#29322d", fontWeight: 750 }}>
                     {selectedLegalBasis.lawName} {selectedLegalBasis.article}
                   </span>
-                  <strong style={{ color: "#68716b" }}>데이터 기준</strong>
+                  <strong style={{ color: "#68716b" }}>원문 연결</strong>
                   <span style={{ color: "#505a54" }}>
-                    {selectedLegalBasis.sourceVersion ===
-                    "yongin-obligation-pool-20260906"
-                      ? "용인시 관련법령 의무풀 (2026-09-06)"
-                      : selectedLegalBasis.sourceVersion ||
-                        "용인시청 기본 시연 의무"}
+                    ADOMS 정식 조문 {selectedLegalBasis.legalSources.length}건 ·
+                    Supabase 조회
                   </span>
                 </div>
 
-                <section aria-label="조문 원문">
-                  <h3
-                    style={{
-                      margin: "0 0 10px",
-                      color: "#252b28",
-                      fontSize: 14,
-                    }}
-                  >
-                    조문 원문
-                  </h3>
+                {selectedLegalBasis.legalSources.length > 0 ? (
+                  selectedLegalBasis.legalSources.map((source, index) => (
+                    <article
+                      key={`${source.sourceUnitId}-${source.sourceOrder}`}
+                      className="legal-source-print-card"
+                      style={{
+                        overflow: "hidden",
+                        border: "1px solid #dedfe0",
+                        borderRadius: 8,
+                        background: "#fff",
+                      }}
+                    >
+                      <header
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
+                          gap: 16,
+                          padding: "14px 18px",
+                          borderBottom: "1px solid #e7e8e8",
+                          background: "#faf7fa",
+                        }}
+                      >
+                        <div>
+                          <strong
+                            style={{
+                              display: "block",
+                              color: "#9a267c",
+                              fontSize: 10,
+                              marginBottom: 5,
+                            }}
+                          >
+                            {selectedLegalBasis.legalSources.length > 1
+                              ? `근거 ${index + 1}`
+                              : "법령 근거"}
+                          </strong>
+                          <h3
+                            style={{
+                              margin: 0,
+                              color: "#252b28",
+                              fontSize: 14,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {source.documentTitle} {source.article}
+                          </h3>
+                          {source.articleTitle && (
+                            <p
+                              style={{
+                                margin: "4px 0 0",
+                                color: "#68716b",
+                                fontSize: 11,
+                              }}
+                            >
+                              {source.articleTitle}
+                            </p>
+                          )}
+                        </div>
+                        {source.officialDetailUrl && (
+                          <a
+                            href={source.officialDetailUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              flex: "0 0 auto",
+                              color: "#7d286b",
+                              fontSize: 10,
+                              fontWeight: 750,
+                              textDecoration: "underline",
+                              textUnderlineOffset: 3,
+                            }}
+                          >
+                            국가법령정보센터
+                          </a>
+                        )}
+                      </header>
+
+                      <div className="legal-source-date-grid">
+                        <div>
+                          <span>법령 최근 개정일</span>
+                          <strong>
+                            {formatLegalDate(source.lastAmendedAt)}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>현행법령 시행일</span>
+                          <strong>
+                            {formatLegalDate(source.effectiveFrom)}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>개정 구분</span>
+                          <strong>
+                            {source.amendmentKind || "원천 미표기"}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>기준 확인일</span>
+                          <strong>
+                            {formatLegalDate(source.officialCheckedAt)}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <section
+                        aria-label={`${source.documentTitle} ${source.article} 원문`}
+                        style={{ padding: "16px 18px 18px" }}
+                      >
+                        <h4
+                          style={{
+                            margin: "0 0 9px",
+                            color: "#48514c",
+                            fontSize: 11,
+                          }}
+                        >
+                          조문 원문
+                        </h4>
+                        <div
+                          style={{
+                            minHeight: 110,
+                            padding: "16px 18px",
+                            borderLeft: "3px solid #a93193",
+                            borderRadius: "0 8px 8px 0",
+                            color: "#303834",
+                            background: "#f8f9f8",
+                            boxShadow: "inset 0 0 0 1px #e4e7e5",
+                            fontSize: 13,
+                            lineHeight: 1.85,
+                            whiteSpace: "pre-wrap",
+                          }}
+                        >
+                          {source.sourceText}
+                        </div>
+                        {source.provisionLastAmendedAt && (
+                          <p
+                            style={{
+                              margin: "9px 0 0",
+                              color: "#796f76",
+                              fontSize: 10,
+                            }}
+                          >
+                            조문 원문 내 최종 개정 표기:{" "}
+                            {formatLegalDate(source.provisionLastAmendedAt)}
+                          </p>
+                        )}
+                        {source.provisionEffectiveFrom &&
+                          source.provisionEffectiveFrom !==
+                            source.effectiveFrom && (
+                            <p
+                              style={{
+                                margin: "9px 0 0",
+                                color: "#796f76",
+                                fontSize: 10,
+                              }}
+                            >
+                              해당 조문 효력일:{" "}
+                              {formatLegalDate(source.provisionEffectiveFrom)}
+                            </p>
+                          )}
+                      </section>
+                    </article>
+                  ))
+                ) : (
                   <div
                     style={{
-                      minHeight: 150,
-                      padding: "18px 20px",
-                      borderLeft: "3px solid #a93193",
-                      borderRadius: "0 8px 8px 0",
-                      color: selectedLegalBasis.sourceText
-                        ? "#303834"
-                        : "#707972",
+                      padding: 24,
+                      border: "1px dashed #d6cdd6",
+                      borderRadius: 8,
+                      color: "#707972",
                       background: "#fff",
-                      boxShadow: "inset 0 0 0 1px #e4e7e5",
-                      fontSize: 13,
-                      lineHeight: 1.85,
-                      whiteSpace: "pre-wrap",
+                      fontSize: 12,
+                      textAlign: "center",
                     }}
                   >
-                    {selectedLegalBasis.sourceText ||
-                      "이 항목은 로컬 시연 의무로 등록되어 있어 법령 원문 DB와 아직 연결되지 않았습니다. 법령명과 조문을 기준으로 원문 식별자를 연결해야 합니다."}
+                    연결된 조문 원문이 없습니다. 정식 원문 식별자를 확인해
+                    주세요.
                   </div>
-                </section>
+                )}
 
                 <p
                   style={{
@@ -2725,12 +2946,32 @@ export default function Targets() {
                     lineHeight: 1.6,
                   }}
                 >
-                  본문은 Supabase에 적재된 기준일 버전입니다. 실제 업무 적용
-                  전에는 최신 개정 여부와 시행일을 확인해야 합니다.
+                  원문과 조문 효력일은 ADOMS 사실층, 법령 최근 개정일과 현행법령
+                  시행일은 국가법령정보센터 조회 결과입니다. 2026-09-06 기준
+                  스냅숏이며 실제 업무 적용 전 최신 개정 여부를 다시 확인해야
+                  합니다.
                 </p>
               </div>
 
-              <DialogFooter className="border-t border-[#e4e0e5] bg-white px-7 py-4">
+              <DialogFooter className="legal-source-print-actions border-t border-[#e4e0e5] bg-white px-7 py-4 sm:justify-between">
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={copyLegalBasis}
+                    disabled={selectedLegalBasis.legalSources.length === 0}
+                  >
+                    <Copy size={14} /> 원문 복사
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={printLegalBasis}
+                    disabled={selectedLegalBasis.legalSources.length === 0}
+                  >
+                    <Printer size={14} /> 인쇄
+                  </button>
+                </div>
                 <DialogClose asChild>
                   <button type="button" className="primary-btn">
                     닫기
