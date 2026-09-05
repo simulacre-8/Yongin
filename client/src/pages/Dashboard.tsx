@@ -109,21 +109,21 @@ const dashboardStyles = `
   .adoms-layout {
     display: grid;
     grid-template-columns: minmax(220px, 0.8fr) minmax(570px, 2.25fr) minmax(272px, 0.92fr);
-    gap: 18px;
+    gap: 22px;
     align-items: stretch;
   }
   .adoms-target-panel, .adoms-due-card, .adoms-rate-panel,
   .adoms-notification-panel, .adoms-duty-panel {
-    border: 6px solid #b4b8b2;
+    border: 2px solid #b4b8b2;
     background: #fff;
-    box-shadow: 0 2px 0 rgba(26, 42, 18, 0.16);
+    box-shadow: none;
   }
   .adoms-target-panel {
     display: flex;
     min-height: 645px;
     flex-direction: column;
     padding: 22px 26px 18px;
-    border-radius: 28px;
+    border-radius: 18px;
     background: var(--adoms-green-soft);
   }
   .adoms-target-heading, .adoms-card-heading, .adoms-panel-heading {
@@ -209,18 +209,18 @@ const dashboardStyles = `
   .adoms-center-column, .adoms-right-column {
     display: grid;
     min-width: 0;
-    gap: 18px;
+    gap: 22px;
   }
   .adoms-center-column { grid-template-rows: 202px minmax(425px, 1fr); }
   .adoms-right-column { grid-template-rows: minmax(250px, 0.8fr) minmax(320px, 1fr); }
   .adoms-deadline-row {
     display: grid;
     grid-template-columns: minmax(300px, 1.12fr) minmax(175px, 0.62fr);
-    gap: 18px;
+    gap: 22px;
   }
   .adoms-due-card {
     padding: 20px 29px;
-    border-radius: 25px;
+    border-radius: 18px;
     background: var(--adoms-green-soft);
   }
   .adoms-card-heading { margin-bottom: 15px; }
@@ -252,8 +252,8 @@ const dashboardStyles = `
     flex-direction: column;
     justify-content: space-between;
     padding: 34px 28px 23px;
-    border: 8px solid var(--adoms-red);
-    border-radius: 30px;
+    border: 4px solid var(--adoms-red);
+    border-radius: 18px;
     background: #fff;
   }
   .adoms-overdue-card h2 {
@@ -276,7 +276,7 @@ const dashboardStyles = `
   .adoms-rate-panel {
     min-height: 425px;
     padding: 21px 22px 18px;
-    border-radius: 26px;
+    border-radius: 18px;
   }
   .adoms-rate-grid {
     display: grid;
@@ -411,7 +411,7 @@ const dashboardStyles = `
   .adoms-total-row { border-bottom: 2px solid #777d77; }
   .adoms-notification-panel, .adoms-duty-panel {
     padding: 19px 21px;
-    border-radius: 24px;
+    border-radius: 18px;
   }
   .adoms-panel-heading {
     margin-bottom: 16px;
@@ -524,7 +524,7 @@ const dashboardStyles = `
   }
   @media (max-width: 540px) {
     .adoms-dashboard { min-width: 0; }
-    .adoms-target-panel, .adoms-due-card, .adoms-rate-panel, .adoms-notification-panel, .adoms-duty-panel { border-width: 3px; }
+    .adoms-target-panel, .adoms-due-card, .adoms-rate-panel, .adoms-notification-panel, .adoms-duty-panel { border-width: 2px; }
     .adoms-target-panel, .adoms-due-card, .adoms-rate-panel, .adoms-notification-panel, .adoms-duty-panel { padding-left: 15px; padding-right: 15px; }
     .adoms-deadline-row { gap: 12px; }
     .adoms-overdue-card { min-height: 145px; padding: 22px; }
