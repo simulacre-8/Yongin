@@ -186,94 +186,104 @@ function menuFor(location: string): { title: string; groups: LnbGroup[] } {
 
 const shellStyles = `
   .adoms-shell .main-header {
-    min-height: 88px;
-    grid-template-columns: 300px minmax(590px, 1fr) 286px;
-    background: #090909;
-    border-bottom: 0;
-    box-shadow: none;
+    min-height: 96px;
+    grid-template-columns: 304px minmax(620px, 1fr) 280px;
+    background: #17151a;
+    border-bottom: 1px solid #2f2a32;
+    box-shadow: 0 10px 28px rgba(30, 24, 31, .14);
   }
-  .adoms-shell .brand { padding: 0 18px; gap: 10px; background: #fff; }
-  .adoms-shell .brand-logo { width: 119px; }
-  .adoms-shell .brand-divider { height: 40px; background: #d5d5d5; }
-  .adoms-shell .brand-product { color: #111; font-size: 14px; line-height: 1.25; }
-  .adoms-shell .top-nav { justify-content: center; gap: clamp(10px, 1.2vw, 22px); padding: 0 10px; }
+  .adoms-shell .brand {
+    padding: 0 22px; gap: 12px; background: #fff;
+    border-right: 1px solid #eee8ef;
+  }
+  .adoms-shell .brand-logo { width: 126px; }
+  .adoms-shell .brand-divider { height: 42px; background: #ded7df; }
+  .adoms-shell .brand-product { color: #1e2124; font-size: 14px; font-weight: 750; line-height: 1.32; }
+  .adoms-shell .top-nav { justify-content: center; gap: clamp(10px, 1.2vw, 22px); padding: 0 14px; }
   .adoms-shell .top-nav a,
   .adoms-shell .top-nav .top-nav-label {
-    height: 100%; padding-top: 1px; border-bottom: 0;
-    display: flex; align-items: center; color: #f3f3f3; font-size: 14px; font-weight: 700;
+    height: 100%; padding: 3px 1px 0; border-bottom: 3px solid transparent;
+    display: flex; align-items: center; color: #ddd8df; font-size: 14px; font-weight: 650;
   }
   .adoms-shell .top-nav a:hover,
-  .adoms-shell .top-nav a.active { color: #f05a84; border-bottom-color: transparent; }
+  .adoms-shell .top-nav a.active { color: #ff6a88; border-bottom-color: #df3355; }
   .adoms-shell .user-tools {
-    gap: 4px; padding: 8px 14px; border-left: 1px solid #333;
-    background: #111;
+    gap: 5px; padding: 9px 16px; border-left: 1px solid #39333c;
+    background: #111014;
   }
-  .adoms-shell .connection-pill { padding: 2px 6px; color: #c9d7bd; background: #263122; font-size: 9px; }
-  .adoms-shell .connection-pill[data-connected="true"] { color: #d7f1d0; background: #244131; }
-  .adoms-shell .user-copy span { color: #d5d5d5; font-size: 10px; }
-  .adoms-shell .user-copy strong { font-size: 12px; }
+  .adoms-shell .connection-pill { padding: 4px 8px; color: #f1c779; background: #33291a; font-size: 12px; }
+  .adoms-shell .connection-pill[data-connected="true"] { color: #8fe6d7; background: #173b36; }
+  .adoms-shell .user-copy span { color: #aaa3ad; font-size: 12px; }
+  .adoms-shell .user-copy strong { font-size: 14px; }
   .adoms-shell .role-select-wrap select {
-    border-color: #666; border-radius: 2px; background: #fafafa; color: #222;
-    font-size: 10px; padding: 5px 23px 5px 6px;
+    border-color: #594c60; border-radius: 8px; background: #2c2730; color: #fff;
+    font-size: 12px; padding: 7px 28px 7px 10px;
   }
-  .adoms-shell .role-select-wrap svg { top: 6px; color: #333; }
+  .adoms-shell .role-select-wrap svg { top: 8px; color: #d8d1da; }
   .adoms-shell .header-actions button {
-    border-color: #777; border-radius: 2px; color: #f2f2f2; padding: 4px 7px;
-    font-size: 10px;
+    border-color: #554b58; border-radius: 8px; color: #ddd6df; padding: 5px 9px;
+    font-size: 12px;
   }
-  .adoms-shell .header-actions button:hover { background: #a93193; border-color: #df6fc3; }
-  .adoms-shell .workspace { --side-width: 288px; max-width: none; background: #fff; }
+  .adoms-shell .header-actions button:hover { background: #4c2849; border-color: #a93193; color: #fff; }
+  .adoms-shell .workspace { --side-width: 280px; max-width: 1920px; background: #f7f7fa; }
   .adoms-shell .side-panel {
-    padding: 24px 16px 28px; min-height: calc(100vh - 119px);
-    background: #090909; border-right: 0;
+    padding: 28px 20px 30px 26px; min-height: calc(100vh - 134px);
+    background: linear-gradient(165deg, #f7dff1 0%, #f9edf5 52%, #fbfbdc 120%);
+    border-right: 1px solid #eadde8;
   }
   .adoms-shell .side-menu-container {
-    min-height: calc(100vh - 179px); padding: 24px 18px;
-    border-radius: 22px; background: linear-gradient(110deg, #f1f1f3, #f7f7f8);
-    overflow: hidden;
+    min-height: calc(100vh - 194px); padding: 0;
+    background: transparent;
   }
   .adoms-shell .side-kicker {
-    margin-bottom: 15px; padding: 9px 12px; border-radius: 3px; background: #a93193;
-    box-shadow: none; color: #fff; font-size: 18px; line-height: 1.2;
+    margin-bottom: 18px; padding: 14px 16px; border-radius: 10px;
+    background: linear-gradient(135deg, #a93193, #df3355);
+    box-shadow: 0 10px 22px rgba(169, 49, 147, .18);
+    color: #fff; font-size: 20px; font-weight: 800; line-height: 1.2;
   }
   .adoms-shell .side-group { margin-bottom: 16px; }
   .adoms-shell .side-group-title {
-    padding: 9px 12px; border-radius: 3px; background: #a93193; color: #fff;
-    font-size: 14px; font-weight: 800;
+    padding: 10px 13px; border-radius: 8px; background: #5e3682; color: #fff;
+    font-size: 14px; font-weight: 750;
   }
   .adoms-shell .side-group-title svg { width: 15px; height: 15px; transform: rotate(180deg); }
-  .adoms-shell .side-items { padding: 7px 3px 2px; gap: 1px; }
+  .adoms-shell .side-items { padding: 8px 3px 3px; gap: 2px; }
   .adoms-shell .side-items .side-item {
-    position: relative; display: block; width: 100%; padding: 7px 8px 7px 22px;
-    color: #34343a; font-size: 13px; line-height: 1.34; text-align: left;
+    position: relative; display: block; width: 100%; padding: 9px 9px 9px 22px;
+    border-radius: 7px; color: #3e3741; font-size: 14px; line-height: 1.35; text-align: left;
   }
-  .adoms-shell .side-items a.side-item:hover { color: #a93193; text-decoration: underline; text-underline-offset: 3px; }
-  .adoms-shell .side-items .side-item.nested { padding-left: 34px; color: #66666c; font-size: 12px; }
-  .adoms-shell .side-items .side-item.selected { color: #a93193; font-weight: 850; }
+  .adoms-shell .side-items a.side-item:hover { color: #a93193; background: rgba(255,255,255,.52); }
+  .adoms-shell .side-items .side-item.nested { padding-left: 34px; color: #706a72; font-size: 12px; }
+  .adoms-shell .side-items .side-item.selected { color: #9b226f; background: rgba(255,255,255,.72); font-weight: 800; }
   .adoms-shell .side-dot {
-    left: 4px; top: 10px; width: 7px; height: 7px; border: 3px solid #df3355;
+    left: 7px; top: 12px; width: 7px; height: 7px; border: 3px solid #df3355;
     background: #fff; box-sizing: content-box;
   }
   .adoms-shell .side-target {
-    margin-top: 22px; padding: 10px; border: 1px solid #d7d7dc; border-radius: 3px;
-    background: rgba(255,255,255,.56);
+    margin-top: 22px; padding: 14px; border: 1px solid #e1cbe0; border-radius: 10px;
+    background: rgba(255,255,255,.72);
   }
-  .adoms-shell .side-target label { color: #5c5c62; font-size: 10px; }
+  .adoms-shell .side-target label { color: #66606a; font-size: 12px; }
   .adoms-shell .side-target select {
-    border-color: #ceced4; border-radius: 2px; color: #34343a; font-size: 11px; padding: 7px;
+    border-color: #dccfdd; border-radius: 8px; color: #392d3c; font-size: 14px; padding: 9px 10px;
   }
-  .adoms-shell .page-stage { padding: 30px 38px 48px; background: #f5f5f7; }
+  .adoms-shell .page-stage {
+    padding: 32px 36px 52px;
+    background:
+      radial-gradient(circle at 82% 0%, rgba(247,223,241,.48), transparent 27%),
+      #f7f7fa;
+  }
   .adoms-shell .main-footer {
-    min-height: 31px; padding: 0 38px; border-top: 1px solid #e3e3e3;
-    background: #fff; color: #929292; font-size: 9px;
+    min-height: 38px; padding: 0 40px; border-top: 1px solid #e6e1e7;
+    background: #fff; color: #848087; font-size: 12px;
   }
   @media (max-width: 1380px) {
-    .adoms-shell .main-header { grid-template-columns: 278px minmax(520px, 1fr) 250px; }
-    .adoms-shell .workspace { --side-width: 260px; }
-    .adoms-shell .side-panel { padding-left: 16px; }
-    .adoms-shell .top-nav { gap: 8px; }
+    .adoms-shell .main-header { grid-template-columns: 282px minmax(540px, 1fr) 250px; }
+    .adoms-shell .workspace { --side-width: 252px; }
+    .adoms-shell .side-panel { padding-left: 20px; }
+    .adoms-shell .top-nav { gap: 8px; padding-inline: 8px; }
     .adoms-shell .top-nav a,
-    .adoms-shell .top-nav .top-nav-label { font-size: 14px; }
+    .adoms-shell .top-nav .top-nav-label { font-size: 13px; }
   }
 `;
 

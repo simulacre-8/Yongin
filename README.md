@@ -100,6 +100,9 @@ pnpm smoke:facility
 - `docs/DB_GRAPH_HANDOFF.md`: 축소 법령 데이터와 RDB/그래프 경계
 - `docs/SUPABASE_RUNBOOK.md`: 원격 DB·RLS·Storage·스모크 테스트 운영 기록
 - `docs/FACILITY_DATA_IMPORT.md`: FMS 시설·의무 매핑·공중교통수단·도급 시연값 구분
+- `docs/REDESIGN_BRIEF_20260906.md`: 초기 용인시 브랜드 톤 복원과 공통 디자인 토큰
+- `docs/FONT_SIZE_SPEC.md`: Inter·Noto Sans KR 기반 통일 폰트 규격
+- `docs/CURRENT_DATA_SCREEN_GAP_20260906.md`: 화면별 원격 DB·로컬 저장·미구현 기능 구분
 - `scripts/build_demo_projection.py`: 승인 목록 기준 RDB·그래프 투영 ETL
 
 화면을 수정할 때는 **클라이언트가 지정한 PNG → 해당 SCR 명세 → Flow Map → Scenario Crosswalk → Gap Register** 순서로 확인합니다. 102개 이미지는 102개 라우트가 아니라 스크롤 연속·모달·권한 변형·예외 상태를 포함한 화면 컷입니다. 원본에 없는 장면은 기존 화면이라고 간주하지 않고 컨펌 후 제작합니다.
@@ -116,10 +119,10 @@ where key = 'demo_write_enabled';
 
 실사용 전에는 익명 조회도 비활성화하고 Supabase Auth 사용자를 `profile.auth_user_id`와 연결해야 합니다.
 
-## 2026-09-06 원본 UI 재구성
+## 2026-09-06 UI 재구성
 
 `ADOMS_데모작업 명세.zip`의 SCR 화면과 32단계 시연 교차표를 기준으로, 적용범위 판정 이후의 주요 업무 화면을 원본 시스템의 검색 패널·고밀도 격자표·상태 전환 흐름으로 재구성했습니다. 대상 범위는 이행현황, 관리대상 현황, 관계 법령, 법 의무사항, 의무이행 실적증빙, 이행점검, 점검 총괄표입니다. 관리대상·법 의무사항·이행점검은 한 URL 안에서 목록→상세 또는 취합 설정→점검 화면으로 전환됩니다.
 
-시각 기준은 **검정 GNB 유지, 내부 회색 베이스, 용인특례시 핑크 강조**입니다. 본문·표·입력·버튼은 전역 확대를 적용하지 않고 각 원본형 화면의 폰트 크기를 사용합니다. 현재 크기와 사용 예시는 `docs/FONT_SIZE_SPEC.md`에 정리했습니다. LNB는 자동 접기 없이 고정하고, Supabase ADOMS 조회·판정 저장과 시연 초기화 기능은 유지합니다.
+시각 기준은 클라이언트가 선호한 초기 버전 `c51089d`와 용인시 공식 홈페이지의 톤을 결합한 **검정 GNB, 연분홍·아이보리 배경, 흰 카드, 마젠타·퍼플 포인트**입니다. 메뉴 깊이와 입력 필드 위치는 유지하고, 화면별로 달랐던 회색·녹색·사각 보더 스타일은 공통 카드·표·버튼 토큰으로 통일했습니다. 영문·숫자는 Inter, 한글은 Noto Sans KR fallback을 사용하며 규격은 `docs/FONT_SIZE_SPEC.md`에 정리했습니다. Supabase ADOMS 조회·판정 저장, 시설 DB 조회와 시연 초기화 기능은 유지합니다.
 
 검증 내역은 `docs/ORIGINAL_UI_REBUILD_VERIFICATION.md`를 참조하십시오.

@@ -37,7 +37,7 @@ export async function checkSupabaseConnection() {
       }
     );
     return databaseResponse.ok
-      ? { connected: true, reason: "Supabase DB 준비됨" }
+      ? { connected: true, reason: "Supabase 기준정보 연결" }
       : { connected: false, reason: "DB 마이그레이션 대기" };
   } catch {
     return { connected: false, reason: "네트워크 연결 실패" };

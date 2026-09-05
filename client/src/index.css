@@ -2,7 +2,8 @@
 @import "tw-animate-css";
 
 :root {
-  font-family: "Noto Sans KR", Pretendard, system-ui, sans-serif;
+  font-family:
+    "Inter", "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
   color: #1e2124;
   background: #f6f7fb;
   font-synthesis: none;
@@ -23,7 +24,21 @@
   --blue-700: #003675;
   --line: #e4dde5;
   --muted: #66666b;
-  --shadow: 0 18px 50px rgba(94, 54, 130, 0.09);
+  --surface: #ffffff;
+  --surface-soft: #f7f7fa;
+  --surface-blush: #fbf2f8;
+  --surface-ivory: #fbfbdc;
+  --surface-teal: #eefaf7;
+  --border-soft: #e4dde5;
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --shadow: 0 12px 34px rgba(94, 54, 130, 0.08);
+  --shadow-hover: 0 16px 42px rgba(94, 54, 130, 0.13);
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 28px;
 }
 
 * {
@@ -49,6 +64,8 @@ body {
       transparent 24%
     ),
     #f7f7fa;
+  font-size: var(--text-sm);
+  line-height: 1.5;
 }
 button,
 input,
@@ -2158,7 +2175,8 @@ a {
   background: #faf8fa;
   border-top: 1px solid #eee9ef;
   border-left: 3px solid var(--brand-teal);
-  font-family: "Noto Serif KR", serif;
+  font-family:
+    "Inter", "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
   font-size: 8px;
   line-height: 1.55;
 }
@@ -2296,4 +2314,452 @@ a {
   border: 1px solid #090909;
   color: #090909;
   background: #fff;
+}
+
+/* 2026-09-06 unified Yongin visual system
+ * Preserve the current route depth, fields and behavior while restoring the
+ * client-approved c51089d tone: bright cards, soft brand surfaces and calm spacing.
+ */
+:is(
+  .applicability-page,
+  .adoms-dashboard,
+  .adoms-targets-page,
+  .adoms-laws,
+  .adoms-obligations-page,
+  .adoms-evidence-page,
+  .adoms-inspection-page,
+  .adoms-summary-page
+) {
+  font-family:
+    "Inter", "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif !important;
+  color: var(--brand-ink) !important;
+  font-size: var(--text-sm);
+  letter-spacing: -0.015em;
+}
+
+:is(
+    .applicability-page,
+    .adoms-dashboard,
+    .adoms-targets-page,
+    .adoms-laws,
+    .adoms-obligations-page,
+    .adoms-evidence-page,
+    .adoms-inspection-page,
+    .adoms-summary-page
+  )
+  :is(button, input, select, textarea, table) {
+  font-family: inherit !important;
+}
+
+:is(
+    .applicability-page,
+    .adoms-targets-page,
+    .adoms-obligations-page,
+    .adoms-evidence-page,
+    .adoms-inspection-page,
+    .adoms-summary-page
+  )
+  h1 {
+  color: var(--brand-ink) !important;
+  font-size: var(--text-xl) !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1.25 !important;
+}
+
+:is(
+    .applicability-page,
+    .adoms-dashboard,
+    .adoms-targets-page,
+    .adoms-laws,
+    .adoms-obligations-page,
+    .adoms-evidence-page,
+    .adoms-inspection-page,
+    .adoms-summary-page
+  )
+  h2 {
+  font-size: var(--text-md) !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.025em !important;
+}
+
+:is(
+    .applicability-page,
+    .adoms-targets-page,
+    .adoms-laws,
+    .adoms-obligations-page,
+    .adoms-evidence-page,
+    .adoms-inspection-page,
+    .adoms-summary-page
+  )
+  :is(button, input, select, textarea, label, th, td) {
+  font-size: var(--text-sm) !important;
+}
+
+:is(
+    .applicability-page,
+    .adoms-targets-page,
+    .adoms-laws,
+    .adoms-obligations-page,
+    .adoms-evidence-page,
+    .adoms-inspection-page,
+    .adoms-summary-page
+  )
+  :is(small, code, .source-version, [class*="-note"], [class*="-detail"]) {
+  font-size: var(--text-xs) !important;
+  line-height: 1.55 !important;
+}
+
+:is(
+    .applicability-page,
+    .adoms-targets-page,
+    .adoms-laws,
+    .adoms-obligations-page,
+    .adoms-evidence-page,
+    .adoms-inspection-page,
+    .adoms-summary-page
+  )
+  :is(button, input, select, textarea) {
+  border-radius: var(--radius-control) !important;
+}
+
+:is(
+    .applicability-page,
+    .adoms-targets-page,
+    .adoms-laws,
+    .adoms-obligations-page,
+    .adoms-evidence-page,
+    .adoms-inspection-page,
+    .adoms-summary-page
+  )
+  :is(input, select, textarea):focus {
+  border-color: var(--brand-magenta) !important;
+  box-shadow: 0 0 0 3px rgba(223, 51, 85, 0.11) !important;
+  outline: none !important;
+}
+
+/* Shared cards, search surfaces and dense data regions */
+:is(
+  .fact-panel,
+  .result-panel,
+  .trace-panel,
+  .adoms-law-search,
+  .adoms-law-table-wrap,
+  .adoms-obligations-filter-panel,
+  .adoms-obligations-progress-card,
+  .adoms-obligations-list-table-wrap,
+  .adoms-obligations-detail-table-wrap,
+  .adoms-evidence-guide,
+  .adoms-duty-sidebar,
+  .adoms-evidence-viewer,
+  .adoms-grid-wrap,
+  .adoms-selection-panel,
+  .adoms-review-list,
+  .adoms-review-table-wrap,
+  .adoms-summary-table-wrap,
+  .adoms-target-search,
+  .adoms-target-progress,
+  .adoms-target-table,
+  .adoms-target-form,
+  .adoms-contract-search,
+  .adoms-contract-table,
+  .adoms-contract-form
+) {
+  border: 1px solid var(--border-soft) !important;
+  border-radius: var(--radius-card) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+:is(
+  .adoms-law-search,
+  .adoms-obligations-filter-panel,
+  .adoms-target-search,
+  .adoms-contract-search,
+  .adoms-scope-search
+) {
+  background: linear-gradient(120deg, #f5f3f7, #fbfafc) !important;
+}
+
+:is(
+    .adoms-law-table,
+    .adoms-obligations-list-table,
+    .adoms-obligations-detail-table,
+    .adoms-grid-table,
+    .adoms-review-table,
+    .adoms-summary-table,
+    .adoms-target-table,
+    .adoms-contract-table,
+    .adoms-duty-table,
+    .adoms-headcount-table
+  )
+  th,
+:is(
+    .adoms-law-table,
+    .adoms-obligations-list-table,
+    .adoms-obligations-detail-table,
+    .adoms-grid-table,
+    .adoms-review-table,
+    .adoms-summary-table,
+    .adoms-target-table,
+    .adoms-contract-table,
+    .adoms-duty-table,
+    .adoms-headcount-table
+  )
+  [class*="head"] {
+  color: #2f2931 !important;
+  background: #f1eff4 !important;
+  border-color: #ddd6df !important;
+  font-weight: 700 !important;
+}
+
+:is(
+    .adoms-law-table,
+    .adoms-obligations-list-table,
+    .adoms-obligations-detail-table,
+    .adoms-grid-table,
+    .adoms-review-table,
+    .adoms-summary-table,
+    .adoms-target-table,
+    .adoms-contract-table,
+    .adoms-duty-table,
+    .adoms-headcount-table
+  )
+  td {
+  color: #474149 !important;
+  background: #fff;
+  border-color: #ebe6ec !important;
+}
+
+:is(
+  .adoms-target-row,
+  .adoms-contract-row,
+  .adoms-obligations-list-row,
+  .adoms-selection-row,
+  .adoms-review-table-row
+):hover {
+  background: var(--surface-blush) !important;
+}
+
+/* One button language across every flow */
+:is(
+  .primary-btn,
+  .applicability-save,
+  .adoms-save-target,
+  .adoms-save-contract,
+  .adoms-obligations-save-button,
+  .adoms-save-button,
+  .adoms-start-button
+) {
+  min-width: 120px !important;
+  min-height: 36px !important;
+  border: 1px solid var(--brand-purple) !important;
+  border-radius: var(--radius-control) !important;
+  color: #fff !important;
+  background: linear-gradient(
+    135deg,
+    var(--brand-purple),
+    var(--brand-magenta)
+  ) !important;
+  box-shadow: 0 7px 16px rgba(169, 49, 147, 0.17) !important;
+  font-size: var(--text-sm) !important;
+  font-weight: 700 !important;
+}
+
+:is(
+  .outline-btn,
+  .secondary-btn,
+  .adoms-search-button,
+  .adoms-law-search-button,
+  .adoms-contract-search-button,
+  .adoms-obligations-search-button,
+  .adoms-obligations-reset-button,
+  .adoms-obligations-back-button,
+  .adoms-summary-action,
+  .adoms-selection-button
+) {
+  min-height: 36px !important;
+  border: 1px solid #d2b7ce !important;
+  border-radius: var(--radius-control) !important;
+  color: var(--brand-purple) !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  font-size: var(--text-sm) !important;
+  font-weight: 650 !important;
+}
+
+:is(
+    .outline-btn,
+    .secondary-btn,
+    .adoms-search-button,
+    .adoms-law-search-button,
+    .adoms-contract-search-button,
+    .adoms-obligations-search-button,
+    .adoms-obligations-reset-button,
+    .adoms-obligations-back-button,
+    .adoms-summary-action,
+    .adoms-selection-button
+  ):hover:not(:disabled) {
+  border-color: var(--brand-purple) !important;
+  background: var(--surface-blush) !important;
+}
+
+/* Dashboard: keep current information positions, restore the original visual tone. */
+.adoms-dashboard {
+  --adoms-green-dark: var(--brand-purple) !important;
+  --adoms-green: var(--brand-magenta) !important;
+  --adoms-green-soft: var(--surface-blush) !important;
+  --adoms-line: var(--border-soft) !important;
+  --adoms-red: var(--brand-magenta) !important;
+  --adoms-text: var(--brand-ink) !important;
+  font-family:
+    "Inter", "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif !important;
+}
+.adoms-dashboard .adoms-layout {
+  gap: 16px !important;
+}
+.adoms-dashboard
+  :is(.adoms-center-column, .adoms-right-column, .adoms-deadline-row) {
+  gap: 16px !important;
+}
+.adoms-dashboard
+  :is(
+    .adoms-target-panel,
+    .adoms-due-card,
+    .adoms-rate-panel,
+    .adoms-overdue-card,
+    .adoms-notification-panel,
+    .adoms-duty-panel
+  ) {
+  border: 1px solid var(--border-soft) !important;
+  border-radius: var(--radius-card) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: var(--shadow) !important;
+}
+.adoms-dashboard .adoms-target-panel {
+  background: linear-gradient(155deg, #fbf2f8, #fff 68%, #fbfbdc) !important;
+}
+.adoms-dashboard .adoms-due-card {
+  background: linear-gradient(145deg, #fff, #fbf2f8) !important;
+}
+.adoms-dashboard .adoms-overdue-card {
+  border-color: #e4bfd9 !important;
+  box-shadow:
+    inset 3px 0 var(--brand-magenta),
+    var(--shadow) !important;
+}
+.adoms-dashboard
+  :is(.adoms-target-heading, .adoms-rate-header, .adoms-panel-heading) {
+  border-color: var(--border-soft) !important;
+}
+.adoms-dashboard
+  :is(
+    .adoms-target-heading h2,
+    .adoms-card-heading h2,
+    .adoms-panel-heading h2,
+    .adoms-overdue-card h2,
+    .adoms-rate-title h2
+  ) {
+  color: var(--brand-ink) !important;
+  font-size: var(--text-md) !important;
+}
+.adoms-dashboard
+  :is(
+    .adoms-target-total,
+    .adoms-due-total,
+    .adoms-due-list,
+    .adoms-filter,
+    .adoms-summary-table,
+    .adoms-notification-copy strong,
+    .adoms-duty-copy strong
+  ) {
+  font-size: var(--text-sm) !important;
+}
+.adoms-dashboard
+  :is(
+    .adoms-target-total b,
+    .adoms-due-total b,
+    .adoms-due-list dd,
+    .adoms-overdue-count,
+    .adoms-rate-title strong,
+    .adoms-duty-copy b
+  ) {
+  color: var(--brand-purple) !important;
+  font-size: inherit !important;
+}
+.adoms-dashboard .adoms-grade {
+  border-color: #e5dfe6 !important;
+  background: #faf9fb !important;
+  font-size: var(--text-xs) !important;
+}
+.adoms-dashboard .adoms-grade-active {
+  color: var(--brand-purple) !important;
+  background: var(--surface-blush) !important;
+  border-color: #d9b7d2 !important;
+  box-shadow: none !important;
+}
+.adoms-dashboard .adoms-half-bar {
+  background: linear-gradient(
+    180deg,
+    var(--brand-magenta),
+    var(--brand-purple)
+  ) !important;
+  border-radius: 8px 8px 0 0;
+  font-size: var(--text-sm) !important;
+}
+.adoms-dashboard .adoms-half-bar-label,
+.adoms-dashboard .adoms-summary-table :is(th, td),
+.adoms-dashboard .adoms-filter select {
+  font-size: var(--text-xs) !important;
+}
+.adoms-dashboard .adoms-summary-table :is(th, td) {
+  border-color: #e7e1e8 !important;
+}
+.adoms-dashboard .adoms-summary-table thead th {
+  background: #f1eff4 !important;
+}
+.adoms-dashboard .adoms-duty-item {
+  border-color: #e5d9e4 !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #f7edf5, #f4f1f7) !important;
+}
+.adoms-dashboard .adoms-notification-status {
+  background: var(--brand-purple) !important;
+}
+
+/* Applicability retains its three-step workbench but follows the same light surfaces. */
+.applicability-page .layer-flow {
+  background: linear-gradient(135deg, #312837, #251f2a) !important;
+}
+.applicability-page :is(.fact-panel, .result-panel, .trace-panel) {
+  border-color: var(--border-soft) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow) !important;
+}
+.applicability-page .workbench-title {
+  background: linear-gradient(90deg, #f5eff5, #fff) !important;
+}
+.applicability-page .applicability-presets button {
+  min-width: 180px;
+  padding: 12px 14px;
+  border-color: var(--border-soft) !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  box-shadow: 0 6px 18px rgba(94, 54, 130, 0.05);
+}
+.applicability-page .applicability-presets button.active {
+  border-color: #d29ac7 !important;
+  background: var(--surface-blush) !important;
+  box-shadow:
+    inset 3px 0 var(--brand-magenta),
+    0 8px 20px rgba(169, 49, 147, 0.09) !important;
+}
+
+@media (max-width: 1380px) {
+  .adoms-shell .page-stage {
+    padding: 28px 28px 44px;
+  }
+  .adoms-dashboard .adoms-layout {
+    grid-template-columns: minmax(205px, 0.76fr) minmax(540px, 2fr) !important;
+  }
 }

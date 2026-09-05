@@ -22,9 +22,9 @@ const originalInspectionItems = [
 ];
 
 const statusCellStyles: Record<ComplianceStatus, CSSProperties> = {
-  이행완료: { backgroundColor: "#f3d8ea", color: "#84256f" },
-  보완필요: { backgroundColor: "#ffedaa", color: "#75560a" },
-  미이행: { backgroundColor: "#ffd1b4", color: "#873b18" },
+  이행완료: { backgroundColor: "#dff6f1", color: "#087a69" },
+  보완필요: { backgroundColor: "#fff1ba", color: "#75560a" },
+  미이행: { backgroundColor: "#ffe0cc", color: "#873b18" },
   해당없음: { backgroundColor: "#ffffff", color: "#59636a" },
 };
 
