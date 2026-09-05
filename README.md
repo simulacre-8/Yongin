@@ -85,12 +85,18 @@ pnpm smoke:adoms
 
 ## 문서
 
+- `docs/adoms-ui/ADOMS_102_SCREEN_FLOW_MAP.md`: SCR-001~102 번호순 카탈로그와 실제 업무순 플로우
+- `docs/adoms-ui/ADOMS_DEMO_SCENARIO_CROSSWALK.md`: 용인시 32 STEP과 원본 화면의 재사용·상태변형·신규제작 매핑
+- `docs/adoms-ui/ADOMS_UI_GAP_CONFIRMATION_REGISTER.md`: 원본에 없는 화면과 클라이언트 컨펌 질문
+- `docs/adoms-ui/ADOMS_SCREEN_CATALOG.csv`: 리네이밍된 102개 이미지의 기계 판독용 색인
 - `docs/UI_SCREEN_MAP.md`: 적용범위 판정을 첫 장면으로 둔 대표 화면 구성
 - `docs/ADOMS_GRAPH_API_REQUEST.md`: 기존 Graph API에 요청할 최소 인증·판정·근거 계약
 - `docs/README_ADOMS_SEED.md`: ADOMS 시드 구성·검수 수준·적용 주의사항
 - `docs/DB_GRAPH_HANDOFF.md`: 축소 법령 데이터와 RDB/그래프 경계
 - `docs/SUPABASE_RUNBOOK.md`: 원격 DB·RLS·Storage·스모크 테스트 운영 기록
 - `scripts/build_demo_projection.py`: 승인 목록 기준 RDB·그래프 투영 ETL
+
+화면을 수정할 때는 **클라이언트가 지정한 PNG → 해당 SCR 명세 → Flow Map → Scenario Crosswalk → Gap Register** 순서로 확인합니다. 102개 이미지는 102개 라우트가 아니라 스크롤 연속·모달·권한 변형·예외 상태를 포함한 화면 컷입니다. 원본에 없는 장면은 기존 화면이라고 간주하지 않고 컨펌 후 제작합니다.
 
 ## 시연 보안
 
