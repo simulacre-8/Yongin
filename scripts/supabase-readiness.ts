@@ -26,6 +26,8 @@ const tables = [
   "ref_rule",
   "ref_obligation",
   "ref_rule_obligation",
+  "ref_managed_target",
+  "ref_managed_target_obligation",
   "demo_scenario",
   "org",
   "profile",

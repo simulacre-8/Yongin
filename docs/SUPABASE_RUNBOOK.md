@@ -18,6 +18,7 @@
 | Storage 왕복          | 업로드·다운로드·내용검증·삭제 통과      |
 | 감사로그              | insert·update·delete 자동 기록 확인     |
 | 내부 추진현황         | UI·테이블·이력·Realtime 등록 제거 완료  |
+| 시설·의무 참조 DB     | FMS 150건·시연 3건·매핑 2,929건 적재    |
 
 ## 마이그레이션 순서
 
@@ -25,30 +26,36 @@
 2. `supabase/migrations/002_security_and_index_hardening.sql`
 3. `supabase/migrations/004_remove_project_plan_progress.sql`
 4. `supabase/migrations/005_yongin_cityhall_only.sql`
-5. `supabase/seed.sql`
-6. `supabase/seed_adoms.sql`
+5. `supabase/migrations/006_facility_catalog.sql`
+6. `supabase/seed.sql`
+7. `supabase/seed_adoms.sql`
+8. `supabase/seed_facility_catalog.sql`
 
 세 번째 파일은 과거 배포에 존재할 수 있는 내부 추진현황 테이블을 안전하게 제거한다. 네 번째 파일은 클라이언트 범위에 없던 임시 시설을 제거하고 용인시청 단일 대상으로 정리한다.
 
 ## 적재된 시연 데이터
 
-| 리소스                 |           건수 |
-| ---------------------- | -------------: |
-| `ref_law` | 111 = 기존 7 + ADOMS 104 |
-| `ref_unit` | 309 = 기존 5 + ADOMS 304 |
-| `ref_rule` | 132 = 기존 4 + ADOMS 128; 익명 조회 35 |
-| `ref_obligation` | 226 = 기존 10 + ADOMS 216 |
-| `ref_rule_obligation` | 138 = 기존 10 + ADOMS 128; 익명 조회 41 |
-| `demo_scenario`        |              1 |
-| `target`               | 1 (`용인시청`) |
-| `target_applicability` |              4 |
-| `target_obligation`    |             10 |
-| `compliance_record`    |             10 |
-| `inspection_run`       |              1 |
-| `inspection_scope`     |             10 |
-| `inspection_result`    |             10 |
+| 리소스                          |                                    건수 |
+| ------------------------------- | --------------------------------------: |
+| `ref_law`                       |                                     115 |
+| `ref_unit`                      |                                     393 |
+| `ref_rule`                      |  132 = 기존 4 + ADOMS 128; 익명 조회 35 |
+| `ref_obligation`                |                                     310 |
+| `ref_rule_obligation`           | 138 = 기존 10 + ADOMS 128; 익명 조회 41 |
+| `demo_scenario`                 |                                       1 |
+| `target`                        |                          1 (`용인시청`) |
+| `target_applicability`          |                                       4 |
+| `target_obligation`             |                                      10 |
+| `compliance_record`             |                                      10 |
+| `inspection_run`                |                                       1 |
+| `inspection_scope`              |                                      10 |
+| `inspection_result`             |                                      10 |
+| `ref_managed_target`            |           153 = FMS 시설 150 + 시연값 3 |
+| `ref_managed_target_obligation` |    2,929 = CSV 매핑 2,906 + 시나리오 23 |
 
 `seed_adoms.sql`은 기존 수기 시드와 ID가 겹치지 않는 추가형 시드다. ADOMS 그래프 식별자를 유지한 법령 104건·조문 304건·의무 216건·규칙 128건·연결 128건을 추가하며, 트랜잭션과 `on conflict do update`로 재실행할 수 있다. 전체 규칙을 자동 실행하지 않고 실제 SQL에서 `demo_approved=true`인 ADOMS 규칙·연결 **31건**만 공개하며, 첫 화면은 그중 용인시청 시연용 4개 규칙만 사용한다.
+
+시설 원천은 읽기 전용 참조 계층으로 분리했다. 용인경전철은 FMS 시설물이 아니라 도시철도법 제2조제2호 등에 따른 **공중교통수단**으로 저장되며, 경전철 1건과 도급 2건은 `DEMO_VIRTUAL`·`시연값`으로 표시한다.
 
 ## 권한 모델
 
@@ -59,12 +66,13 @@
 ```bash
 pnpm check:supabase
 pnpm smoke:supabase
+pnpm smoke:facility
 pnpm exec vitest run client/src/lib/supabase.secrets.test.ts
 pnpm check
 pnpm build
 ```
 
-`check:supabase`는 필수 테이블 17개와 비공개 버킷을 실제 GET 요청으로 검사한다. `smoke:supabase`는 임시 대상과 파일을 생성해 왕복 검증하고 모두 삭제한다.
+`check:supabase`는 필수 테이블 19개와 비공개 버킷을 실제 GET 요청으로 검사한다. `smoke:supabase`는 임시 대상과 파일을 생성해 왕복 검증하고 모두 삭제한다. `smoke:facility`는 공개키로 153개 대상·2,929개 매핑과 경전철의 공중교통수단 분류를 검증한다.
 
 ## 시연 종료
 

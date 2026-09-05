@@ -177,10 +177,6 @@ export default function Applicability() {
         <div>
           <span className="eyebrow">APPLICABILITY · L1 → L2 → L3</span>
           <h1>용인시청 법 적용범위 1차 판정</h1>
-          <p>
-            용인시청 시연값으로 시작하며, 인원·면적 변경 시 ADOMS 승인 규칙을
-            즉시 다시 계산합니다.
-          </p>
         </div>
         <div className="source-stack">
           <span className="source-badge">
@@ -257,9 +253,6 @@ export default function Applicability() {
             >
               <option>청사·사무시설</option>
             </select>
-            <small>
-              출처: 시연 시나리오 · 실제 연계 시 사업장 마스터 값 사용
-            </small>
           </label>
           <label>
             <span>
@@ -276,7 +269,6 @@ export default function Applicability() {
               />
               <b>명</b>
             </div>
-            <small>ADOMS 20명·50명 경계 규칙에 사용</small>
           </label>
           <label>
             <span>
@@ -293,7 +285,6 @@ export default function Applicability() {
               />
               <b>㎡</b>
             </div>
-            <small>ADOMS 400㎡ 경계 규칙에 사용</small>
           </label>
           <label>
             <span>사실 발생·효력 기준일</span>
@@ -307,7 +298,6 @@ export default function Applicability() {
                 }))
               }
             />
-            <small>저장 시 실제 기록시각과 분리해 함께 보존합니다.</small>
           </label>
           <label className="boolean-fact">
             <span>시설물안전법 대상 여부</span>
@@ -324,9 +314,6 @@ export default function Applicability() {
             >
               <i /> {facts.facilitySafetyAct ? "예" : "아니오"}
             </button>
-            <small>
-              표시용 가정값이며 현재 4개 판정식에는 사용하지 않습니다.
-            </small>
           </label>
           <div className="fact-source-note">
             <b>판정 입력 스냅숏</b>

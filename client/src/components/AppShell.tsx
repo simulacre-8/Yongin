@@ -1,12 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import {
-  ChevronDown,
-  Database,
-  PanelLeftClose,
-  PanelLeftOpen,
-  RefreshCcw,
-} from "lucide-react";
+import { ChevronDown, Database, RefreshCcw } from "lucide-react";
 import { targets, type Role } from "@/lib/demo-data";
 import { checkSupabaseConnection } from "@/lib/supabase";
 import { useDemo } from "@/contexts/DemoContext";
@@ -195,7 +189,7 @@ const shellStyles = `
     min-height: 88px;
     grid-template-columns: 300px minmax(590px, 1fr) 286px;
     background: #090909;
-    border-bottom: 8px solid #df3355;
+    border-bottom: 0;
     box-shadow: none;
   }
   .adoms-shell .brand { padding: 0 18px; gap: 10px; background: #fff; }
@@ -206,7 +200,7 @@ const shellStyles = `
   .adoms-shell .top-nav a,
   .adoms-shell .top-nav .top-nav-label {
     height: 100%; padding-top: 1px; border-bottom: 0;
-    display: flex; align-items: center; color: #f3f3f3; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; color: #f3f3f3; font-size: 14px; font-weight: 700;
   }
   .adoms-shell .top-nav a:hover,
   .adoms-shell .top-nav a.active { color: #f05a84; border-bottom-color: transparent; }
@@ -230,8 +224,13 @@ const shellStyles = `
   .adoms-shell .header-actions button:hover { background: #a93193; border-color: #df6fc3; }
   .adoms-shell .workspace { --side-width: 288px; max-width: none; background: #fff; }
   .adoms-shell .side-panel {
-    padding: 50px 22px 28px 40px; min-height: calc(100vh - 126px);
-    background: linear-gradient(110deg, #f1f1f3, #f7f7f8); border-right: 0;
+    padding: 24px 16px 28px; min-height: calc(100vh - 119px);
+    background: #090909; border-right: 0;
+  }
+  .adoms-shell .side-menu-container {
+    min-height: calc(100vh - 179px); padding: 24px 18px;
+    border-radius: 22px; background: linear-gradient(110deg, #f1f1f3, #f7f7f8);
+    overflow: hidden;
   }
   .adoms-shell .side-kicker {
     margin-bottom: 15px; padding: 9px 12px; border-radius: 3px; background: #a93193;
@@ -263,13 +262,6 @@ const shellStyles = `
   .adoms-shell .side-target select {
     border-color: #ceced4; border-radius: 2px; color: #34343a; font-size: 11px; padding: 7px;
   }
-  .adoms-shell .side-toggle {
-    top: 18px; left: calc(var(--side-width) - 17px); width: 34px; height: 34px;
-    border-color: #fff; border-radius: 50%; background: #a93193;
-    box-shadow: 0 3px 8px rgba(0,0,0,.25);
-  }
-  .adoms-shell .side-toggle:hover { background: #86256f; }
-  .adoms-shell .side-collapsed .side-toggle { left: 14px; }
   .adoms-shell .page-stage { padding: 30px 38px 48px; background: #f5f5f7; }
   .adoms-shell .main-footer {
     min-height: 31px; padding: 0 38px; border-top: 1px solid #e3e3e3;
@@ -278,9 +270,10 @@ const shellStyles = `
   @media (max-width: 1380px) {
     .adoms-shell .main-header { grid-template-columns: 278px minmax(520px, 1fr) 250px; }
     .adoms-shell .workspace { --side-width: 260px; }
-    .adoms-shell .side-panel { padding-left: 28px; }
+    .adoms-shell .side-panel { padding-left: 16px; }
     .adoms-shell .top-nav { gap: 8px; }
-    .adoms-shell .top-nav a { font-size: 10px; }
+    .adoms-shell .top-nav a,
+    .adoms-shell .top-nav .top-nav-label { font-size: 14px; }
   }
 `;
 
@@ -292,17 +285,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
     connected: false,
     reason: "연결 확인 중",
   });
-  const [sideCollapsed, setSideCollapsed] = useState(location === "/dashboard");
   const homeHref = "/applicability";
   const sideMenu = menuFor(location);
 
   useEffect(() => {
     checkSupabaseConnection().then(setConnection);
   }, []);
-
-  useEffect(() => {
-    if (location === "/dashboard") setSideCollapsed(true);
-  }, [location]);
 
   const activeHref =
     location === "/" || location === "/applicability"
@@ -340,7 +328,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 key={item.label}
                 href={item.href}
                 className={activeHref === item.href ? "active" : ""}
-                onClick={() => setSideCollapsed(true)}
               >
                 {item.label}
               </Link>
@@ -390,68 +377,56 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className={`workspace ${sideCollapsed ? "side-collapsed" : ""}`}>
-        <button
-          className="side-toggle"
-          onClick={() => setSideCollapsed(current => !current)}
-          aria-expanded={!sideCollapsed}
-          aria-label={sideCollapsed ? "왼쪽 메뉴 열기" : "왼쪽 메뉴 접기"}
-          title={sideCollapsed ? "왼쪽 메뉴 열기" : "왼쪽 메뉴 접기"}
-        >
-          {sideCollapsed ? (
-            <PanelLeftOpen size={17} />
-          ) : (
-            <PanelLeftClose size={17} />
-          )}
-        </button>
-        <aside className="side-panel" aria-hidden={sideCollapsed}>
-          <div className="side-kicker">{sideMenu.title}</div>
-          {sideMenu.groups.map(group => (
-            <section className="side-group" key={group.title}>
-              <div className="side-group-title">
-                <span>{group.title}</span>
-                <ChevronDown size={16} aria-hidden="true" />
-              </div>
-              <div className="side-items">
-                {group.items.map(item => {
-                  const className = `side-item${item.selected ? " selected" : ""}${item.nested ? " nested" : ""}`;
-                  const contents = (
-                    <>
-                      {item.selected && <span className="side-dot" />}
-                      {item.label}
-                    </>
-                  );
-                  return item.href ? (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      className={className}
-                      onClick={() => setSideCollapsed(true)}
-                    >
-                      {contents}
-                    </Link>
-                  ) : (
-                    <span className={className} key={item.label}>
-                      {contents}
-                    </span>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
-          <div className="side-target">
-            <label htmlFor="target-select">현재 관리대상</label>
-            <select
-              id="target-select"
-              value={selectedTargetId}
-              onChange={event => setSelectedTargetId(event.target.value)}
-            >
-              {targets.map(target => (
-                <option key={target.id} value={target.id}>
-                  {target.name}
-                </option>
-              ))}
-            </select>
+      <div className="workspace">
+        <aside className="side-panel">
+          <div className="side-menu-container">
+            <div className="side-kicker">{sideMenu.title}</div>
+            {sideMenu.groups.map(group => (
+              <section className="side-group" key={group.title}>
+                <div className="side-group-title">
+                  <span>{group.title}</span>
+                  <ChevronDown size={16} aria-hidden="true" />
+                </div>
+                <div className="side-items">
+                  {group.items.map(item => {
+                    const className = `side-item${item.selected ? " selected" : ""}${item.nested ? " nested" : ""}`;
+                    const contents = (
+                      <>
+                        {item.selected && <span className="side-dot" />}
+                        {item.label}
+                      </>
+                    );
+                    return item.href ? (
+                      <Link
+                        key={item.label}
+                        href={item.href}
+                        className={className}
+                      >
+                        {contents}
+                      </Link>
+                    ) : (
+                      <span className={className} key={item.label}>
+                        {contents}
+                      </span>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+            <div className="side-target">
+              <label htmlFor="target-select">현재 관리대상</label>
+              <select
+                id="target-select"
+                value={selectedTargetId}
+                onChange={event => setSelectedTargetId(event.target.value)}
+              >
+                {targets.map(target => (
+                  <option key={target.id} value={target.id}>
+                    {target.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </aside>
 

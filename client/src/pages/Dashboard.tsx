@@ -90,7 +90,7 @@ const dashboardStyles = `
     --adoms-green: #a93193;
     --adoms-green-soft: #f1f1f3;
     --adoms-line: #a8ada7;
-    --adoms-red: #e60000;
+    --adoms-red: #a93193;
     --adoms-text: #161b17;
     width: 100%;
     max-width: 1500px;
@@ -109,18 +109,18 @@ const dashboardStyles = `
   .adoms-layout {
     display: grid;
     grid-template-columns: minmax(220px, 0.8fr) minmax(570px, 2.25fr) minmax(272px, 0.92fr);
-    gap: 22px;
+    gap: 24px;
     align-items: stretch;
   }
   .adoms-target-panel, .adoms-due-card, .adoms-rate-panel,
   .adoms-notification-panel, .adoms-duty-panel {
-    border: 2px solid #b4b8b2;
+    border: 1px solid #b4b8b2;
     background: #fff;
     box-shadow: none;
   }
   .adoms-target-panel {
     display: flex;
-    min-height: 645px;
+    min-height: 660px;
     flex-direction: column;
     padding: 22px 26px 18px;
     border-radius: 18px;
@@ -139,21 +139,21 @@ const dashboardStyles = `
   .adoms-target-heading h2, .adoms-card-heading h2, .adoms-panel-heading h2 {
     margin: 0;
     color: #131713;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 800;
     letter-spacing: -0.055em;
   }
   .adoms-target-total, .adoms-due-total {
     margin: 0;
     color: #202620;
-    font-size: 17px;
+    font-size: 14px;
     font-weight: 700;
     white-space: nowrap;
   }
   .adoms-target-total b, .adoms-due-total b {
     color: var(--adoms-green-dark);
-    font-size: 26px;
-    line-height: 1;
+    font-size: inherit;
+    line-height: inherit;
   }
   .adoms-target-list {
     display: grid;
@@ -168,12 +168,12 @@ const dashboardStyles = `
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
     align-items: center;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 750;
     letter-spacing: -0.045em;
   }
   .adoms-target-item > strong {
-    font-size: 20px;
+    font-size: 17px;
   }
   .adoms-target-sublist {
     grid-column: 1 / -1;
@@ -183,7 +183,7 @@ const dashboardStyles = `
     padding: 0;
     color: #66666c;
     list-style: none;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
   }
   .adoms-target-sublist li {
@@ -196,7 +196,7 @@ const dashboardStyles = `
     position: absolute;
     margin-left: -12px;
   }
-  .adoms-target-sublist strong { color: #66666c; font-size: 17px; }
+  .adoms-target-sublist strong { color: #66666c; font-size: 14px; }
   .adoms-target-name {
     display: block;
     margin-top: auto;
@@ -209,14 +209,15 @@ const dashboardStyles = `
   .adoms-center-column, .adoms-right-column {
     display: grid;
     min-width: 0;
-    gap: 22px;
+    gap: 24px;
   }
-  .adoms-center-column { grid-template-rows: 202px minmax(425px, 1fr); }
+  .adoms-center-column { grid-template-rows: minmax(220px, auto) minmax(410px, 1fr); }
   .adoms-right-column { grid-template-rows: minmax(250px, 0.8fr) minmax(320px, 1fr); }
   .adoms-deadline-row {
     display: grid;
     grid-template-columns: minmax(300px, 1.12fr) minmax(175px, 0.62fr);
-    gap: 22px;
+    gap: 24px;
+    min-height: 220px;
   }
   .adoms-due-card {
     padding: 20px 29px;
@@ -224,7 +225,7 @@ const dashboardStyles = `
     background: var(--adoms-green-soft);
   }
   .adoms-card-heading { margin-bottom: 15px; }
-  .adoms-card-heading h2 { font-size: 20px; }
+  .adoms-card-heading h2 { font-size: 16px; font-weight: 800; }
   .adoms-due-list {
     display: grid;
     gap: 8px;
@@ -235,11 +236,11 @@ const dashboardStyles = `
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 650;
   }
   .adoms-due-list dt, .adoms-due-list dd { margin: 0; }
-  .adoms-due-list dd { font-size: 24px; font-weight: 850; }
+  .adoms-due-list dd { color: var(--adoms-green-dark); font-size: 14px; font-weight: 800; }
   .adoms-due-list div:last-child {
     margin-top: 2px;
     padding: 7px 12px;
@@ -252,37 +253,49 @@ const dashboardStyles = `
     flex-direction: column;
     justify-content: space-between;
     padding: 34px 28px 23px;
-    border: 4px solid var(--adoms-red);
+    border: 2px solid var(--adoms-red);
     border-radius: 18px;
     background: #fff;
   }
   .adoms-overdue-card h2 {
     margin: 0;
     color: #151515;
-    font-size: 20px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 800;
     letter-spacing: -0.055em;
   }
   .adoms-overdue-count {
     align-self: flex-end;
     margin: 0;
     color: var(--adoms-red);
-    font-size: 35px;
+    font-size: 16px;
     font-weight: 850;
     letter-spacing: -0.05em;
     line-height: 1;
   }
-  .adoms-overdue-count small { color: #141414; font-size: 16px; font-weight: 600; }
+  .adoms-overdue-count small { color: inherit; font-size: inherit; font-weight: 700; }
   .adoms-rate-panel {
-    min-height: 425px;
+    display: flex;
+    flex-direction: column;
+    min-height: 410px;
     padding: 21px 22px 18px;
     border-radius: 18px;
   }
+  .adoms-rate-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid #090909;
+  }
   .adoms-rate-grid {
     display: grid;
-    grid-template-columns: minmax(230px, 0.84fr) minmax(365px, 1.16fr);
-    gap: 26px;
-    height: 100%;
+    flex: 1;
+    grid-template-columns: minmax(220px, 0.78fr) minmax(375px, 1.22fr);
+    gap: 24px;
+    min-height: 0;
   }
   .adoms-rate-visual {
     display: flex;
@@ -294,16 +307,16 @@ const dashboardStyles = `
     align-items: baseline;
     justify-content: space-between;
     gap: 9px;
-    margin-bottom: 19px;
+    margin: 0;
   }
-  .adoms-rate-title h2 { margin: 0; font-size: 18px; letter-spacing: -0.055em; }
-  .adoms-rate-title strong { color: var(--adoms-green-dark); font-size: 29px; line-height: 1; }
+  .adoms-rate-title h2 { margin: 0; font-size: 16px; letter-spacing: -0.055em; }
+  .adoms-rate-title strong { color: var(--adoms-green-dark); font-size: 16px; line-height: 1; }
   .adoms-grade-row { display: grid; grid-template-columns: repeat(3, 1fr); }
   .adoms-grade {
     padding: 7px 3px;
     border: 1px solid #aeb2ae;
     color: #252925;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 750;
     text-align: center;
   }
@@ -313,7 +326,7 @@ const dashboardStyles = `
   .adoms-grade-active {
     position: relative;
     z-index: 1;
-    border: 2px solid #5b5e59;
+    border: 1px solid #5b5e59;
     box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.22);
   }
   .adoms-half-bars {
@@ -347,7 +360,7 @@ const dashboardStyles = `
     justify-content: center;
     padding: 8px 4px;
     color: #fff;
-    font-size: clamp(14px, 1.6vw, 22px);
+    font-size: clamp(13px, 1.4vw, 19px);
     font-weight: 850;
     line-height: 1;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.14);
@@ -355,21 +368,21 @@ const dashboardStyles = `
   .adoms-half-bar-good { background: #a93193; }
   .adoms-half-bar-normal { background: #ffc000; }
   .adoms-half-bar-poor { background: #ed7d31; }
-  .adoms-half-bar-label { color: #6e716e; font-size: 15px; font-weight: 750; }
+  .adoms-half-bar-label { color: #6e716e; font-size: 13px; font-weight: 750; }
   .adoms-summary-area { min-width: 0; }
   .adoms-filters {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 15px;
-    margin-bottom: 18px;
+    margin: 0;
   }
   .adoms-filter {
     display: flex;
     align-items: center;
     gap: 7px;
     color: #171917;
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 800;
     white-space: nowrap;
   }
@@ -382,7 +395,7 @@ const dashboardStyles = `
     color: #656a66;
     background: #fff;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 12px;
   }
   .adoms-filter:last-child select { min-width: 132px; }
   .adoms-summary-table {
@@ -390,7 +403,7 @@ const dashboardStyles = `
     border-collapse: collapse;
     table-layout: fixed;
     color: #202320;
-    font-size: 15px;
+    font-size: 12px;
     text-align: center;
   }
   .adoms-summary-table th, .adoms-summary-table td {
@@ -398,11 +411,11 @@ const dashboardStyles = `
     border: 1px solid #a6aaa6;
     padding: 3px 5px;
   }
-  .adoms-summary-table thead th { background: #e9eaec; font-size: 15px; font-weight: 850; }
+  .adoms-summary-table thead th { background: #e9eaec; font-size: 12px; font-weight: 850; }
   .adoms-summary-table tbody th { font-weight: 600; }
   .adoms-summary-table .adoms-rate-row th, .adoms-summary-table .adoms-rate-row td,
   .adoms-summary-table .adoms-total-row th, .adoms-summary-table .adoms-total-row td {
-    font-size: 17px;
+    font-size: 14px;
     font-weight: 850;
   }
   .adoms-rate-cell-good { background: #f3f3f5; }
@@ -416,9 +429,9 @@ const dashboardStyles = `
   .adoms-panel-heading {
     margin-bottom: 16px;
     padding-bottom: 11px;
-    border-bottom: 2px solid var(--adoms-green);
+    border-bottom: 1px solid #090909;
   }
-  .adoms-panel-heading h2 { color: var(--adoms-green-dark); font-size: 19px; }
+  .adoms-panel-heading h2 { color: var(--adoms-green-dark); font-size: 16px; }
   .adoms-notification-count {
     display: grid;
     width: 25px;
@@ -464,51 +477,36 @@ const dashboardStyles = `
     display: block;
     overflow: hidden;
     color: #252925;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: -0.04em;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .adoms-notification-copy span { display: block; margin-top: 4px; color: #737a73; font-size: 12px; }
-  .adoms-no-notification { margin: 38px 0; color: #747b74; font-size: 14px; text-align: center; }
+  .adoms-notification-copy span { display: block; margin-top: 4px; color: #737a73; font-size: 10px; }
+  .adoms-no-notification { margin: 38px 0; color: #747b74; font-size: 12px; text-align: center; }
   .adoms-duty-panel { display: flex; min-height: 0; flex-direction: column; }
   .adoms-duty-panel .adoms-panel-heading { margin-bottom: 14px; }
-  .adoms-duty-panel .adoms-panel-heading h2 { font-size: 17px; }
-  .adoms-duty-panel .adoms-panel-heading small { color: #6f756f; font-size: 12px; font-weight: 650; }
+  .adoms-duty-panel .adoms-panel-heading h2 { font-size: 15px; }
+  .adoms-duty-panel .adoms-panel-heading small { color: #6f756f; font-size: 10px; font-weight: 650; }
   .adoms-duty-grid {
     display: grid;
     flex: 1;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
   }
   .adoms-duty-item {
-    display: grid;
-    grid-template-columns: 34px minmax(0, 1fr);
-    gap: 9px;
-    align-items: center;
-    min-height: 105px;
-    padding: 11px 9px;
-    border: 1px solid #bac0ba;
-    background: #fafcf9;
-  }
-  .adoms-duty-number {
-    display: grid;
-    width: 33px;
-    height: 33px;
-    place-items: center;
-    border: 3px solid #c2c6c1;
-    border-radius: 50%;
-    color: #172017;
-    background: var(--adoms-green-soft);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
-    font-size: 18px;
-    font-weight: 850;
+    display: block;
+    min-height: 82px;
+    padding: 12px;
+    border: 1px solid #d2c8d4;
+    border-radius: 8px;
+    background: #f3eff4;
   }
   .adoms-duty-copy { min-width: 0; }
-  .adoms-duty-copy strong { display: block; color: #353b35; font-size: 13px; font-weight: 750; letter-spacing: -0.055em; line-height: 1.35; }
-  .adoms-duty-copy p { margin: 8px 0 0; color: #5e665e; font-size: 13px; }
-  .adoms-duty-copy b { color: #c90000; font-size: 18px; }
+  .adoms-duty-copy strong { display: block; color: #353b35; font-size: 11px; font-weight: 750; letter-spacing: -0.055em; line-height: 1.35; }
+  .adoms-duty-copy p { margin: 8px 0 0; color: #5e665e; font-size: 11px; }
+  .adoms-duty-copy b { color: var(--adoms-green-dark); font-size: inherit; }
   @media (max-width: 1220px) {
     .adoms-layout { grid-template-columns: minmax(210px, 0.75fr) minmax(560px, 2fr); }
     .adoms-right-column { grid-column: 1 / -1; grid-template-columns: minmax(280px, 0.75fr) minmax(520px, 1.25fr); grid-template-rows: minmax(220px, 1fr); }
@@ -524,7 +522,7 @@ const dashboardStyles = `
   }
   @media (max-width: 540px) {
     .adoms-dashboard { min-width: 0; }
-    .adoms-target-panel, .adoms-due-card, .adoms-rate-panel, .adoms-notification-panel, .adoms-duty-panel { border-width: 2px; }
+    .adoms-target-panel, .adoms-due-card, .adoms-rate-panel, .adoms-notification-panel, .adoms-duty-panel { border-width: 1px; }
     .adoms-target-panel, .adoms-due-card, .adoms-rate-panel, .adoms-notification-panel, .adoms-duty-panel { padding-left: 15px; padding-right: 15px; }
     .adoms-deadline-row { gap: 12px; }
     .adoms-overdue-card { min-height: 145px; padding: 22px; }
@@ -725,12 +723,38 @@ export default function Dashboard() {
             className="adoms-rate-panel"
             aria-labelledby="adoms-rate-title"
           >
+            <div className="adoms-rate-header">
+              <div className="adoms-rate-title">
+                <h2 id="adoms-rate-title">전체 이행률</h2>
+                <strong>{dashboardData.totalRate.toFixed(2)}%</strong>
+              </div>
+              <div className="adoms-filters">
+                <label className="adoms-filter">
+                  <span>년도</span>
+                  <select
+                    value={selectedYear}
+                    onChange={event => setSelectedYear(event.target.value)}
+                    aria-label="년도 선택"
+                  >
+                    <option value="2026">2026</option>
+                  </select>
+                </label>
+                <label className="adoms-filter">
+                  <span>대상</span>
+                  <select
+                    value={selectedTargetType}
+                    onChange={event =>
+                      setSelectedTargetType(event.target.value)
+                    }
+                    aria-label="대상 선택"
+                  >
+                    <option value="공중이용시설">공중이용시설</option>
+                  </select>
+                </label>
+              </div>
+            </div>
             <div className="adoms-rate-grid">
               <div className="adoms-rate-visual">
-                <div className="adoms-rate-title">
-                  <h2 id="adoms-rate-title">전체 이행률</h2>
-                  <strong>{dashboardData.totalRate.toFixed(2)}%</strong>
-                </div>
                 <div
                   className="adoms-grade-row"
                   aria-label={`이행률 등급 ${totalGrade}`}
@@ -783,30 +807,6 @@ export default function Dashboard() {
               </div>
 
               <div className="adoms-summary-area">
-                <div className="adoms-filters">
-                  <label className="adoms-filter">
-                    <span>년도</span>
-                    <select
-                      value={selectedYear}
-                      onChange={event => setSelectedYear(event.target.value)}
-                      aria-label="년도 선택"
-                    >
-                      <option value="2026">2026</option>
-                    </select>
-                  </label>
-                  <label className="adoms-filter">
-                    <span>대상</span>
-                    <select
-                      value={selectedTargetType}
-                      onChange={event =>
-                        setSelectedTargetType(event.target.value)
-                      }
-                      aria-label="대상 선택"
-                    >
-                      <option value="공중이용시설">공중이용시설</option>
-                    </select>
-                  </label>
-                </div>
                 <table className="adoms-summary-table">
                   <thead>
                     <tr>
@@ -912,7 +912,6 @@ export default function Dashboard() {
             <div className="adoms-duty-grid">
               {dashboardData.dutyBalances.map(duty => (
                 <article className="adoms-duty-item" key={duty.number}>
-                  <span className="adoms-duty-number">{duty.number}</span>
                   <div className="adoms-duty-copy">
                     <strong>{duty.label}</strong>
                     <p>

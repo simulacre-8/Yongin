@@ -1,4 +1,10 @@
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   Check,
   ChevronDown,
@@ -8,11 +14,15 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { targets } from "@/lib/demo-data";
+import {
+  loadManagedTargets,
+  LOCAL_MANAGED_TARGETS,
+  type ManagedTargetRow,
+} from "@/lib/facility-api";
 import { useDemo } from "@/contexts/DemoContext";
 
 type Screen = "target-list" | "target-form" | "contract-list" | "contract-form";
-type TargetKind = "부서" | "사업장";
+type TargetKind = "사업장" | "시설물" | "공중교통수단" | "도급·용역·위탁";
 type TargetStatusFilter = "전체" | "미입력" | "입력";
 type DutyStatus = "이행완료" | "보완필요" | "미이행";
 
@@ -287,9 +297,9 @@ function FileRows({
 export default function Targets() {
   const { selectedTargetId, setSelectedTargetId } = useDemo();
   const [screen, setScreen] = useState<Screen>("target-list");
-  const [targetKind, setTargetKind] = useState<TargetKind>("부서");
+  const [targetKind, setTargetKind] = useState<TargetKind>("시설물");
   const [statusFilter, setStatusFilter] = useState<TargetStatusFilter>("전체");
-  const [searchCondition, setSearchCondition] = useState("사업장명");
+  const [searchCondition, setSearchCondition] = useState("관리대상명");
   const [query, setQuery] = useState("");
   const [searchedQuery, setSearchedQuery] = useState("");
   const [targetSaved, setTargetSaved] = useState(true);
@@ -350,12 +360,33 @@ export default function Targets() {
   const [dutyFiles, setDutyFiles] = useState<Record<string, string[]>>(
     Object.fromEntries(contractDuties.map(duty => [duty.id, [""]]))
   );
+  const [managedTargets, setManagedTargets] = useState<ManagedTargetRow[]>(
+    LOCAL_MANAGED_TARGETS
+  );
+  const [facilitySource, setFacilitySource] = useState<
+    "loading" | "supabase" | "fallback"
+  >("loading");
+
+  useEffect(() => {
+    let active = true;
+    loadManagedTargets().then(result => {
+      if (!active) return;
+      setManagedTargets(result.rows);
+      setFacilitySource(result.source);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const selected =
-    targets.find(item => item.id === selectedTargetId) || targets[0];
+    managedTargets.find(item => item.id === selectedTargetId) ||
+    managedTargets[0] ||
+    LOCAL_MANAGED_TARGETS[0];
   const normalizedQuery = searchedQuery.trim();
   const filteredTargets = useMemo(() => {
-    const base = targets.filter(item => {
+    const base = managedTargets.filter(item => {
+      if (item.category !== targetKind) return false;
       const searchable =
         searchCondition === "담당자"
           ? item.manager
@@ -367,7 +398,14 @@ export default function Targets() {
     if (statusFilter === "입력") return targetSaved ? base : [];
     if (statusFilter === "미입력") return targetSaved ? [] : base;
     return base;
-  }, [normalizedQuery, searchCondition, statusFilter, targetSaved]);
+  }, [
+    managedTargets,
+    normalizedQuery,
+    searchCondition,
+    statusFilter,
+    targetKind,
+    targetSaved,
+  ]);
   const filteredContracts = useMemo(
     () =>
       contracts.filter(item =>
@@ -462,7 +500,14 @@ export default function Targets() {
     setDutyFiles(previous => ({ ...previous, [dutyId]: next }));
   };
   const openTargetForm = (id: string) => {
+    const nextTarget = managedTargets.find(item => item.id === id);
     setSelectedTargetId(id);
+    if (nextTarget) {
+      setTargetDraft(previous => ({
+        ...previous,
+        address: nextTarget.address === "-" ? "" : nextTarget.address,
+      }));
+    }
     setScreen("target-form");
   };
   const openNewContract = () => {
@@ -589,8 +634,8 @@ export default function Targets() {
           >
             기본정보
           </p>
-          <h1>사업장</h1>
-          <p>관리대상 기본정보를 선택하고 입력 현황을 확인합니다.</p>
+          <h1>{targetKind}</h1>
+          <p>용인시 소관 관리대상과 대상별 적용 의무를 확인합니다.</p>
         </div>
         <button
           type="button"
@@ -632,7 +677,14 @@ export default function Targets() {
               background: "#fff",
             }}
           >
-            {(["부서", "사업장"] as TargetKind[]).map(kind => (
+            {(
+              [
+                "사업장",
+                "시설물",
+                "공중교통수단",
+                "도급·용역·위탁",
+              ] as TargetKind[]
+            ).map(kind => (
               <button
                 key={kind}
                 type="button"
@@ -700,7 +752,7 @@ export default function Targets() {
               marginLeft: 18,
             }}
           >
-            <option>사업장명</option>
+            <option>관리대상명</option>
             <option>부서명</option>
             <option>담당자</option>
           </select>
@@ -715,7 +767,7 @@ export default function Targets() {
                   announce("검색 조건을 적용했습니다.");
                 }
               }}
-              placeholder={`${targetKind === "부서" ? "부서명" : "사업장명"}을 입력하세요`}
+              placeholder={`${targetKind} 명칭을 입력하세요`}
               style={fieldStyle}
             />
             <Search
@@ -825,9 +877,9 @@ export default function Targets() {
             미입력
           </span>
           <strong style={{ display: "block", marginTop: 4, fontSize: 28 }}>
-            {targetSaved ? 0 : 1}
+            {targetSaved ? 0 : filteredTargets.length}
             <small style={{ marginLeft: 4, color: "#68736b", fontSize: 12 }}>
-              부서
+              건
             </small>
           </strong>
         </button>
@@ -847,9 +899,9 @@ export default function Targets() {
             입력
           </span>
           <strong style={{ display: "block", marginTop: 4, fontSize: 28 }}>
-            {targetSaved ? 1 : 0}
+            {targetSaved ? filteredTargets.length : 0}
             <small style={{ marginLeft: 4, color: "#68736b", fontSize: 12 }}>
-              부서
+              건
             </small>
           </strong>
         </button>
@@ -874,20 +926,24 @@ export default function Targets() {
             개소
           </strong>
           <span style={{ color: "#7a837d", fontSize: 10 }}>
-            행을 선택하면 기본정보와 세부정보를 입력할 수 있습니다.
+            {facilitySource === "supabase"
+              ? "Supabase 시설·의무 매핑 DB 조회"
+              : facilitySource === "loading"
+                ? "시설 DB 조회 중"
+                : "로컬 시연 데이터"}
           </span>
         </div>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1.05fr .9fr 1.6fr .65fr",
+            gridTemplateColumns: "1.15fr .8fr 1.45fr .5fr .55fr",
             background: "#edf1f5",
             fontSize: 11,
             fontWeight: 800,
             textAlign: "center",
           }}
         >
-          {["사업장명", "부서명", "주소", "담당자"].map(label => (
+          {["관리대상명", "분류", "주소", "적용의무", "데이터"].map(label => (
             <span
               className="adoms-table-head"
               key={label}
@@ -912,7 +968,7 @@ export default function Targets() {
               style={{
                 width: "100%",
                 display: "grid",
-                gridTemplateColumns: "1.05fr .9fr 1.6fr .65fr",
+                gridTemplateColumns: "1.15fr .8fr 1.45fr .5fr .55fr",
                 border: 0,
                 background: item.id === selected.id ? "#fbf2f8" : "#fff",
                 color: "#354139",
@@ -925,9 +981,21 @@ export default function Targets() {
               >
                 {item.name}
               </span>
-              <span style={tableCellStyle}>{item.department}</span>
+              <span style={tableCellStyle}>{item.category}</span>
               <span style={tableCellStyle}>{item.address}</span>
-              <span style={tableCellStyle}>{item.manager}</span>
+              <span style={{ ...tableCellStyle, textAlign: "center" }}>
+                {item.obligationCount}건
+              </span>
+              <span
+                style={{
+                  ...tableCellStyle,
+                  color: item.isDemoVirtual ? "#a93193" : "#4d5650",
+                  textAlign: "center",
+                  fontWeight: item.isDemoVirtual ? 800 : 600,
+                }}
+              >
+                {item.isDemoVirtual ? "시연값" : item.sourceKind}
+              </span>
             </button>
           ))
         ) : (
@@ -959,7 +1027,7 @@ export default function Targets() {
               fontSize: 12,
             }}
           >
-            기본정보 / 사업장
+            기본정보 / {selected.category}
           </p>
           <h1>{selected.name} 기본정보 등록·관리</h1>
           <p>기준일자별 근무인원과 담당자 정보를 하나의 양식에서 저장합니다.</p>
@@ -1018,7 +1086,7 @@ export default function Targets() {
                   gap: "15px 18px",
                 }}
               >
-                <LabeledField label="사업장명">
+                <LabeledField label="관리대상명">
                   <input value={selected.name} readOnly style={readonlyStyle} />
                 </LabeledField>
                 <LabeledField label="부서명">
