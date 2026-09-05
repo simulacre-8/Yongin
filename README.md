@@ -1,6 +1,6 @@
 # 용인특례시 안전보건체계 통합관리 시연
 
-화면명세 ZIP의 공공기관 UI를 React로 유사 재구성한 **법령 적용 가능성 판정·의무이행·점검 폐쇄 루프 영업 시연**입니다. 최우선 첫 화면은 대상 프로필과 상시근로자 수·시설 연면적 등 사실값 변화에 따라 **L1 법령 후보 → L2 대상 후보 → L3 의무 후보**와 근거 경로를 다시 계산합니다.
+화면명세 ZIP의 공공기관 UI를 React로 유사 재구성한 **법령 적용 가능성 판정·의무이행·점검 폐쇄 루프 영업 시연**입니다. 최우선 첫 화면은 Supabase에 투영한 ADOMS 지식그래프 데이터에서 승인 규칙·의무·조문을 조회하고, 상시근로자 수·시설 연면적 변화에 따라 **L1 법령 후보 → L2 대상 후보 → L3 의무 후보**와 근거 경로를 다시 계산합니다.
 
 현재 관리대상은 클라이언트 확인에 따라 **용인시청 1개소**만 유지합니다. 첫 화면은 용인시청 가정값으로 시작하며, 실제 사업장 마스터 API가 제공되면 인원·면적·시설 속성을 조회해 자동 변경하도록 연결할 예정입니다. 좌측 업무 메뉴는 상단 메뉴 선택 후 자동으로 접히고 원형 토글 버튼으로 다시 열 수 있습니다.
 
@@ -41,16 +41,16 @@ pnpm dev
 
 ## 화면
 
-| Route | Function |
-|---|---|
+| Route                 | Function                                               |
+| --------------------- | ------------------------------------------------------ |
 | `/`, `/applicability` | 프로필·인원·면적 변화에 따른 L1/L2/L3 후보와 근거 경로 |
-| `/dashboard` | 역할별 대시보드와 집계 |
-| `/targets` | 관리대상 검색·선택 |
-| `/laws` | 핵심 법령 축소본 검색·근거 |
-| `/obligations` | 검수된 대상별 의무와 이행시기 |
-| `/evidence` | 조치일자·상태·증빙·비고 |
-| `/inspection` | 점검 상태·점검내용 |
-| `/summary` | O/△/X/- 총괄표와 이행률 |
+| `/dashboard`          | 역할별 대시보드와 집계                                 |
+| `/targets`            | 관리대상 검색·선택                                     |
+| `/laws`               | 핵심 법령 축소본 검색·근거                             |
+| `/obligations`        | 검수된 대상별 의무와 이행시기                          |
+| `/evidence`           | 조치일자·상태·증빙·비고                                |
+| `/inspection`         | 점검 상태·점검내용                                     |
+| `/summary`            | O/△/X/- 총괄표와 이행률                                |
 
 프로젝트 추진현황은 웹앱과 Supabase에서 제거했습니다. 클라이언트 공개 일정은 별도 Excel/Google Sheets WBS로 관리합니다.
 
@@ -63,8 +63,9 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 3. `supabase/migrations/004_remove_project_plan_progress.sql`
 4. `supabase/migrations/005_yongin_cityhall_only.sql`
 5. `supabase/seed.sql`
+6. `supabase/seed_adoms.sql`
 
-2026-09-05 기준 원격 프로젝트에는 핵심 스키마와 시드가 적용되어 있습니다. Target CRUD·비공개 Storage·감사로그 왕복 테스트가 통과했고, 내부 추진현황 테이블은 제거했습니다.
+`seed_adoms.sql`은 스키마 변경 없이 ADOMS 그래프 식별자를 보존한 법령 104건·조문 304건·의무 216건·규칙 128건·연결 128건을 추가합니다. 실제 SQL에서 `demo_approved=true`인 ADOMS 규칙·연결은 31건이며, 첫 화면에서는 용인시청 시연과 직접 관련된 승인 규칙 4개를 실행합니다.
 
 ## 검증
 
@@ -75,16 +76,18 @@ pnpm exec vitest run client/src/lib/applicability.test.ts
 pnpm exec vitest run client/src/lib/supabase.secrets.test.ts
 pnpm check:supabase
 pnpm smoke:supabase
+pnpm smoke:adoms
 ```
 
-## ADOMS Graph API
+## ADOMS 데이터 연동
 
-별도 그래프 DB 구매는 현재 필요하지 않습니다. 기존 ADOMS 그래프 DB가 있다면 `docs/ADOMS_GRAPH_API_REQUEST.md`에 정리한 base URL, OpenAPI/GraphQL 스키마, 읽기 전용 시연 키, CORS와 snapshot 정보를 받아 첫 화면에 연결합니다. 비공개 키는 Netlify Function 또는 별도 proxy에서 보관합니다.
+이번 시연에는 별도 GraphDB 구매, 외부 API 공개, `server.py` 또는 SQLite 실행이 필요하지 않습니다. `seed_adoms.sql`로 필요한 ADOMS 데이터를 Supabase에 투영하고, `law_id`·`unit_id`·`rul_id`·`obl_id`를 그대로 보존해 향후 운영 Graph API가 준비되면 조회 계층만 교체할 수 있게 합니다.
 
 ## 문서
 
 - `docs/UI_SCREEN_MAP.md`: 적용범위 판정을 첫 장면으로 둔 대표 화면 구성
 - `docs/ADOMS_GRAPH_API_REQUEST.md`: 기존 Graph API에 요청할 최소 인증·판정·근거 계약
+- `docs/README_ADOMS_SEED.md`: ADOMS 시드 구성·검수 수준·적용 주의사항
 - `docs/DB_GRAPH_HANDOFF.md`: 축소 법령 데이터와 RDB/그래프 경계
 - `docs/SUPABASE_RUNBOOK.md`: 원격 DB·RLS·Storage·스모크 테스트 운영 기록
 - `scripts/build_demo_projection.py`: 승인 목록 기준 RDB·그래프 투영 ETL

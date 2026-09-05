@@ -11,6 +11,7 @@
     "check": "tsc --noEmit",
     "check:supabase": "tsx scripts/supabase-readiness.ts",
     "smoke:supabase": "tsx scripts/supabase-smoke.ts",
+    "smoke:adoms": "tsx scripts/adoms-seed-smoke.ts",
     "format": "prettier --write ."
   },
   "dependencies": {

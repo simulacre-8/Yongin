@@ -6,18 +6,18 @@
 
 ## 완료 상태
 
-| 항목 | 결과 |
-|---|---|
-| 핵심 법령·업무 스키마 | 원격 적용 완료 |
-| 시연 시드 | 원격 적재 완료 |
-| RLS | 공개 업무 테이블 활성화 |
-| Storage | `evidence-private`, 비공개, 파일당 10MB |
-| 증빙 경로 | `demo/` 접두 경로만 허용 |
-| 서비스 역할 키 노출 | 없음, 자동 테스트 통과 |
-| Target CRUD | 생성·조회·수정·삭제 통과 |
-| Storage 왕복 | 업로드·다운로드·내용검증·삭제 통과 |
-| 감사로그 | insert·update·delete 자동 기록 확인 |
-| 내부 추진현황 | UI·테이블·이력·Realtime 등록 제거 완료 |
+| 항목                  | 결과                                    |
+| --------------------- | --------------------------------------- |
+| 핵심 법령·업무 스키마 | 원격 적용 완료                          |
+| 시연 시드             | 원격 적재 완료                          |
+| RLS                   | 공개 업무 테이블 활성화                 |
+| Storage               | `evidence-private`, 비공개, 파일당 10MB |
+| 증빙 경로             | `demo/` 접두 경로만 허용                |
+| 서비스 역할 키 노출   | 없음, 자동 테스트 통과                  |
+| Target CRUD           | 생성·조회·수정·삭제 통과                |
+| Storage 왕복          | 업로드·다운로드·내용검증·삭제 통과      |
+| 감사로그              | insert·update·delete 자동 기록 확인     |
+| 내부 추진현황         | UI·테이블·이력·Realtime 등록 제거 완료  |
 
 ## 마이그레이션 순서
 
@@ -26,28 +26,29 @@
 3. `supabase/migrations/004_remove_project_plan_progress.sql`
 4. `supabase/migrations/005_yongin_cityhall_only.sql`
 5. `supabase/seed.sql`
+6. `supabase/seed_adoms.sql`
 
 세 번째 파일은 과거 배포에 존재할 수 있는 내부 추진현황 테이블을 안전하게 제거한다. 네 번째 파일은 클라이언트 범위에 없던 임시 시설을 제거하고 용인시청 단일 대상으로 정리한다.
 
 ## 적재된 시연 데이터
 
-| 리소스 | 건수 |
-|---|---:|
-| `ref_law` | 7 |
-| `ref_unit` | 5 |
-| `ref_rule` | 4 |
-| `ref_obligation` | 10 |
-| `ref_rule_obligation` | 10 |
-| `demo_scenario` | 1 |
-| `target` | 1 (`용인시청`) |
-| `target_applicability` | 4 |
-| `target_obligation` | 10 |
-| `compliance_record` | 10 |
-| `inspection_run` | 1 |
-| `inspection_scope` | 10 |
-| `inspection_result` | 10 |
+| 리소스                 |           건수 |
+| ---------------------- | -------------: |
+| `ref_law` | 111 = 기존 7 + ADOMS 104 |
+| `ref_unit` | 309 = 기존 5 + ADOMS 304 |
+| `ref_rule` | 132 = 기존 4 + ADOMS 128; 익명 조회 35 |
+| `ref_obligation` | 226 = 기존 10 + ADOMS 216 |
+| `ref_rule_obligation` | 138 = 기존 10 + ADOMS 128; 익명 조회 41 |
+| `demo_scenario`        |              1 |
+| `target`               | 1 (`용인시청`) |
+| `target_applicability` |              4 |
+| `target_obligation`    |             10 |
+| `compliance_record`    |             10 |
+| `inspection_run`       |              1 |
+| `inspection_scope`     |             10 |
+| `inspection_result`    |             10 |
 
-최종 법령 축소본 50–150건은 `scripts/build_demo_projection.py` 결과를 검수한 뒤 `ref_*`에 교체 적재한다. 자동 판정에는 원문 대조가 끝난 규칙 8–12개만 사용한다.
+`seed_adoms.sql`은 기존 수기 시드와 ID가 겹치지 않는 추가형 시드다. ADOMS 그래프 식별자를 유지한 법령 104건·조문 304건·의무 216건·규칙 128건·연결 128건을 추가하며, 트랜잭션과 `on conflict do update`로 재실행할 수 있다. 전체 규칙을 자동 실행하지 않고 실제 SQL에서 `demo_approved=true`인 ADOMS 규칙·연결 **31건**만 공개하며, 첫 화면은 그중 용인시청 시연용 4개 규칙만 사용한다.
 
 ## 권한 모델
 
@@ -77,4 +78,4 @@ where key = 'demo_write_enabled';
 
 ## 그래프 DB 판단
 
-신규 그래프 DB 구매는 현재 필요하지 않다. 기존 ADOMS Graph API가 있다면 첫 화면의 L1/L2/L3 판정과 근거 bundle을 읽기 전용으로 연결하고, 고객별 대상·이행·증빙·점검·감사이력은 Supabase에 유지한다. 요청 필드는 `docs/ADOMS_GRAPH_API_REQUEST.md`에 정의했다.
+신규 그래프 DB 구매와 내부 GraphDB의 외부 공개는 현재 필요하지 않다. 이번 시연은 ADOMS 축소 데이터를 Supabase에 투영해 읽고, 고객별 대상·판정·이행·증빙·점검·감사이력도 Supabase에 유지한다. 원천 그래프 ID를 보존하므로 운영 Graph API가 준비되면 조회 계층만 교체할 수 있다.

@@ -4,7 +4,15 @@ export type ApplicabilityFacts = {
   workerCount: number;
   grossArea: number;
   facilitySafetyAct: boolean;
+  factsEffectiveAt: string;
 };
+
+export type RuleOperator = "eq" | "neq" | "gt" | "gte" | "lt" | "lte";
+export type RuleMetric =
+  | "targetTrack"
+  | "workerCount"
+  | "grossArea"
+  | "facilitySafetyAct";
 
 export type DemoRule = {
   id: string;
@@ -12,13 +20,39 @@ export type DemoRule = {
   lawName: string;
   unitId: string;
   article: string;
-  metric: "targetTrack" | "workerCount" | "grossArea" | "facilitySafetyAct";
-  operator: "eq" | "gte";
+  metric: RuleMetric;
+  operator: RuleOperator;
   expected: string | number | boolean;
   inputLabel: string;
   conditionLabel: string;
   sourceQuote: string;
   obligationIds: string[];
+  reviewStatus: string;
+  sourceVersion: string;
+};
+
+export type DemoObligation = {
+  id: string;
+  title: string;
+  detail: string;
+  group: string;
+  lawName: string;
+  article: string;
+  reviewStatus: string;
+  effectiveFrom: string | null;
+  securingLabel: string | null;
+};
+
+export type RuleGroupLogic = "all" | "any";
+
+export type ApplicabilityDataset = {
+  rules: DemoRule[];
+  obligations: DemoObligation[];
+  groupLogic: Record<string, RuleGroupLogic>;
+  source: "supabase" | "fallback";
+  sourceLabel: string;
+  sourceVersion: string;
+  approvedRuleTotal: number;
 };
 
 export type RuleEvaluation = DemoRule & {
@@ -27,75 +61,19 @@ export type RuleEvaluation = DemoRule & {
   explanation: string;
 };
 
+export const ACTIVE_RULE_IDS = [
+  "RUL-000840",
+  "RUL-000841",
+  "RUL-000900",
+  "RUL-000901",
+] as const;
+
 export const DEMO_SNAPSHOT = {
   fact: "fact-v2.1",
-  decision: "decision-v2.0",
+  decision: "adoms-judg-20260829",
   asOf: "2026-09-05",
-  reviewedRules: 4,
+  reviewedRules: ACTIVE_RULE_IDS.length,
 } as const;
-
-export const DEMO_RULES: DemoRule[] = [
-  {
-    id: "RUL-DEMO-01",
-    lawId: "LAW-KR-SAPA",
-    lawName: "중대재해 처벌 등에 관한 법률",
-    unitId: "UNIT-DEMO-SAPA-04",
-    article: "제4조",
-    metric: "targetTrack",
-    operator: "eq",
-    expected: "public_facility",
-    inputLabel: "관리대상 트랙",
-    conditionLabel: "공중이용시설 여부 = 해당",
-    sourceQuote:
-      "공중이용시설을 운영·관리하는 경우 안전 및 보건 확보의무 적용 후보로 분류합니다.",
-    obligationIds: ["OBL-01", "OBL-02", "OBL-07", "OBL-08", "OBL-09"],
-  },
-  {
-    id: "RUL-DEMO-02",
-    lawId: "LAW-KR-FMSA",
-    lawName: "시설물의 안전 및 유지관리에 관한 특별법",
-    unitId: "UNIT-DEMO-FMSA-11",
-    article: "제6조·제11조",
-    metric: "facilitySafetyAct",
-    operator: "eq",
-    expected: true,
-    inputLabel: "시설물안전법 대상 여부",
-    conditionLabel: "시설물안전법 대상 = 예",
-    sourceQuote:
-      "시설물안전법에 따른 대상 시설은 유지관리계획과 정기 안전점검 의무 후보로 분류합니다.",
-    obligationIds: ["OBL-03", "OBL-04", "OBL-05", "OBL-10"],
-  },
-  {
-    id: "RUL-DEMO-03",
-    lawId: "LAW-KR-OSHA",
-    lawName: "산업안전보건법",
-    unitId: "UNIT-DEMO-OSHA-36",
-    article: "제36조",
-    metric: "workerCount",
-    operator: "gte",
-    expected: 5,
-    inputLabel: "상시근로자 수",
-    conditionLabel: "상시근로자 수 ≥ 5명",
-    sourceQuote:
-      "상시근로자를 사용하는 사업장은 위험성평가를 실시하고 필요한 조치를 이행합니다.",
-    obligationIds: ["OBL-06"],
-  },
-  {
-    id: "RUL-DEMO-04",
-    lawId: "LAW-KR-FMSA",
-    lawName: "시설물의 안전 및 유지관리에 관한 특별법",
-    unitId: "UNIT-DEMO-FMSA-06",
-    article: "제6조",
-    metric: "grossArea",
-    operator: "gte",
-    expected: 5000,
-    inputLabel: "시설 연면적",
-    conditionLabel: "시설 연면적 ≥ 5,000㎡",
-    sourceQuote:
-      "일정 규모 이상의 시설은 안전 및 유지관리계획 수립 후보로 분류합니다.",
-    obligationIds: ["OBL-05"],
-  },
-];
 
 export const BASELINE_FACTS: ApplicabilityFacts = {
   profile: "청사·사무시설",
@@ -103,6 +81,116 @@ export const BASELINE_FACTS: ApplicabilityFacts = {
   workerCount: 120,
   grossArea: 39872,
   facilitySafetyAct: true,
+  factsEffectiveAt: "2026-09-05",
+};
+
+const FALLBACK_OBLIGATIONS: DemoObligation[] = [
+  {
+    id: "OBL-0000296",
+    title: "안전보건관리담당자의 선임 등",
+    detail:
+      "상시근로자 20명 이상 50명 미만인 사업장의 안전보건관리담당자 선임 여부를 검토합니다.",
+    group: "건강관리",
+    lawName: "산업안전보건법 시행령",
+    article: "제24조제1항",
+    reviewStatus: "pending",
+    effectiveFrom: "2024-07-01",
+    securingLabel: "안전보건관리체계의 구축 및 이행",
+  },
+  {
+    id: "OBL-0000575",
+    title: "경보용 설비 등",
+    detail:
+      "연면적 400㎡ 이상이거나 상시근로자 50명 이상인 옥내작업장의 경보용 설비 설치 여부를 검토합니다.",
+    group: "비상대응",
+    lawName: "산업안전보건기준에 관한 규칙",
+    article: "제19조",
+    reviewStatus: "pending",
+    effectiveFrom: "2025-09-01",
+    securingLabel: "안전·보건 관계 법령상 의무이행에 필요한 관리상 조치",
+  },
+];
+
+export const FALLBACK_DATASET: ApplicabilityDataset = {
+  rules: [
+    {
+      id: "RUL-000840",
+      lawId: "LAW-0028",
+      lawName: "산업안전보건법 시행령",
+      unitId: "UNIT-0032906",
+      article: "제24조제1항",
+      metric: "workerCount",
+      operator: "gte",
+      expected: 20,
+      inputLabel: "상시근로자 수",
+      conditionLabel: "상시근로자 수 ≥ 20명",
+      sourceQuote:
+        "상시근로자 20명 이상 50명 미만인 사업장에 안전보건관리담당자를 1명 이상 선임해야 한다.",
+      obligationIds: ["OBL-0000296"],
+      reviewStatus: "approved",
+      sourceVersion: "adoms-judg-20260829",
+    },
+    {
+      id: "RUL-000841",
+      lawId: "LAW-0028",
+      lawName: "산업안전보건법 시행령",
+      unitId: "UNIT-0032906",
+      article: "제24조제1항",
+      metric: "workerCount",
+      operator: "lt",
+      expected: 50,
+      inputLabel: "상시근로자 수",
+      conditionLabel: "상시근로자 수 < 50명",
+      sourceQuote:
+        "상시근로자 20명 이상 50명 미만인 사업장에 안전보건관리담당자를 1명 이상 선임해야 한다.",
+      obligationIds: ["OBL-0000296"],
+      reviewStatus: "approved",
+      sourceVersion: "adoms-judg-20260829",
+    },
+    {
+      id: "RUL-000900",
+      lawId: "LAW-0028",
+      lawName: "산업안전보건기준에 관한 규칙",
+      unitId: "UNIT-0035409",
+      article: "제19조",
+      metric: "grossArea",
+      operator: "gte",
+      expected: 400,
+      inputLabel: "시설 연면적",
+      conditionLabel: "시설 연면적 ≥ 400㎡",
+      sourceQuote:
+        "연면적이 400제곱미터 이상이거나 상시 50명 이상의 근로자가 작업하는 옥내작업장에는 경보용 설비 또는 기구를 설치하여야 한다.",
+      obligationIds: ["OBL-0000575"],
+      reviewStatus: "approved",
+      sourceVersion: "adoms-judg-20260829",
+    },
+    {
+      id: "RUL-000901",
+      lawId: "LAW-0028",
+      lawName: "산업안전보건기준에 관한 규칙",
+      unitId: "UNIT-0035409",
+      article: "제19조",
+      metric: "workerCount",
+      operator: "gte",
+      expected: 50,
+      inputLabel: "상시근로자 수",
+      conditionLabel: "상시근로자 수 ≥ 50명",
+      sourceQuote:
+        "연면적이 400제곱미터 이상이거나 상시 50명 이상의 근로자가 작업하는 옥내작업장에는 경보용 설비 또는 기구를 설치하여야 한다.",
+      obligationIds: ["OBL-0000575"],
+      reviewStatus: "approved",
+      sourceVersion: "adoms-judg-20260829",
+    },
+  ],
+  obligations: FALLBACK_OBLIGATIONS,
+  groupLogic: {
+    "OBL-0000296": "all",
+    "OBL-0000575": "any",
+  },
+  source: "fallback",
+  sourceLabel: "내장 ADOMS 승인규칙 폴백",
+  sourceVersion: "adoms-judg-20260829",
+  approvedRuleTotal: 31,
 };
 
 function actualValue(rule: DemoRule, facts: ApplicabilityFacts) {
@@ -114,48 +202,69 @@ function actualValue(rule: DemoRule, facts: ApplicabilityFacts) {
   return "공중이용시설";
 }
 
+function compare(
+  current: string | number | boolean,
+  operator: RuleOperator,
+  expected: string | number | boolean
+) {
+  if (operator === "eq") return current === expected;
+  if (operator === "neq") return current !== expected;
+  const currentNumber = Number(current);
+  const expectedNumber = Number(expected);
+  if (operator === "gt") return currentNumber > expectedNumber;
+  if (operator === "gte") return currentNumber >= expectedNumber;
+  if (operator === "lt") return currentNumber < expectedNumber;
+  return currentNumber <= expectedNumber;
+}
+
 export function evaluateRule(
   rule: DemoRule,
   facts: ApplicabilityFacts
 ): RuleEvaluation {
   const current = facts[rule.metric];
-  const matched =
-    rule.operator === "eq"
-      ? current === rule.expected
-      : Number(current) >= Number(rule.expected);
+  const matched = compare(current, rule.operator, rule.expected);
   const actual = actualValue(rule, facts);
   return {
     ...rule,
     matched,
     actual,
     explanation: matched
-      ? `${rule.inputLabel} ${actual}이(가) 검수된 시연 조건을 충족합니다.`
-      : `${rule.inputLabel} ${actual}이(가) 시연 조건 ${rule.conditionLabel}을 충족하지 않습니다. 법적 비적용 확정이 아니라 검토 보류입니다.`,
+      ? `${rule.inputLabel} ${actual}이(가) 검수된 ADOMS 조건을 충족합니다.`
+      : `${rule.inputLabel} ${actual}이(가) 조건 ${rule.conditionLabel}을 충족하지 않습니다. 법적 비적용 확정이 아니라 검토 보류입니다.`,
   };
 }
 
-export function assessApplicability(facts: ApplicabilityFacts) {
-  const ruleResults = DEMO_RULES.map(rule => evaluateRule(rule, facts));
-  const matchedRuleIds = new Set(
-    ruleResults.filter(rule => rule.matched).map(rule => rule.id)
-  );
-  const allObligationIds = Array.from(
-    new Set(DEMO_RULES.flatMap(rule => rule.obligationIds))
-  );
-  const matchedObligationIds = allObligationIds.filter(obligationId =>
-    DEMO_RULES.some(
-      rule =>
-        rule.obligationIds.includes(obligationId) && matchedRuleIds.has(rule.id)
-    )
-  );
-  const heldObligationIds = allObligationIds.filter(
-    obligationId => !matchedObligationIds.includes(obligationId)
-  );
+export function assessApplicability(
+  facts: ApplicabilityFacts,
+  dataset: ApplicabilityDataset = FALLBACK_DATASET
+) {
+  const ruleResults = dataset.rules.map(rule => evaluateRule(rule, facts));
+  const obligationResults = dataset.obligations.map(obligation => {
+    const linkedRules = ruleResults.filter(rule =>
+      rule.obligationIds.includes(obligation.id)
+    );
+    const logic = dataset.groupLogic[obligation.id] ?? "any";
+    const matched =
+      linkedRules.length > 0 &&
+      (logic === "all"
+        ? linkedRules.every(rule => rule.matched)
+        : linkedRules.some(rule => rule.matched));
+    return { ...obligation, logic, matched };
+  });
+  const matchedObligationIds = obligationResults
+    .filter(item => item.matched)
+    .map(item => item.id);
+  const heldObligationIds = obligationResults
+    .filter(item => !item.matched)
+    .map(item => item.id);
   const lawCandidates = Array.from(
-    new Set(ruleResults.filter(rule => rule.matched).map(rule => rule.lawName))
+    new Set(
+      obligationResults.filter(item => item.matched).map(item => item.lawName)
+    )
   );
   return {
     ruleResults,
+    obligationResults,
     matchedObligationIds,
     heldObligationIds,
     lawCandidates,

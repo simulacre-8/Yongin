@@ -9,83 +9,136 @@ import {
   DatabaseZap,
   GitBranch,
   RotateCcw,
+  Save,
   ShieldAlert,
   SlidersHorizontal,
   Users,
 } from "lucide-react";
-import { useDemo } from "@/contexts/DemoContext";
-import { obligations } from "@/lib/demo-data";
+import {
+  loadApplicabilityDataset,
+  loadStoredFacts,
+  saveApplicabilitySnapshot,
+  storeFacts,
+} from "@/lib/applicability-api";
 import {
   assessApplicability,
   BASELINE_FACTS,
-  DEMO_RULES,
-  DEMO_SNAPSHOT,
+  FALLBACK_DATASET,
+  type ApplicabilityDataset,
   type ApplicabilityFacts,
   type RuleEvaluation,
 } from "@/lib/applicability";
 
-type Preset = { label: string; description: string; facts: ApplicabilityFacts };
-
-const presets: Preset[] = [
+const presets: Array<{
+  label: string;
+  description: string;
+  facts: ApplicabilityFacts;
+}> = [
   {
     label: "용인시청 기본값",
-    description: "120명 · 39,872㎡ · 대상시설",
+    description: "120명 · 39,872㎡",
     facts: BASELINE_FACTS,
   },
   {
-    label: "경계값 비교",
-    description: "4명 · 4,800㎡ · 대상 아님",
+    label: "20~49명 경계",
+    description: "30명 · 399㎡",
     facts: {
-      profile: "청사·사무시설",
-      targetTrack: "public_facility",
-      workerCount: 4,
-      grossArea: 4800,
+      ...BASELINE_FACTS,
+      workerCount: 30,
+      grossArea: 399,
       facilitySafetyAct: false,
     },
   },
   {
-    label: "경계값 이상",
-    description: "5명 · 5,000㎡ · 대상시설",
+    label: "최소 경계 미만",
+    description: "19명 · 399㎡",
     facts: {
-      profile: "청사·사무시설",
-      targetTrack: "public_facility",
-      workerCount: 5,
-      grossArea: 5000,
-      facilitySafetyAct: true,
+      ...BASELINE_FACTS,
+      workerCount: 19,
+      grossArea: 399,
+      facilitySafetyAct: false,
     },
   },
 ];
 
-const targetPresets: Record<string, ApplicabilityFacts> = {
-  "target-yongin-cityhall": presets[0].facts,
-};
-
 function ruleState(rule: RuleEvaluation) {
-  return rule.matched ? "조건 충족 후보" : "검토 보류";
+  return rule.matched ? "조건 충족" : "조건 미충족";
+}
+
+function formatRecordedAt(value: string | null) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "medium",
+  }).format(new Date(value));
 }
 
 export default function Applicability() {
-  const { selectedTargetId } = useDemo();
-  const [facts, setFacts] = useState<ApplicabilityFacts>(
-    targetPresets[selectedTargetId] ?? BASELINE_FACTS
+  const [facts, setFacts] = useState<ApplicabilityFacts>(() =>
+    loadStoredFacts()
   );
-  const [selectedObligationId, setSelectedObligationId] = useState("OBL-03");
+  const [dataset, setDataset] =
+    useState<ApplicabilityDataset>(FALLBACK_DATASET);
+  const [dataStatus, setDataStatus] = useState<
+    "loading" | "remote" | "fallback"
+  >("loading");
+  const [selectedObligationId, setSelectedObligationId] =
+    useState("OBL-0000575");
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "local" | "error"
+  >("idle");
+  const [recordedAt, setRecordedAt] = useState<string | null>(null);
 
   useEffect(() => {
-    setFacts(targetPresets[selectedTargetId] ?? BASELINE_FACTS);
-  }, [selectedTargetId]);
+    let active = true;
+    loadApplicabilityDataset()
+      .then(nextDataset => {
+        if (!active) return;
+        setDataset(nextDataset);
+        setDataStatus(
+          nextDataset.source === "supabase" ? "remote" : "fallback"
+        );
+      })
+      .catch(() => {
+        if (!active) return;
+        setDataset(FALLBACK_DATASET);
+        setDataStatus("fallback");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  const assessment = useMemo(() => assessApplicability(facts), [facts]);
-  const baseline = useMemo(() => assessApplicability(BASELINE_FACTS), []);
+  useEffect(() => {
+    storeFacts(facts);
+    setSaveStatus(current => (current === "saving" ? current : "idle"));
+  }, [facts]);
+
+  useEffect(() => {
+    if (!dataset.obligations.some(item => item.id === selectedObligationId)) {
+      setSelectedObligationId(dataset.obligations[0]?.id ?? "");
+    }
+  }, [dataset, selectedObligationId]);
+
+  const assessment = useMemo(
+    () => assessApplicability(facts, dataset),
+    [facts, dataset]
+  );
+  const baseline = useMemo(
+    () => assessApplicability(BASELINE_FACTS, dataset),
+    [dataset]
+  );
   const selectedObligation =
-    obligations.find(item => item.id === selectedObligationId) ??
-    obligations[0];
-  const selectedRules = assessment.ruleResults.filter(rule =>
-    rule.obligationIds.includes(selectedObligation.id)
-  );
-  const selectedMatched = assessment.matchedObligationIds.includes(
-    selectedObligation.id
-  );
+    dataset.obligations.find(item => item.id === selectedObligationId) ??
+    dataset.obligations[0];
+  const selectedRules = selectedObligation
+    ? assessment.ruleResults.filter(rule =>
+        rule.obligationIds.includes(selectedObligation.id)
+      )
+    : [];
+  const selectedMatched = selectedObligation
+    ? assessment.matchedObligationIds.includes(selectedObligation.id)
+    : false;
   const added = assessment.matchedObligationIds.filter(
     id => !baseline.matchedObligationIds.includes(id)
   ).length;
@@ -100,6 +153,24 @@ export default function Applicability() {
     }));
   };
 
+  const handleSave = async () => {
+    setSaveStatus("saving");
+    try {
+      const result = await saveApplicabilitySnapshot(
+        facts,
+        assessment.ruleResults
+      );
+      setRecordedAt(result.recordedAt);
+      setSaveStatus(result.remote ? "saved" : "local");
+    } catch {
+      storeFacts(facts);
+      setRecordedAt(new Date().toISOString());
+      setSaveStatus("error");
+    }
+  };
+
+  if (!selectedObligation) return null;
+
   return (
     <div className="page applicability-page">
       <div className="page-heading applicability-heading">
@@ -107,16 +178,19 @@ export default function Applicability() {
           <span className="eyebrow">APPLICABILITY · L1 → L2 → L3</span>
           <h1>용인시청 법 적용범위 1차 판정</h1>
           <p>
-            현재 용인시청 기본값으로 시작하며, 연계 후에는 사업장 마스터의
-            인원·면적 값으로 자동 전환됩니다.
+            용인시청 시연값으로 시작하며, 인원·면적 변경 시 ADOMS 승인 규칙을
+            즉시 다시 계산합니다.
           </p>
         </div>
         <div className="source-stack">
           <span className="source-badge">
-            <DatabaseZap size={14} /> 내장 검수규칙 · ADOMS API 연결 대기
+            <DatabaseZap size={14} />
+            {dataStatus === "loading"
+              ? "ADOMS 데이터 조회 중"
+              : dataset.sourceLabel}
           </span>
           <span className="source-version">
-            {DEMO_SNAPSHOT.decision} · 기준일 {DEMO_SNAPSHOT.asOf}
+            {dataset.sourceVersion} · 사실 기준일 {facts.factsEffectiveAt}
           </span>
         </div>
       </div>
@@ -124,16 +198,14 @@ export default function Applicability() {
       <div className="legal-demo-notice" role="note">
         <ShieldAlert size={20} />
         <div>
-          <strong>
-            규칙 기반 적용 가능성 후보이며 최종 법적 판단이 아닙니다.
-          </strong>
+          <strong>규칙 기반 적용 후보이며 최종 법적 판단이 아닙니다.</strong>
           <span>
-            축소 시연셋의 검수 규칙 {DEMO_SNAPSHOT.reviewedRules}/
-            {DEMO_SNAPSHOT.reviewedRules}개만 실행합니다. 미검수·미구조화 원천은
-            자동 적용 목록에 포함하지 않습니다.
+            ADOMS 승인 규칙 {dataset.approvedRuleTotal || 31}개 중 용인시청
+            시연과 직접 관련된 {dataset.rules.length}개만 실행합니다. 미검수
+            규칙은 자동 판정에서 제외합니다.
           </span>
         </div>
-        <b>검수된 시연 범위</b>
+        <b>{dataset.source === "supabase" ? "실제 DB 조회" : "안전 폴백"}</b>
       </div>
 
       <div className="applicability-presets" aria-label="판정 비교 프리셋">
@@ -186,7 +258,7 @@ export default function Applicability() {
               <option>청사·사무시설</option>
             </select>
             <small>
-              출처: 시연 시나리오 선택 · 실제 대상 해당 여부는 담당자 확인
+              출처: 시연 시나리오 · 실제 연계 시 사업장 마스터 값 사용
             </small>
           </label>
           <label>
@@ -204,7 +276,7 @@ export default function Applicability() {
               />
               <b>명</b>
             </div>
-            <small>RUL-DEMO-03의 5명 경계값에 사용</small>
+            <small>ADOMS 20명·50명 경계 규칙에 사용</small>
           </label>
           <label>
             <span>
@@ -221,7 +293,21 @@ export default function Applicability() {
               />
               <b>㎡</b>
             </div>
-            <small>RUL-DEMO-04의 5,000㎡ 경계값에 사용</small>
+            <small>ADOMS 400㎡ 경계 규칙에 사용</small>
+          </label>
+          <label>
+            <span>사실 발생·효력 기준일</span>
+            <input
+              type="date"
+              value={facts.factsEffectiveAt}
+              onChange={event =>
+                setFacts(current => ({
+                  ...current,
+                  factsEffectiveAt: event.target.value,
+                }))
+              }
+            />
+            <small>저장 시 실제 기록시각과 분리해 함께 보존합니다.</small>
           </label>
           <label className="boolean-fact">
             <span>시설물안전법 대상 여부</span>
@@ -238,7 +324,9 @@ export default function Applicability() {
             >
               <i /> {facts.facilitySafetyAct ? "예" : "아니오"}
             </button>
-            <small>출처: 시연 가정 · 운영 시 시설대장/검수 API로 교체</small>
+            <small>
+              표시용 가정값이며 현재 4개 판정식에는 사용하지 않습니다.
+            </small>
           </label>
           <div className="fact-source-note">
             <b>판정 입력 스냅숏</b>
@@ -246,10 +334,31 @@ export default function Applicability() {
               {JSON.stringify({
                 worker_count: facts.workerCount,
                 gross_area: facts.grossArea,
-                facility_safety_act: facts.facilitySafetyAct,
+                facts_effective_at: facts.factsEffectiveAt,
               })}
             </code>
           </div>
+          <button
+            className="primary-btn applicability-save"
+            disabled={saveStatus === "saving"}
+            onClick={handleSave}
+          >
+            {saveStatus === "saved" ? (
+              <CheckCircle2 size={15} />
+            ) : (
+              <Save size={15} />
+            )}
+            {saveStatus === "saving" ? "저장 중" : "현재 판정기록 저장"}
+          </button>
+          {saveStatus !== "idle" && saveStatus !== "saving" ? (
+            <p className={`save-result ${saveStatus}`}>
+              {saveStatus === "saved"
+                ? `Supabase 저장 완료 · 기록시각 ${formatRecordedAt(recordedAt)}`
+                : saveStatus === "local"
+                  ? "브라우저에 저장했습니다."
+                  : "원격 저장은 실패했지만 브라우저에는 보존했습니다."}
+            </p>
+          ) : null}
         </section>
 
         <section className="result-panel">
@@ -270,8 +379,8 @@ export default function Applicability() {
             <ArrowRight size={17} />
             <div>
               <small>L2 · 대상 후보</small>
-              <strong>{assessment.ruleResults[0].matched ? 1 : 0}</strong>
-              <span>공중이용시설·교통수단</span>
+              <strong>{facts.targetTrack === "public_facility" ? 1 : 0}</strong>
+              <span>공중이용시설·청사</span>
             </div>
             <ArrowRight size={17} />
             <div>
@@ -287,20 +396,17 @@ export default function Applicability() {
               <strong>규칙상 조건 충족 후보</strong>
               <b>{assessment.matchedObligationIds.length}건</b>
             </header>
-            <p>
-              검수된 시연 조건과 입력값이 일치한 후보입니다. ‘법적 적용 확정’을
-              의미하지 않습니다.
-            </p>
+            <p>검수된 ADOMS 조건과 입력값이 일치한 후보입니다.</p>
             <div className="candidate-list">
-              {assessment.matchedObligationIds.map(id => {
-                const item = obligations.find(
-                  obligation => obligation.id === id
-                )!;
-                return (
+              {assessment.obligationResults
+                .filter(item => item.matched)
+                .map(item => (
                   <button
-                    key={id}
-                    className={selectedObligation.id === id ? "selected" : ""}
-                    onClick={() => setSelectedObligationId(id)}
+                    key={item.id}
+                    className={
+                      selectedObligation.id === item.id ? "selected" : ""
+                    }
+                    onClick={() => setSelectedObligationId(item.id)}
                   >
                     <span>
                       <strong>{item.title}</strong>
@@ -308,50 +414,46 @@ export default function Applicability() {
                         {item.lawName} · {item.article}
                       </small>
                     </span>
-                    <em>검수규칙 일치</em>
+                    <em>
+                      {item.logic === "all"
+                        ? "모든 조건 충족"
+                        : "조건 중 하나 충족"}
+                    </em>
                   </button>
-                );
-              })}
+                ))}
             </div>
           </div>
 
           <div className="confidence-band conditional-band">
             <header>
               <CircleHelp size={16} />
-              <strong>프로필 연관·조건 확인 필요</strong>
+              <strong>조건 확인 필요</strong>
               <b>{assessment.heldObligationIds.length}건</b>
             </header>
             <p>
-              시연 범위에는 포함되지만 현재 입력이 임계값을 충족하지 않습니다.
-              비적용 확정이 아니라 사람 검토 보류입니다.
+              비적용 확정이 아니라 입력값 또는 수범주체의 추가 검토가
+              필요합니다.
             </p>
             <div className="candidate-list">
-              {assessment.heldObligationIds.length ? (
-                assessment.heldObligationIds.map(id => {
-                  const item = obligations.find(
-                    obligation => obligation.id === id
-                  )!;
-                  return (
-                    <button
-                      key={id}
-                      className={selectedObligation.id === id ? "selected" : ""}
-                      onClick={() => setSelectedObligationId(id)}
-                    >
-                      <span>
-                        <strong>{item.title}</strong>
-                        <small>
-                          {item.lawName} · {item.article}
-                        </small>
-                      </span>
-                      <em>사실값 확인</em>
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="band-empty">
-                  현재 입력에서 보류된 시연 의무가 없습니다.
-                </div>
-              )}
+              {assessment.obligationResults
+                .filter(item => !item.matched)
+                .map(item => (
+                  <button
+                    key={item.id}
+                    className={
+                      selectedObligation.id === item.id ? "selected" : ""
+                    }
+                    onClick={() => setSelectedObligationId(item.id)}
+                  >
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>
+                        {item.lawName} · {item.article}
+                      </small>
+                    </span>
+                    <em>사실값 확인</em>
+                  </button>
+                ))}
             </div>
           </div>
 
@@ -362,9 +464,8 @@ export default function Applicability() {
               <b>별도 큐</b>
             </header>
             <p>
-              축소 시연셋 밖의 수범주체 미판정·조건 미구조화·시행일 미확인
-              항목은 자동 결과에서 제외했습니다. ADOMS API 연결 후 검수 큐로만
-              수신합니다.
+              `demo_approved=false` 규칙과 기계 판정 의무는 데이터베이스에
+              보존하되 자동 적용 결과에서는 제외합니다.
             </p>
           </div>
         </section>
@@ -385,28 +486,32 @@ export default function Applicability() {
             <b>{selectedObligation.lawName}</b>
             <span>{selectedObligation.article}</span>
           </div>
+          {selectedObligation.securingLabel ? (
+            <div className="trace-box">
+              <span>중대재해처벌법 확보의무 연결</span>
+              <p>{selectedObligation.securingLabel}</p>
+            </div>
+          ) : null}
 
           <ol className="trace-timeline">
             <li>
               <i>L1</i>
               <div>
                 <strong>법령 후보 탐색</strong>
-                <span>
-                  {selectedRules.map(rule => rule.lawName).join(" · ")}
-                </span>
+                <span>{selectedObligation.lawName}</span>
               </div>
             </li>
             <li>
               <i>L2</i>
               <div>
                 <strong>대상 유형 확인</strong>
-                <span>공중이용시설·교통수단 · 프로필 {facts.profile}</span>
+                <span>공중이용시설·청사 · 프로필 {facts.profile}</span>
               </div>
             </li>
             <li>
               <i>L3</i>
               <div>
-                <strong>검수 규칙 평가</strong>
+                <strong>승인 규칙 평가</strong>
                 <span>
                   {selectedRules
                     .map(rule => `${rule.id} ${ruleState(rule)}`)
@@ -446,8 +551,8 @@ export default function Applicability() {
             </article>
           ))}
           <div className="trace-disclaimer">
-            참고 조건과 이행기준은 판정식에 사용하지 않습니다. 실제 공개 전에는
-            ADOMS 원문 anchor·인용문·시행일 API 응답으로 교체합니다.
+            원문·규칙·의무 ID는 Supabase에 투영된 ADOMS 데이터에서 조회합니다.
+            효력일과 수범주체는 최종 공개 전에 담당자 검수를 거칩니다.
           </div>
         </aside>
       </div>
