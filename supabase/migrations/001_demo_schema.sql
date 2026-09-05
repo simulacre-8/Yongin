@@ -10,7 +10,9 @@ create table if not exists public.app_setting (
 );
 
 insert into public.app_setting(key, value)
-values ('demo_write_enabled', 'true'::jsonb)
+values
+  ('demo_access_enabled', 'true'::jsonb),
+  ('demo_write_enabled', 'true'::jsonb)
 on conflict (key) do update set value = excluded.value, updated_at = now();
 
 create or replace function public.demo_write_enabled()
@@ -25,6 +27,19 @@ $$;
 
 revoke all on function public.demo_write_enabled() from public;
 grant execute on function public.demo_write_enabled() to anon, authenticated;
+
+create or replace function public.demo_access_enabled()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((select (value #>> '{}')::boolean from public.app_setting where key = 'demo_access_enabled'), false)
+$$;
+
+revoke all on function public.demo_access_enabled() from public;
+grant execute on function public.demo_access_enabled() to anon, authenticated;
 
 -- Read-only legal projection. Preserve source ontology IDs for later graph migration.
 create table if not exists public.ref_law (
@@ -127,6 +142,26 @@ create table if not exists public.profile (
   is_demo boolean not null default true
 );
 
+create or replace function public.demo_role_allowed(allowed_roles text[])
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    (auth.uid() is null and public.demo_access_enabled())
+    or exists (
+      select 1
+      from public.profile p
+      where p.auth_user_id = auth.uid()
+        and p.role_code = any(allowed_roles)
+    )
+$$;
+
+revoke all on function public.demo_role_allowed(text[]) from public;
+grant execute on function public.demo_role_allowed(text[]) to anon, authenticated;
+
 create table if not exists public.target (
   target_id uuid primary key default gen_random_uuid(),
   scenario_id uuid not null references public.demo_scenario(scenario_id) on delete cascade,
@@ -141,6 +176,8 @@ create table if not exists public.target (
   created_at timestamptz not null default now()
 );
 create index if not exists target_scenario_idx on public.target(scenario_id);
+create index if not exists target_org_idx on public.target(org_id);
+create index if not exists target_type_idx on public.target(target_type, detail_type);
 
 create table if not exists public.scenario_law (
   scenario_id uuid not null references public.demo_scenario(scenario_id) on delete cascade,
@@ -165,6 +202,8 @@ create table if not exists public.target_applicability (
   evaluated_at timestamptz not null default now(),
   unique (target_id, rul_id)
 );
+create index if not exists target_applicability_target_idx on public.target_applicability(target_id, is_applicable);
+create index if not exists target_applicability_rule_idx on public.target_applicability(rul_id);
 
 create table if not exists public.target_obligation (
   target_obligation_id uuid primary key default gen_random_uuid(),
@@ -176,6 +215,8 @@ create table if not exists public.target_obligation (
   is_active boolean not null default true,
   unique (target_id, obl_id)
 );
+create index if not exists target_obligation_target_idx on public.target_obligation(target_id, is_active);
+create index if not exists target_obligation_obl_idx on public.target_obligation(obl_id);
 
 create table if not exists public.compliance_record (
   compliance_id uuid primary key default gen_random_uuid(),
@@ -189,6 +230,8 @@ create table if not exists public.compliance_record (
   updated_at timestamptz not null default now(),
   unique (target_obligation_id, period_key)
 );
+create index if not exists compliance_period_status_idx on public.compliance_record(period_key, status);
+create index if not exists compliance_updated_idx on public.compliance_record(updated_at desc);
 
 create table if not exists public.evidence (
   evidence_id uuid primary key default gen_random_uuid(),
@@ -214,6 +257,19 @@ create table if not exists public.inspection_run (
   created_by uuid references public.profile(profile_id),
   created_at timestamptz not null default now()
 );
+create index if not exists inspection_run_scenario_period_idx on public.inspection_run(scenario_id, period_key);
+
+create table if not exists public.inspection_scope (
+  inspection_scope_id uuid primary key default gen_random_uuid(),
+  inspection_run_id uuid not null references public.inspection_run(inspection_run_id) on delete cascade,
+  target_id uuid not null references public.target(target_id) on delete cascade,
+  target_obligation_id uuid references public.target_obligation(target_obligation_id) on delete cascade,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  unique (inspection_run_id, target_id, target_obligation_id)
+);
+create index if not exists inspection_scope_run_idx on public.inspection_scope(inspection_run_id, is_active);
+create index if not exists inspection_scope_target_idx on public.inspection_scope(target_id);
 
 create table if not exists public.inspection_result (
   inspection_result_id uuid primary key default gen_random_uuid(),
@@ -226,6 +282,8 @@ create table if not exists public.inspection_result (
   previous_result_id uuid references public.inspection_result(inspection_result_id),
   unique (inspection_run_id, compliance_id)
 );
+create index if not exists inspection_result_run_status_idx on public.inspection_result(inspection_run_id, status);
+create index if not exists inspection_result_compliance_idx on public.inspection_result(compliance_id);
 
 create table if not exists public.audit_event (
   audit_event_id bigint generated always as identity primary key,
@@ -238,6 +296,62 @@ create table if not exists public.audit_event (
   occurred_at timestamptz not null default now()
 );
 create index if not exists audit_entity_idx on public.audit_event(entity_type, entity_id, occurred_at desc);
+
+create or replace function public.capture_demo_audit_event()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  before_row jsonb;
+  after_row jsonb;
+  entity_row jsonb;
+  actor_id uuid;
+begin
+  before_row := case when tg_op in ('UPDATE', 'DELETE') then to_jsonb(old) else null end;
+  after_row := case when tg_op in ('INSERT', 'UPDATE') then to_jsonb(new) else null end;
+  entity_row := coalesce(after_row, before_row, '{}'::jsonb);
+
+  select p.profile_id into actor_id
+  from public.profile p
+  where p.auth_user_id = auth.uid()
+  limit 1;
+
+  insert into public.audit_event(actor_profile_id, action, entity_type, entity_id, before_data, after_data)
+  values (
+    actor_id,
+    lower(tg_op),
+    tg_table_name,
+    coalesce(
+      entity_row ->> 'target_id',
+      entity_row ->> 'applicability_id',
+      entity_row ->> 'target_obligation_id',
+      entity_row ->> 'compliance_id',
+      entity_row ->> 'evidence_id',
+      entity_row ->> 'inspection_result_id',
+      entity_row ->> 'inspection_run_id',
+      'unknown'
+    ),
+    before_row,
+    after_row
+  );
+
+  if tg_op = 'DELETE' then return old; end if;
+  return new;
+end
+$$;
+
+drop trigger if exists target_audit_trg on public.target;
+create trigger target_audit_trg after insert or update or delete on public.target for each row execute function public.capture_demo_audit_event();
+drop trigger if exists target_applicability_audit_trg on public.target_applicability;
+create trigger target_applicability_audit_trg after insert or update or delete on public.target_applicability for each row execute function public.capture_demo_audit_event();
+drop trigger if exists compliance_record_audit_trg on public.compliance_record;
+create trigger compliance_record_audit_trg after insert or update or delete on public.compliance_record for each row execute function public.capture_demo_audit_event();
+drop trigger if exists evidence_audit_trg on public.evidence;
+create trigger evidence_audit_trg after insert or update or delete on public.evidence for each row execute function public.capture_demo_audit_event();
+drop trigger if exists inspection_result_audit_trg on public.inspection_result;
+create trigger inspection_result_audit_trg after insert or update or delete on public.inspection_result for each row execute function public.capture_demo_audit_event();
 
 create or replace view public.v_compliance_matrix
 with (security_invoker = true)
@@ -289,41 +403,79 @@ alter table public.target_obligation enable row level security;
 alter table public.compliance_record enable row level security;
 alter table public.evidence enable row level security;
 alter table public.inspection_run enable row level security;
+alter table public.inspection_scope enable row level security;
 alter table public.inspection_result enable row level security;
 alter table public.audit_event enable row level security;
 
 revoke all on all tables in schema public from anon, authenticated;
 grant select on public.ref_law, public.ref_unit, public.ref_rule, public.ref_obligation, public.ref_rule_obligation to anon, authenticated;
-grant select on public.demo_scenario, public.org, public.profile, public.target, public.scenario_law, public.scenario_rule, public.target_applicability, public.target_obligation, public.compliance_record, public.evidence, public.inspection_run, public.inspection_result, public.audit_event, public.v_compliance_matrix, public.v_dashboard_summary to anon, authenticated;
-grant insert, update, delete on public.target_applicability, public.target_obligation, public.compliance_record, public.evidence, public.inspection_run, public.inspection_result, public.audit_event to anon, authenticated;
+grant select on public.demo_scenario, public.org, public.profile, public.target, public.scenario_law, public.scenario_rule, public.target_applicability, public.target_obligation, public.compliance_record, public.evidence, public.inspection_run, public.inspection_scope, public.inspection_result, public.audit_event, public.v_compliance_matrix, public.v_dashboard_summary to anon, authenticated;
+grant insert, update, delete on public.target, public.target_applicability, public.target_obligation, public.compliance_record, public.evidence, public.inspection_run, public.inspection_scope, public.inspection_result to anon, authenticated;
 grant usage, select on all sequences in schema public to anon, authenticated;
 
 -- Idempotent public read policies.
 do $$
 declare tbl text;
 begin
-  foreach tbl in array array['ref_law','ref_unit','ref_rule','ref_obligation','ref_rule_obligation','demo_scenario','org','profile','target','scenario_law','scenario_rule','target_applicability','target_obligation','compliance_record','evidence','inspection_run','inspection_result','audit_event']
+  foreach tbl in array array['ref_law','ref_unit','ref_rule','ref_obligation','ref_rule_obligation','demo_scenario','org','profile','target','scenario_law','scenario_rule','target_applicability','target_obligation','compliance_record','evidence','inspection_run','inspection_scope','inspection_result','audit_event']
   loop
     execute format('drop policy if exists demo_read on public.%I', tbl);
-    execute format('create policy demo_read on public.%I for select to anon, authenticated using (true)', tbl);
+    execute format('create policy demo_read on public.%I for select to anon, authenticated using (public.demo_role_allowed(array[''target_manager'',''inspector'',''executive'']::text[]))', tbl);
   end loop;
 end $$;
+
+drop policy if exists demo_read on public.ref_rule;
+create policy demo_read on public.ref_rule for select to anon, authenticated using (demo_approved = true and public.demo_role_allowed(array['target_manager','inspector','executive']::text[]));
+drop policy if exists demo_read on public.ref_rule_obligation;
+create policy demo_read on public.ref_rule_obligation for select to anon, authenticated using (demo_approved = true and public.demo_role_allowed(array['target_manager','inspector','executive']::text[]));
 
 -- Demo-only mutation policies. Disable immediately after the sales demo:
 -- update public.app_setting set value = 'false' where key = 'demo_write_enabled';
 do $$
 declare tbl text;
 begin
-  foreach tbl in array array['target_applicability','target_obligation','compliance_record','evidence','inspection_run','inspection_result','audit_event']
+  foreach tbl in array array['target','target_applicability','target_obligation','compliance_record','evidence']
   loop
     execute format('drop policy if exists demo_insert on public.%I', tbl);
     execute format('drop policy if exists demo_update on public.%I', tbl);
     execute format('drop policy if exists demo_delete on public.%I', tbl);
-    execute format('create policy demo_insert on public.%I for insert to anon, authenticated with check (public.demo_write_enabled())', tbl);
-    execute format('create policy demo_update on public.%I for update to anon, authenticated using (public.demo_write_enabled()) with check (public.demo_write_enabled())', tbl);
-    execute format('create policy demo_delete on public.%I for delete to anon, authenticated using (public.demo_write_enabled())', tbl);
+    execute format('create policy demo_insert on public.%I for insert to anon, authenticated with check (public.demo_write_enabled() and public.demo_role_allowed(array[''target_manager'',''executive'']::text[]))', tbl);
+    execute format('create policy demo_update on public.%I for update to anon, authenticated using (public.demo_write_enabled() and public.demo_role_allowed(array[''target_manager'',''executive'']::text[])) with check (public.demo_write_enabled() and public.demo_role_allowed(array[''target_manager'',''executive'']::text[]))', tbl);
+    execute format('create policy demo_delete on public.%I for delete to anon, authenticated using (public.demo_write_enabled() and public.demo_role_allowed(array[''target_manager'',''executive'']::text[]))', tbl);
   end loop;
 end $$;
+
+drop policy if exists demo_insert on public.target;
+drop policy if exists demo_update on public.target;
+drop policy if exists demo_delete on public.target;
+create policy demo_insert on public.target for insert to anon, authenticated with check (public.demo_write_enabled() and public.demo_role_allowed(array['target_manager','executive']::text[]) and is_demo = true);
+create policy demo_update on public.target for update to anon, authenticated using (public.demo_write_enabled() and public.demo_role_allowed(array['target_manager','executive']::text[]) and is_demo = true) with check (public.demo_write_enabled() and public.demo_role_allowed(array['target_manager','executive']::text[]) and is_demo = true);
+create policy demo_delete on public.target for delete to anon, authenticated using (public.demo_write_enabled() and public.demo_role_allowed(array['target_manager','executive']::text[]) and is_demo = true);
+
+drop policy if exists demo_insert on public.evidence;
+drop policy if exists demo_update on public.evidence;
+drop policy if exists demo_delete on public.evidence;
+create policy demo_insert on public.evidence for insert to anon, authenticated with check (public.demo_write_enabled() and public.demo_role_allowed(array['target_manager','executive']::text[]) and storage_bucket = 'evidence-private' and storage_path like 'demo/%');
+create policy demo_update on public.evidence for update to anon, authenticated using (public.demo_write_enabled() and public.demo_role_allowed(array['target_manager','executive']::text[]) and storage_bucket = 'evidence-private' and storage_path like 'demo/%') with check (public.demo_write_enabled() and public.demo_role_allowed(array['target_manager','executive']::text[]) and storage_bucket = 'evidence-private' and storage_path like 'demo/%');
+create policy demo_delete on public.evidence for delete to anon, authenticated using (public.demo_write_enabled() and public.demo_role_allowed(array['target_manager','executive']::text[]) and storage_bucket = 'evidence-private' and storage_path like 'demo/%');
+
+do $$
+declare tbl text;
+begin
+  foreach tbl in array array['inspection_run','inspection_scope','inspection_result']
+  loop
+    execute format('drop policy if exists demo_insert on public.%I', tbl);
+    execute format('drop policy if exists demo_update on public.%I', tbl);
+    execute format('drop policy if exists demo_delete on public.%I', tbl);
+    execute format('create policy demo_insert on public.%I for insert to anon, authenticated with check (public.demo_write_enabled() and public.demo_role_allowed(array[''inspector'',''executive'']::text[]))', tbl);
+    execute format('create policy demo_update on public.%I for update to anon, authenticated using (public.demo_write_enabled() and public.demo_role_allowed(array[''inspector'',''executive'']::text[])) with check (public.demo_write_enabled() and public.demo_role_allowed(array[''inspector'',''executive'']::text[]))', tbl);
+    execute format('create policy demo_delete on public.%I for delete to anon, authenticated using (public.demo_write_enabled() and public.demo_role_allowed(array[''inspector'',''executive'']::text[]))', tbl);
+  end loop;
+end $$;
+
+drop policy if exists demo_insert on public.audit_event;
+drop policy if exists demo_update on public.audit_event;
+drop policy if exists demo_delete on public.audit_event;
 
 insert into storage.buckets (id, name, public, file_size_limit)
 values ('evidence-private', 'evidence-private', false, 10485760)
@@ -333,7 +485,7 @@ drop policy if exists evidence_demo_read on storage.objects;
 drop policy if exists evidence_demo_insert on storage.objects;
 drop policy if exists evidence_demo_update on storage.objects;
 drop policy if exists evidence_demo_delete on storage.objects;
-create policy evidence_demo_read on storage.objects for select to anon, authenticated using (bucket_id = 'evidence-private');
-create policy evidence_demo_insert on storage.objects for insert to anon, authenticated with check (bucket_id = 'evidence-private' and public.demo_write_enabled());
-create policy evidence_demo_update on storage.objects for update to anon, authenticated using (bucket_id = 'evidence-private' and public.demo_write_enabled()) with check (bucket_id = 'evidence-private' and public.demo_write_enabled());
-create policy evidence_demo_delete on storage.objects for delete to anon, authenticated using (bucket_id = 'evidence-private' and public.demo_write_enabled());
+create policy evidence_demo_read on storage.objects for select to anon, authenticated using (bucket_id = 'evidence-private' and (storage.foldername(name))[1] = 'demo' and public.demo_role_allowed(array['target_manager','inspector','executive']::text[]));
+create policy evidence_demo_insert on storage.objects for insert to anon, authenticated with check (bucket_id = 'evidence-private' and (storage.foldername(name))[1] = 'demo' and public.demo_write_enabled() and public.demo_role_allowed(array['target_manager','executive']::text[]));
+create policy evidence_demo_update on storage.objects for update to anon, authenticated using (bucket_id = 'evidence-private' and (storage.foldername(name))[1] = 'demo' and public.demo_write_enabled() and public.demo_role_allowed(array['target_manager','executive']::text[])) with check (bucket_id = 'evidence-private' and (storage.foldername(name))[1] = 'demo' and public.demo_write_enabled() and public.demo_role_allowed(array['target_manager','executive']::text[]));
+create policy evidence_demo_delete on storage.objects for delete to anon, authenticated using (bucket_id = 'evidence-private' and (storage.foldername(name))[1] = 'demo' and public.demo_write_enabled() and public.demo_role_allowed(array['target_manager','executive']::text[]));

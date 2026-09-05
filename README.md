@@ -56,12 +56,13 @@ Build command와 Publish directory는 `netlify.toml`에서 자동으로 읽으�
 
 ## Supabase 적용
 
-Docker는 필요하지 않습니다. 호스팅형 Supabase Dashboard의 SQL Editor에서 아래 파일을 순서대로 실행합니다.
+Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 순서대로 적용합니다.
 
 1. `supabase/migrations/001_demo_schema.sql`
-2. `supabase/seed.sql`
+2. `supabase/migrations/002_security_and_index_hardening.sql`
+3. `supabase/seed.sql`
 
-현재 UI는 스키마가 적용되기 전에도 로컬 시연 데이터로 동작합니다. `ref_law`가 생성되면 관계 법령 화면은 Supabase 데이터를 우선 조회합니다. 업무 CRUD를 완전히 Supabase로 전환하려면 `DemoContext`의 로컬 저장 구현을 동일 테이블 호출로 교체합니다.
+2026-09-05 기준 원격 프로젝트에 스키마와 최소 시드가 적용됐고, 관계 법령 화면과 헤더 연결 상태는 Supabase를 조회합니다. Target CRUD·비공개 Storage·감사로그 왕복 테스트가 통과했습니다. 나머지 UI 업무 상태는 시연 안정성을 위해 로컬 폴백을 유지하며 다음 단계에서 동일 테이블 호출로 전환합니다.
 
 ## 검증
 
@@ -69,17 +70,20 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase Dashboard의 SQL Edit
 pnpm check
 pnpm build
 pnpm exec vitest run client/src/lib/supabase.secrets.test.ts
+pnpm check:supabase
+pnpm smoke:supabase
 ```
 
 ## 문서
 
 - `docs/UI_SCREEN_MAP.md`: UI ZIP 102개 화면의 대표 라우트 축약표
 - `docs/DB_GRAPH_HANDOFF.md`: 법령 데이터 축소량, Supabase 구성, 그래프 DB 전환 계약
+- `docs/SUPABASE_RUNBOOK.md`: 원격 DB 적용·RLS·Storage·스모크 테스트·시연 종료 절차
 - `scripts/build_demo_projection.py`: 수동 승인 목록을 기준으로 RDB·그래프 CSV를 만드는 ETL
 
 ## 시연 보안
 
-마이그레이션은 시연 편의를 위해 제한된 업무 테이블에 익명 쓰기 정책을 제공하며 `app_setting.demo_write_enabled`로 제어합니다. 시연 종료 직후 다음을 실행합니다.
+마이그레이션은 역할 기반 RLS를 사용하며, 영업 시연 중의 익명 접근과 쓰기는 `app_setting`의 `demo_access_enabled`, `demo_write_enabled`로 제어합니다. 시연 종료 직후 다음을 실행합니다.
 
 ```sql
 update public.app_setting
@@ -87,4 +91,4 @@ set value = 'false'::jsonb
 where key = 'demo_write_enabled';
 ```
 
-실사용 전에는 반드시 Supabase Auth와 조직·역할 기반 RLS로 교체하십시오.
+실사용 전에는 `demo_access_enabled`도 비활성화하고 Supabase Auth 사용자를 `profile.auth_user_id`와 연결하십시오.

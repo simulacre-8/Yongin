@@ -9,6 +9,8 @@
     "start": "NODE_ENV=production node dist/index.js",
     "preview": "vite preview --host",
     "check": "tsc --noEmit",
+    "check:supabase": "tsx scripts/supabase-readiness.ts",
+    "smoke:supabase": "tsx scripts/supabase-smoke.ts",
     "format": "prettier --write ."
   },
   "dependencies": {

@@ -76,10 +76,47 @@ on conflict (target_id) do update set attributes=excluded.attributes, name=exclu
 
 insert into public.scenario_law(scenario_id, law_id)
 select '10000000-0000-0000-0000-000000000001'::uuid, law_id from public.ref_law
+order by law_id
+limit 150
 on conflict do nothing;
 insert into public.scenario_rule(scenario_id, rul_id)
 select '10000000-0000-0000-0000-000000000001'::uuid, rul_id from public.ref_rule where demo_approved
+order by rul_id
+limit 40
 on conflict do nothing;
+
+insert into public.target_applicability(target_id, rul_id, is_applicable, input_snapshot, rule_snapshot, source_version)
+select
+  t.target_id,
+  r.rul_id,
+  case r.rul_id
+    when 'RUL-DEMO-01' then coalesce(t.attributes ->> 'target_track', '') = 'public_facility'
+    when 'RUL-DEMO-02' then coalesce((t.attributes ->> 'facility_safety_act')::boolean, false)
+    when 'RUL-DEMO-03' then coalesce((t.attributes ->> 'worker_count')::numeric, 0) >= coalesce(r.threshold_value, 0)
+    when 'RUL-DEMO-04' then coalesce((t.attributes ->> 'gross_area')::numeric, 0) >= coalesce(r.threshold_value, 0)
+    else false
+  end,
+  t.attributes,
+  jsonb_build_object(
+    'metric_key', r.metric_key,
+    'operator', r.operator,
+    'threshold_value', r.threshold_value,
+    'threshold_text', r.threshold_text,
+    'source_quote', r.source_quote
+  ),
+  'decision-v2.0'
+from public.target t
+cross join public.ref_rule r
+where t.scenario_id = '10000000-0000-0000-0000-000000000001'
+  and r.demo_approved = true
+order by t.target_id, r.rul_id
+limit 12
+on conflict (target_id, rul_id) do update set
+  is_applicable=excluded.is_applicable,
+  input_snapshot=excluded.input_snapshot,
+  rule_snapshot=excluded.rule_snapshot,
+  source_version=excluded.source_version,
+  evaluated_at=now();
 
 insert into public.target_obligation(target_obligation_id, target_id, obl_id, due_type, due_value, applicability_snapshot, is_active)
 select
@@ -91,6 +128,8 @@ select
   '{"source":"demo-approved-rules"}'::jsonb,
   true
 from generate_series(1,3) t(n) cross join generate_series(1,10) o(n)
+order by t.n, o.n
+limit 30
 on conflict (target_id, obl_id) do update set due_value=excluded.due_value, is_active=true;
 
 insert into public.compliance_record(target_obligation_id, period_key, status, action_date, action_detail, note, submitted_at)
@@ -114,11 +153,24 @@ select
 from public.target_obligation tro
 join public.target t on t.target_id = tro.target_id
 join public.ref_obligation o on o.obl_id = tro.obl_id
+order by tro.target_obligation_id
+limit 30
 on conflict (target_obligation_id, period_key) do update set status=excluded.status, action_date=excluded.action_date, note=excluded.note, updated_at=now();
 
 insert into public.inspection_run(inspection_run_id, scenario_id, title, period_key, status, created_by) values
 ('60000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','2026년 하반기 공중이용시설 의무이행 점검','2026-H2','OPEN','30000000-0000-0000-0000-000000000002')
 on conflict (inspection_run_id) do update set status='OPEN';
+
+insert into public.inspection_scope(inspection_run_id, target_id, target_obligation_id, is_active)
+select
+  '60000000-0000-0000-0000-000000000001',
+  tro.target_id,
+  tro.target_obligation_id,
+  true
+from public.target_obligation tro
+order by tro.target_obligation_id
+limit 30
+on conflict (inspection_run_id, target_id, target_obligation_id) do update set is_active=true;
 
 insert into public.inspection_result(inspection_run_id, compliance_id, status, inspection_note, inspected_by)
 select
@@ -128,4 +180,6 @@ select
   case when cr.status='SUPP' then '증빙자료의 세부 산출근거를 보완해 주세요.' when cr.status='NONE' then '이행결과와 증빙자료 등록이 필요합니다.' else '확인 완료' end,
   '30000000-0000-0000-0000-000000000002'
 from public.compliance_record cr
+order by cr.compliance_id
+limit 30
 on conflict (inspection_run_id, compliance_id) do update set status=excluded.status, inspection_note=excluded.inspection_note, inspected_at=now();
