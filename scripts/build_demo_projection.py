@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 from pathlib import Path
 
 CORE_TITLES = [
@@ -67,10 +68,16 @@ def law_score(row: dict, required_titles: set[str]) -> tuple[int, str]:
 
 
 def main():
+    workspace = Path(
+        os.environ.get(
+            "YONGIN_ROOT",
+            r"C:\Yongin_test" if os.name == "nt" else str(Path.cwd()),
+        )
+    )
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source-root", type=Path, required=True, help="Extracted package root")
-    parser.add_argument("--approved-links", type=Path, required=True, help="Human-reviewed link CSV")
-    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--source-root", type=Path, default=workspace / "data" / "source", help="Extracted package root")
+    parser.add_argument("--approved-links", type=Path, default=workspace / "data" / "approved" / "approved_links.csv", help="Human-reviewed link CSV")
+    parser.add_argument("--out", type=Path, default=workspace / "data" / "projection")
     parser.add_argument("--law-limit", type=int, default=100, choices=range(50, 151), metavar="50..150")
     args = parser.parse_args()
 

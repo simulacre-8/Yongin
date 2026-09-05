@@ -9,6 +9,19 @@ pnpm install
 pnpm dev
 ```
 
+### Windows 로컬 작업 경로
+
+소스·원천데이터·ETL 결과·로그를 포함한 Windows 작업 루트는 `C:\Yongin_test`로 고정합니다.
+
+```powershell
+git clone https://github.com/simulacre-8/Yongin.git C:\Yongin_test
+powershell -ExecutionPolicy Bypass -File C:\Yongin_test\scripts\setup-windows.ps1
+cd C:\Yongin_test
+pnpm dev
+```
+
+세부 폴더 규칙과 ETL 명령은 `docs/WINDOWS_LOCAL_PATH.md`를 참고하십시오.
+
 로컬 실행에는 `client/.env.local`에 다음 공개 환경변수를 설정합니다.
 
 ```text

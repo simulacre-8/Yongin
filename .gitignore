@@ -104,6 +104,10 @@ __pycache__/
 tmp/
 temp/
 
+# Local Yongin workspace data (kept under C:\Yongin_test on Windows)
+data/
+exports/
+
 # Database
 *.db
 *.sqlite
