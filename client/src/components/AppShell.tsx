@@ -59,8 +59,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <header className="main-header">
         <Link href="/" className="brand" aria-label="대시보드로 이동">
-          <span className="brand-mark"><span>Y</span></span>
-          <span className="brand-city">용인특례시</span>
+          <img className="brand-logo" src="https://www.yongin.go.kr/resources/site/www_2026/images/common/heard_logo.png?v=20260818" alt="용인특례시" />
           <span className="brand-divider" />
           <span className="brand-product">안전보건체계<br />통합관리시스템</span>
         </Link>
