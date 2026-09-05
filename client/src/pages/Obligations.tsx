@@ -1,12 +1,15 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ChevronLeft, RotateCcw, Save, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
-  obligations,
-  targets,
-  type DemoObligation,
-  type DemoTarget,
-} from "@/lib/demo-data";
+  loadManagedTargets,
+  LOCAL_MANAGED_TARGETS,
+  type ManagedTargetRow,
+} from "@/lib/facility-api";
+import {
+  loadTargetObligations,
+  type MappedObligation,
+} from "@/lib/facility-obligation-api";
 import { useDemo } from "@/contexts/DemoContext";
 
 const facilityTypes = [
@@ -24,14 +27,14 @@ const facilityTypes = [
 type Screen = "list" | "detail";
 
 type FacilityRow = {
-  target: DemoTarget;
+  target: ManagedTargetRow;
   facilityType: string;
   progress: "미입력" | "입력중";
 };
 
 type LawGroup = {
   name: string;
-  items: DemoObligation[];
+  items: MappedObligation[];
 };
 
 const styles: Record<string, CSSProperties> = {
@@ -416,11 +419,15 @@ const styles: Record<string, CSSProperties> = {
   },
 };
 
-function facilityTypeOf(target: DemoTarget) {
-  return target.type.split(" / ")[1] || target.type;
+function facilityTypeOf(target: ManagedTargetRow) {
+  const parts = target.detailKind.split(" / ").filter(Boolean);
+  const raw = parts[0] || target.detailKind || target.category;
+  return facilityTypes.includes(raw as (typeof facilityTypes)[number])
+    ? raw
+    : "기타";
 }
 
-function buildLawGroups(items: DemoObligation[]): LawGroup[] {
+function buildLawGroups(items: MappedObligation[]): LawGroup[] {
   return items.reduce<LawGroup[]>((groups, item) => {
     const currentGroup = groups[groups.length - 1];
     if (currentGroup?.name === item.group) {
@@ -432,7 +439,7 @@ function buildLawGroups(items: DemoObligation[]): LawGroup[] {
   }, []);
 }
 
-function ordinanceSpan(items: DemoObligation[], index: number) {
+function ordinanceSpan(items: MappedObligation[], index: number) {
   const ordinanceName = items[index].lawName;
   if (index > 0 && items[index - 1].lawName === ordinanceName) return 0;
 
@@ -452,21 +459,55 @@ export default function Obligations() {
     useState<(typeof facilityTypes)[number]>("전체");
   const [searchTerm, setSearchTerm] = useState("");
   const [appliedTerm, setAppliedTerm] = useState("");
+  const [managedTargets, setManagedTargets] = useState<ManagedTargetRow[]>(
+    LOCAL_MANAGED_TARGETS
+  );
+  const [facilitySource, setFacilitySource] = useState<
+    "loading" | "supabase" | "fallback"
+  >("loading");
+  const [mappedObligations, setMappedObligations] = useState<
+    MappedObligation[]
+  >([]);
+  const [obligationSource, setObligationSource] = useState<
+    "idle" | "loading" | "supabase" | "fallback"
+  >("idle");
+  const [loadReason, setLoadReason] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    loadManagedTargets().then(result => {
+      if (!active) return;
+      setManagedTargets(result.rows);
+      setFacilitySource(result.source);
+      setLoadReason(result.reason || "");
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const selectedTarget =
-    targets.find(target => target.id === selectedTargetId) || targets[0];
-  const hasDueDate = obligations.some(item => dueDates[item.id]?.trim());
+    managedTargets.find(target => target.id === selectedTargetId) ||
+    managedTargets[0] ||
+    LOCAL_MANAGED_TARGETS[0];
 
   const facilities = useMemo<FacilityRow[]>(
     () =>
-      targets
-        .filter(target => target.type.includes("공중이용시설·교통수단"))
+      managedTargets
+        .filter(
+          target =>
+            target.category === "시설물" || target.category === "공중교통수단"
+        )
         .map(target => ({
           target,
           facilityType: facilityTypeOf(target),
-          progress: hasDueDate ? "입력중" : "미입력",
+          progress: Object.keys(dueDates).some(key =>
+            key.startsWith(`${target.id}:`)
+          )
+            ? "입력중"
+            : "미입력",
         })),
-    [hasDueDate]
+    [dueDates, managedTargets]
   );
 
   const filteredFacilities = useMemo(
@@ -487,7 +528,26 @@ export default function Obligations() {
     facility => facility.progress === "미입력"
   ).length;
   const inProgressCount = facilities.length - noInputCount;
-  const lawGroups = useMemo(() => buildLawGroups(obligations), []);
+  const lawGroups = useMemo(
+    () => buildLawGroups(mappedObligations),
+    [mappedObligations]
+  );
+
+  useEffect(() => {
+    if (screen !== "detail") return;
+    let active = true;
+    setObligationSource("loading");
+    setLoadReason("");
+    loadTargetObligations(selectedTargetId).then(result => {
+      if (!active) return;
+      setMappedObligations(result.items);
+      setObligationSource(result.source);
+      setLoadReason(result.reason || "");
+    });
+    return () => {
+      active = false;
+    };
+  }, [screen, selectedTargetId]);
 
   const openDetail = (targetId: string) => {
     setSelectedTargetId(targetId);
@@ -495,7 +555,9 @@ export default function Obligations() {
   };
 
   const resetDueDates = () => {
-    obligations.forEach(item => updateDueDate(item.id, item.defaultDue));
+    mappedObligations.forEach(item =>
+      updateDueDate(`${selectedTarget.id}:${item.id}`, item.defaultDue)
+    );
     toast.success("법 의무사항의 이행 시기를 초기화했습니다.");
   };
 
@@ -516,7 +578,7 @@ export default function Obligations() {
               <ChevronLeft size={15} aria-hidden="true" /> 목록으로
             </button>
             <h1 className="adoms-obligations-title" style={styles.title}>
-              법 의무사항 공중이용시설·교통수단
+              법 의무사항 {selectedTarget.category}
             </h1>
           </div>
           <div className="adoms-obligations-target" style={styles.target}>
@@ -552,10 +614,10 @@ export default function Obligations() {
             <thead>
               <tr>
                 <th scope="col" style={styles.detailHead}>
-                  법
+                  의무분류
                 </th>
                 <th scope="col" style={styles.detailHead}>
-                  시행령
+                  관계법령·근거
                 </th>
                 <th scope="col" style={styles.detailHead}>
                   의무사항
@@ -566,92 +628,133 @@ export default function Obligations() {
               </tr>
             </thead>
             <tbody>
-              {lawGroups.map(lawGroup =>
-                lawGroup.items.map((item, itemIndex) => {
-                  const span = ordinanceSpan(lawGroup.items, itemIndex);
-                  return (
-                    <tr key={item.id} className="adoms-obligations-detail-row">
-                      {itemIndex === 0 && (
-                        <td
-                          className="adoms-obligations-law-cell"
-                          rowSpan={lawGroup.items.length}
-                          style={styles.lawCell}
-                        >
-                          {lawGroup.name}
-                        </td>
-                      )}
-                      {span > 0 && (
-                        <td
-                          className="adoms-obligations-ordinance-cell"
-                          rowSpan={span}
-                          style={styles.ordinanceCell}
-                        >
-                          {item.lawName}
-                        </td>
-                      )}
-                      <td
-                        className="adoms-obligations-item-cell"
-                        style={styles.obligationCell}
+              {obligationSource === "loading" ? (
+                <tr>
+                  <td colSpan={4} style={styles.emptyCell}>
+                    시설별 적용 의무를 불러오고 있습니다.
+                  </td>
+                </tr>
+              ) : lawGroups.length === 0 ? (
+                <tr>
+                  <td colSpan={4} style={styles.emptyCell}>
+                    이 대상에 연결된 적용 의무가 없습니다.
+                    {loadReason ? ` (${loadReason})` : ""}
+                  </td>
+                </tr>
+              ) : (
+                lawGroups.map(lawGroup =>
+                  lawGroup.items.map((item, itemIndex) => {
+                    const span = ordinanceSpan(lawGroup.items, itemIndex);
+                    return (
+                      <tr
+                        key={item.id}
+                        className="adoms-obligations-detail-row"
                       >
-                        <strong
-                          className="adoms-obligations-item-title"
-                          style={styles.obligationTitle}
-                        >
-                          {item.title}
-                        </strong>
-                        <span
-                          className="adoms-obligations-item-detail"
-                          style={styles.obligationDetail}
-                        >
-                          {item.detail}
-                        </span>
-                      </td>
-                      <td
-                        className="adoms-obligations-due-cell"
-                        style={styles.dueCell}
-                      >
-                        {item.scheduleType === "month" ? (
-                          <input
-                            className="adoms-obligations-month-input"
-                            style={styles.monthInput}
-                            type="month"
-                            aria-label={`${item.title} 이행 시기`}
-                            value={dueDates[item.id] || ""}
-                            onChange={event =>
-                              updateDueDate(item.id, event.target.value)
-                            }
-                          />
-                        ) : (
-                          <div
-                            className="adoms-obligations-half-year"
-                            style={styles.halfYear}
+                        {itemIndex === 0 && (
+                          <td
+                            className="adoms-obligations-law-cell"
+                            rowSpan={lawGroup.items.length}
+                            style={styles.lawCell}
                           >
-                            {(["상반기", "하반기"] as const).map(half => (
-                              <label
-                                key={half}
-                                className="adoms-obligations-half-year-label"
-                                style={styles.halfYearLabel}
-                              >
-                                <input
-                                  className="adoms-obligations-half-year-radio"
-                                  style={styles.halfYearRadio}
-                                  type="radio"
-                                  name={`due-date-${item.id}`}
-                                  value={half}
-                                  checked={dueDates[item.id] === half}
-                                  onChange={event =>
-                                    updateDueDate(item.id, event.target.value)
-                                  }
-                                />
-                                {half}
-                              </label>
-                            ))}
-                          </div>
+                            {lawGroup.name}
+                          </td>
                         )}
-                      </td>
-                    </tr>
-                  );
-                })
+                        {span > 0 && (
+                          <td
+                            className="adoms-obligations-ordinance-cell"
+                            rowSpan={span}
+                            style={styles.ordinanceCell}
+                          >
+                            <strong>{item.lawName}</strong>
+                            <span
+                              style={{
+                                display: "block",
+                                marginTop: 4,
+                                color: "#766c78",
+                                fontSize: 10,
+                              }}
+                            >
+                              {item.article}
+                            </span>
+                          </td>
+                        )}
+                        <td
+                          className="adoms-obligations-item-cell"
+                          style={styles.obligationCell}
+                        >
+                          <strong
+                            className="adoms-obligations-item-title"
+                            style={styles.obligationTitle}
+                          >
+                            {item.title}
+                          </strong>
+                          <span
+                            className="adoms-obligations-item-detail"
+                            style={styles.obligationDetail}
+                          >
+                            {item.detail}
+                          </span>
+                        </td>
+                        <td
+                          className="adoms-obligations-due-cell"
+                          style={styles.dueCell}
+                        >
+                          {item.scheduleType === "month" ? (
+                            <input
+                              className="adoms-obligations-month-input"
+                              style={styles.monthInput}
+                              type="month"
+                              aria-label={`${item.title} 이행 시기`}
+                              value={
+                                dueDates[`${selectedTarget.id}:${item.id}`] ||
+                                ""
+                              }
+                              onChange={event =>
+                                updateDueDate(
+                                  `${selectedTarget.id}:${item.id}`,
+                                  event.target.value
+                                )
+                              }
+                            />
+                          ) : (
+                            <div
+                              className="adoms-obligations-half-year"
+                              style={styles.halfYear}
+                            >
+                              {(["상반기", "하반기"] as const).map(half => (
+                                <label
+                                  key={half}
+                                  className="adoms-obligations-half-year-label"
+                                  style={styles.halfYearLabel}
+                                >
+                                  <input
+                                    className="adoms-obligations-half-year-radio"
+                                    style={styles.halfYearRadio}
+                                    type="radio"
+                                    name={`due-date-${item.id}`}
+                                    value={half}
+                                    checked={
+                                      dueDates[
+                                        `${selectedTarget.id}:${item.id}`
+                                      ] === half
+                                    }
+                                    onChange={event =>
+                                      updateDueDate(
+                                        `${selectedTarget.id}:${item.id}`,
+                                        event.target.value
+                                      )
+                                    }
+                                  />
+                                  {half}
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )
               )}
             </tbody>
           </table>
@@ -687,6 +790,16 @@ export default function Obligations() {
         <h1 className="adoms-obligations-title" style={styles.title}>
           법 의무사항 공중이용시설·교통수단
         </h1>
+        <div className="adoms-obligations-target" style={styles.target}>
+          <span style={styles.targetLabel}>데이터 원천</span>
+          <strong style={styles.targetName}>
+            {facilitySource === "supabase"
+              ? `Supabase 시설 ${facilities.length}건`
+              : facilitySource === "loading"
+                ? "시설 DB 조회 중"
+                : "로컬 시연값"}
+          </strong>
+        </div>
       </div>
 
       <form
@@ -852,7 +965,7 @@ export default function Obligations() {
           </colgroup>
           <thead>
             <tr>
-              {["시설물명", "주소", "시설구분", "담당자", "소속"].map(
+              {["관리대상명", "주소", "시설구분", "적용 의무", "소속"].map(
                 heading => (
                   <th
                     key={heading}
@@ -904,7 +1017,9 @@ export default function Obligations() {
                     className="adoms-obligations-list-cell"
                     style={styles.listCell}
                   >
-                    {facility.target.manager}
+                    <strong style={{ color: "#a93193" }}>
+                      {facility.target.obligationCount}건
+                    </strong>
                   </td>
                   <td
                     className="adoms-obligations-list-cell"

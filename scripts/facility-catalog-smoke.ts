@@ -51,6 +51,41 @@ const { data: transit, error: transitError } = await supabase
 if (transitError)
   throw new Error(`transit read failed: ${transitError.message}`);
 
+const { data: waterworks, error: waterworksError } = await supabase
+  .from("ref_managed_target")
+  .select("target_ref,target_name")
+  .eq("source_id", "WS2013-0000051")
+  .limit(1)
+  .maybeSingle();
+if (waterworksError)
+  throw new Error(`waterworks read failed: ${waterworksError.message}`);
+
+const { data: waterworksMappings, error: waterworksMappingsError } =
+  await supabase
+    .from("ref_managed_target_obligation")
+    .select("obl_id,law_name,unit_path,l2_result")
+    .eq("target_ref", waterworks?.target_ref ?? "missing")
+    .neq("l2_result", "제외")
+    .limit(100);
+if (waterworksMappingsError) {
+  throw new Error(
+    `waterworks obligations failed: ${waterworksMappingsError.message}`
+  );
+}
+
+const sampleObligationId = waterworksMappings?.[0]?.obl_id;
+const { data: obligationMaster, error: obligationMasterError } = await supabase
+  .from("ref_obligation")
+  .select("obl_id,title_ko,obligation_group")
+  .eq("obl_id", sampleObligationId ?? "missing")
+  .limit(1)
+  .maybeSingle();
+if (obligationMasterError) {
+  throw new Error(
+    `obligation master read failed: ${obligationMasterError.message}`
+  );
+}
+
 const checks = {
   totalTargets: totalTargets === 153,
   fmsTargets: fmsTargets === 150,
@@ -62,11 +97,27 @@ const checks = {
   transitLegalBasis: String(transit?.l2_basis_path ?? "").includes(
     "도시철도법 제2조제2호"
   ),
+  waterworksExists: waterworks?.target_name === "고기상수도",
+  waterworksObligations: waterworksMappings?.length === 31,
+  obligationMasterJoined:
+    Boolean(sampleObligationId) &&
+    obligationMaster?.obl_id === sampleObligationId &&
+    Boolean(obligationMaster?.title_ko),
 };
 
 console.log(
   JSON.stringify(
-    { totalTargets, fmsTargets, demoTargets, mappings, transit, checks },
+    {
+      totalTargets,
+      fmsTargets,
+      demoTargets,
+      mappings,
+      transit,
+      waterworks,
+      waterworksObligationCount: waterworksMappings?.length ?? 0,
+      obligationMaster,
+      checks,
+    },
     null,
     2
   )
