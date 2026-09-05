@@ -38,6 +38,9 @@ const tables = [
   "inspection_scope",
   "inspection_result",
   "audit_event",
+  "project_plan",
+  "project_plan_item",
+  "project_plan_event",
 ] as const;
 
 const results: Array<{

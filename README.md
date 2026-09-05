@@ -1,6 +1,6 @@
 # 용인특례시 안전보건체계 통합관리 시연
 
-화면명세 ZIP의 공공기관 UI를 React로 유사 재구성한 **법령 DB·의무이행·점검 폐쇄 루프 영업 시연**입니다. 102개 화면을 모두 복제하지 않고 일곱 개 대표 화면과 역할·상태 변형으로 구성합니다.
+화면명세 ZIP의 공공기관 UI를 React로 유사 재구성한 **법령 DB·의무이행·점검 폐쇄 루프 영업 시연**입니다. 102개 화면을 모두 복제하지 않고 일곱 개 대표 화면과 역할·상태 변형으로 구성하며, 별도 추진현황 화면에서 화요일 완료 계획을 관리합니다.
 
 ## 실행
 
@@ -46,13 +46,15 @@ Build command와 Publish directory는 `netlify.toml`에서 자동으로 읽으�
 
 | Route | Function |
 |---|---|
-| `/` | 역할별 대시보드와 집계 |
+| `/` | Manus WebDev에서는 추진현황, Netlify에서는 `/dashboard`로 이동 |
+| `/dashboard` | 역할별 대시보드와 집계 |
 | `/targets` | 관리대상 검색·선택 |
 | `/laws` | 핵심 법령 축소본 검색·근거 |
 | `/obligations` | 대상별 의무와 이행시기 |
 | `/evidence` | 조치일자·상태·증빙·비고 |
 | `/inspection` | 점검 상태·점검내용 |
 | `/summary` | O/△/X/- 총괄표와 이행률 |
+| `/plan` | 화요일까지 49개 시간대 작업의 클라우드 진행률 보드 |
 
 ## Supabase 적용
 
@@ -60,7 +62,9 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 
 1. `supabase/migrations/001_demo_schema.sql`
 2. `supabase/migrations/002_security_and_index_hardening.sql`
-3. `supabase/seed.sql`
+3. `supabase/migrations/003_project_plan_progress.sql`
+4. `supabase/seed.sql`
+5. `supabase/seed_plan.sql`
 
 2026-09-05 기준 원격 프로젝트에 스키마와 최소 시드가 적용됐고, 관계 법령 화면과 헤더 연결 상태는 Supabase를 조회합니다. Target CRUD·비공개 Storage·감사로그 왕복 테스트가 통과했습니다. 나머지 UI 업무 상태는 시연 안정성을 위해 로컬 폴백을 유지하며 다음 단계에서 동일 테이블 호출로 전환합니다.
 
@@ -72,6 +76,7 @@ pnpm build
 pnpm exec vitest run client/src/lib/supabase.secrets.test.ts
 pnpm check:supabase
 pnpm smoke:supabase
+pnpm smoke:plan
 ```
 
 ## 문서
@@ -79,7 +84,10 @@ pnpm smoke:supabase
 - `docs/UI_SCREEN_MAP.md`: UI ZIP 102개 화면의 대표 라우트 축약표
 - `docs/DB_GRAPH_HANDOFF.md`: 법령 데이터 축소량, Supabase 구성, 그래프 DB 전환 계약
 - `docs/SUPABASE_RUNBOOK.md`: 원격 DB 적용·RLS·Storage·스모크 테스트·시연 종료 절차
+- `docs/PLAN_BOARD.md`: 추진현황 보드의 접근·진행률 계산·클라우드 저장·검증 방법
+- `docs/PLAN_UNTIL_TUESDAY.md`: 추진현황 보드의 원본 시간대별 일정
 - `scripts/build_demo_projection.py`: 수동 승인 목록을 기준으로 RDB·그래프 CSV를 만드는 ETL
+- `scripts/build-plan-data.py`: 일정 Markdown에서 프런트 데이터와 Supabase 계획 시드를 생성
 
 ## 시연 보안
 

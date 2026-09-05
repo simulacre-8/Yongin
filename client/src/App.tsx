@@ -12,19 +12,22 @@ import Obligations from "@/pages/Obligations";
 import Evidence from "@/pages/Evidence";
 import Inspection from "@/pages/Inspection";
 import Summary from "@/pages/Summary";
+import Plan from "@/pages/Plan";
 import NotFound from "@/pages/NotFound";
 
 function Router() {
   return (
     <AppShell>
       <Switch>
-        <Route path="/" component={Dashboard} />
+        <Route path="/" component={Plan} />
+        <Route path="/dashboard" component={Dashboard} />
         <Route path="/targets" component={Targets} />
         <Route path="/laws" component={Laws} />
         <Route path="/obligations" component={Obligations} />
         <Route path="/evidence" component={Evidence} />
         <Route path="/inspection" component={Inspection} />
         <Route path="/summary" component={Summary} />
+        <Route path="/plan" component={Plan} />
         <Route component={NotFound} />
       </Switch>
     </AppShell>

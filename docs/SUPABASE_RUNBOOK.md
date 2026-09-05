@@ -28,7 +28,9 @@
 
 1. `supabase/migrations/001_demo_schema.sql`
 2. `supabase/migrations/002_security_and_index_hardening.sql`
-3. `supabase/seed.sql`
+3. `supabase/migrations/003_project_plan_progress.sql`
+4. `supabase/seed.sql`
+5. `supabase/seed_plan.sql`
 
 첫 번째 마이그레이션은 법령 투영, 대상, 적용판정, 의무, 이행, 증빙, 점검, 감사로그와 비공개 Storage 버킷을 생성한다. 두 번째 마이그레이션은 RLS 보조 함수와 감사 트리거를 API에 노출되지 않는 `private` 스키마로 이동하고 외래키 인덱스를 보강한다.
 
@@ -49,6 +51,9 @@
 | `inspection_run` | 1 |
 | `inspection_scope` | 30 |
 | `inspection_result` | 30 |
+| `project_plan` | 1 |
+| `project_plan_item` | 49 |
+| `project_plan_event` | 변경 시 자동 누적 |
 
 이번 시드는 DB 폐쇄 루프 검증을 위한 최소본이다. 최종 법령 축소본 50–150건은 `scripts/build_demo_projection.py` 결과를 검수한 뒤 `ref_*`에 교체 적재한다.
 
@@ -67,12 +72,15 @@
 ```bash
 pnpm check:supabase
 pnpm smoke:supabase
+pnpm smoke:plan
 pnpm exec vitest run client/src/lib/supabase.secrets.test.ts
 pnpm check
 pnpm build
 ```
 
 `check:supabase`는 필수 테이블 17개와 버킷을 실제 GET 요청으로 검사한다. `smoke:supabase`는 임시 대상과 임시 파일을 생성해 왕복 검증한 후 모두 삭제한다. 최종 확인에서 임시 대상과 파일은 각각 0건이었다.
+
+추진현황 적용 후 `check:supabase`는 테이블 20개와 비공개 버킷, 총 21개 리소스를 확인한다. `smoke:plan`은 공개키로 계획 항목을 임시 수정하고 변경이력이 생성되는지 확인한 뒤 원래 값으로 복원한다. 2026-09-05 최종 검증에서 Security Advisor 경고는 0건이었으며 Performance Advisor는 신규 데이터베이스의 미사용 인덱스 INFO만 보고했다.
 
 ## 시연 종료
 
