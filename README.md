@@ -1,6 +1,8 @@
 # 용인특례시 안전보건체계 통합관리 시연
 
-화면명세 ZIP의 공공기관 UI를 React로 유사 재구성한 **법령 DB·의무이행·점검 폐쇄 루프 영업 시연**입니다. 102개 화면을 모두 복제하지 않고 일곱 개 대표 화면과 역할·상태 변형으로 구성하며, 별도 추진현황 화면에서 화요일 완료 계획을 관리합니다.
+화면명세 ZIP의 공공기관 UI를 React로 유사 재구성한 **법령 적용 가능성 판정·의무이행·점검 폐쇄 루프 영업 시연**입니다. 최우선 첫 화면은 대상 프로필과 상시근로자 수·시설 연면적 등 사실값 변화에 따라 **L1 법령 후보 → L2 대상 후보 → L3 의무 후보**와 근거 경로를 다시 계산합니다.
+
+> 이 앱의 자동 결과는 축소·검수된 규칙에 의한 적용 가능성 후보이며 최종 법률 판단 또는 용인시 전체 적용 의무 목록이 아닙니다.
 
 ## 실행
 
@@ -8,6 +10,15 @@
 pnpm install
 pnpm dev
 ```
+
+로컬 실행에는 `client/.env.local`에 공개 환경변수를 설정합니다.
+
+```text
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
+```
+
+**서비스 역할 키, 데이터베이스 비밀번호, GitHub 토큰, 비공개 Graph API 키는 저장소나 브라우저 번들에 넣지 마십시오.**
 
 ### Windows 로컬 작업 경로
 
@@ -20,41 +31,26 @@ cd C:\Yongin_test
 pnpm dev
 ```
 
-세부 폴더 규칙과 ETL 명령은 `docs/WINDOWS_LOCAL_PATH.md`를 참고하십시오.
-
-로컬 실행에는 `client/.env.local`에 다음 공개 환경변수를 설정합니다.
-
-```text
-VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
-```
-
-**서비스 역할 키, 데이터베이스 비밀번호, GitHub 토큰은 저장소에 넣지 마십시오.**
+세부 폴더 규칙은 `docs/WINDOWS_LOCAL_PATH.md`를 참고하십시오.
 
 ## Netlify 배포
 
-저장소 루트의 `netlify.toml`에 빌드 명령, `dist/public` 배포 경로, SPA 라우팅 리다이렉트를 설정했습니다. Netlify에서 GitHub 저장소를 연결한 뒤 **Site configuration → Environment variables**에 다음 값만 등록합니다.
-
-```text
-VITE_SUPABASE_URL
-VITE_SUPABASE_PUBLISHABLE_KEY
-```
-
-Build command와 Publish directory는 `netlify.toml`에서 자동으로 읽으므로 Netlify 화면에서 다시 입력할 필요가 없습니다.
+저장소 루트의 `netlify.toml`이 빌드 명령, `dist/public` 배포 경로, SPA fallback을 제공합니다. Netlify 환경변수에는 `VITE_SUPABASE_URL`과 `VITE_SUPABASE_PUBLISHABLE_KEY`만 등록합니다. GitHub `main`에 push하면 연결된 Netlify 사이트가 자동 배포됩니다.
 
 ## 화면
 
 | Route | Function |
 |---|---|
-| `/` | Manus WebDev에서는 추진현황, Netlify에서는 `/dashboard`로 이동 |
+| `/`, `/applicability` | 프로필·인원·면적 변화에 따른 L1/L2/L3 후보와 근거 경로 |
 | `/dashboard` | 역할별 대시보드와 집계 |
 | `/targets` | 관리대상 검색·선택 |
 | `/laws` | 핵심 법령 축소본 검색·근거 |
-| `/obligations` | 대상별 의무와 이행시기 |
+| `/obligations` | 검수된 대상별 의무와 이행시기 |
 | `/evidence` | 조치일자·상태·증빙·비고 |
 | `/inspection` | 점검 상태·점검내용 |
 | `/summary` | O/△/X/- 총괄표와 이행률 |
-| `/plan` | 화요일까지 49개 시간대 작업의 클라우드 진행률 보드 |
+
+프로젝트 추진현황은 웹앱과 Supabase에서 제거했습니다. 클라이언트 공개 일정은 별도 Excel/Google Sheets WBS로 관리합니다.
 
 ## Supabase 적용
 
@@ -62,36 +58,37 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 
 1. `supabase/migrations/001_demo_schema.sql`
 2. `supabase/migrations/002_security_and_index_hardening.sql`
-3. `supabase/migrations/003_project_plan_progress.sql`
+3. `supabase/migrations/004_remove_project_plan_progress.sql`
 4. `supabase/seed.sql`
-5. `supabase/seed_plan.sql`
 
-2026-09-05 기준 원격 프로젝트에 스키마와 최소 시드가 적용됐고, 관계 법령 화면과 헤더 연결 상태는 Supabase를 조회합니다. Target CRUD·비공개 Storage·감사로그 왕복 테스트가 통과했습니다. 나머지 UI 업무 상태는 시연 안정성을 위해 로컬 폴백을 유지하며 다음 단계에서 동일 테이블 호출로 전환합니다.
+2026-09-05 기준 원격 프로젝트에는 핵심 스키마와 시드가 적용되어 있습니다. Target CRUD·비공개 Storage·감사로그 왕복 테스트가 통과했고, 내부 추진현황 테이블은 제거했습니다.
 
 ## 검증
 
 ```bash
 pnpm check
 pnpm build
+pnpm exec vitest run client/src/lib/applicability.test.ts
 pnpm exec vitest run client/src/lib/supabase.secrets.test.ts
 pnpm check:supabase
 pnpm smoke:supabase
-pnpm smoke:plan
 ```
+
+## ADOMS Graph API
+
+별도 그래프 DB 구매는 현재 필요하지 않습니다. 기존 ADOMS 그래프 DB가 있다면 `docs/ADOMS_GRAPH_API_REQUEST.md`에 정리한 base URL, OpenAPI/GraphQL 스키마, 읽기 전용 시연 키, CORS와 snapshot 정보를 받아 첫 화면에 연결합니다. 비공개 키는 Netlify Function 또는 별도 proxy에서 보관합니다.
 
 ## 문서
 
-- `docs/UI_SCREEN_MAP.md`: UI ZIP 102개 화면의 대표 라우트 축약표
-- `docs/DB_GRAPH_HANDOFF.md`: 법령 데이터 축소량, Supabase 구성, 그래프 DB 전환 계약
-- `docs/SUPABASE_RUNBOOK.md`: 원격 DB 적용·RLS·Storage·스모크 테스트·시연 종료 절차
-- `docs/PLAN_BOARD.md`: 추진현황 보드의 접근·진행률 계산·클라우드 저장·검증 방법
-- `docs/PLAN_UNTIL_TUESDAY.md`: 추진현황 보드의 원본 시간대별 일정
-- `scripts/build_demo_projection.py`: 수동 승인 목록을 기준으로 RDB·그래프 CSV를 만드는 ETL
-- `scripts/build-plan-data.py`: 일정 Markdown에서 프런트 데이터와 Supabase 계획 시드를 생성
+- `docs/UI_SCREEN_MAP.md`: 적용범위 판정을 첫 장면으로 둔 대표 화면 구성
+- `docs/ADOMS_GRAPH_API_REQUEST.md`: 기존 Graph API에 요청할 최소 인증·판정·근거 계약
+- `docs/DB_GRAPH_HANDOFF.md`: 축소 법령 데이터와 RDB/그래프 경계
+- `docs/SUPABASE_RUNBOOK.md`: 원격 DB·RLS·Storage·스모크 테스트 운영 기록
+- `scripts/build_demo_projection.py`: 승인 목록 기준 RDB·그래프 투영 ETL
 
 ## 시연 보안
 
-마이그레이션은 역할 기반 RLS를 사용하며, 영업 시연 중의 익명 접근과 쓰기는 `app_setting`의 `demo_access_enabled`, `demo_write_enabled`로 제어합니다. 시연 종료 직후 다음을 실행합니다.
+영업 시연 중 익명 접근과 쓰기는 `app_setting`의 `demo_access_enabled`, `demo_write_enabled`로 제어합니다. 시연 종료 직후 익명 쓰기를 비활성화합니다.
 
 ```sql
 update public.app_setting
@@ -99,4 +96,4 @@ set value = 'false'::jsonb
 where key = 'demo_write_enabled';
 ```
 
-실사용 전에는 `demo_access_enabled`도 비활성화하고 Supabase Auth 사용자를 `profile.auth_user_id`와 연결하십시오.
+실사용 전에는 익명 조회도 비활성화하고 Supabase Auth 사용자를 `profile.auth_user_id`와 연결해야 합니다.

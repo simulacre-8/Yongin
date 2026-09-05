@@ -6,26 +6,25 @@
 |---|---|
 | TypeScript `pnpm check` | 통과 |
 | Production build `pnpm build` | 통과 |
-| Supabase `/auth/v1/settings` credential test | HTTP 200, Vitest 통과 |
-| Supabase 필수 리소스 `pnpm check:supabase` | 테이블 17개와 비공개 버킷 준비 완료 |
-| Supabase `pnpm smoke:supabase` | Target CRUD, Storage 왕복, 감사로그 3건 확인 및 임시 데이터 삭제 통과 |
+| 적용판정 단위 테스트 | 3개 통과: 기준값 10개 의무, 4/5명·4,999/5,000㎡ 경계값, 중복 병합 |
+| Supabase 공개키 보안 테스트 | 3개 통과: Auth API, 서비스키 비노출, private RPC 비노출 |
+| Supabase 필수 리소스 | 핵심 테이블 17개와 비공개 버킷, 총 18개 리소스 준비 완료 |
+| Supabase CRUD·Storage | Target CRUD, Storage 왕복, 감사로그 3건 및 임시 데이터 정리 통과 |
+| 내부 추진현황 제거 | UI 라우트·메뉴·소스 삭제, 원격 3개 테이블과 Realtime 등록 제거 |
+| 첫 화면 | `/`와 `/applicability`에서 프로필·인원·면적 변경에 따른 L1/L2/L3 후보·근거 표시 |
+| 기존 시연 흐름 | `/dashboard`, `/targets`, `/laws`, `/obligations`, `/evidence`, `/inspection`, `/summary` 유지 |
+| 민감정보 검사 | GitHub PAT, JWT anon key, 실제 publishable/비공개 Graph API 키를 추적 파일에 포함하지 않음 |
 | Supabase Security Advisor | 경고 0건 |
-| UI `/`, `/targets`, `/laws`, `/obligations`, `/evidence`, `/inspection`, `/summary` | 1600×1000 브라우저 렌더링 7/7 성공 |
-| 추진현황 `/plan` | 원격 일정 49개, 시간 가중 진행률 59%, Supabase 클라우드 저장 표시 확인 |
-| Manus WebDev 첫 화면 `/` | 추진현황이 즉시 표시되고 상단·사이드 메뉴가 활성 상태로 렌더링됨 |
-| 기존 시연 대시보드 `/dashboard` | 기존 집계 위젯과 시연 시작 화면 유지 |
-| 계획 데이터 단위 테스트 | Markdown 파생 49개 행, ID·날짜·상태·진행률 일관성 3개 테스트 통과 |
-| 계획 원격 `pnpm smoke:plan` | 공개키 조회·수정·감사 이벤트·원복 통과 |
-| 축소 ETL 실제 CSV 테스트 | 법령 80, 규칙 8, 의무 6, 연결 8 및 RDB·그래프 CSV 생성 성공 |
-| 전용 Manus skill validation | 통과 |
-| 민감정보 Git 추적 검사 | GitHub PAT, JWT anon key, 실제 publishable key를 추적 파일에 포함하지 않음 |
+| Supabase Performance Advisor | 신규 DB의 미사용 인덱스 INFO만 존재 |
 
-## 시각 확인
+## 적용범위 판정 안전장치
 
-일곱 화면에서 연녹색 경영목표 배너, 검정 GNB, 연녹색 LNB, 회색 검색 패널, 법령·증빙 고밀도 표, O/△/X/- 총괄표가 동일하게 렌더링됐다. 역할 전환, 현재 대상 선택, 의무 이행시기, 증빙 메타데이터, 점검 상태와 점검내용은 화면 간에 공유된다.
+첫 화면은 ‘규칙상 조건 충족 후보’, ‘프로필 연관·조건 확인 필요’, ‘원천 검수 필요’를 동시에 표시한다. 검수된 축소 시연 규칙만 실행하며, 조건 불충족은 법적 비적용 확정이 아니라 검토 보류로 표시한다. 각 상세에는 규칙 ID, 조건, 입력값, 근거 단위 ID, 인용문과 판정 설명을 제공한다.
 
-Manus WebDev 기본 주소 `/`에서는 추진현황이 바로 열리며, 기존 영업 시연 대시보드는 `/dashboard`에서 유지된다. Netlify에서는 루트 요청만 `/dashboard`로 이동하고 `/plan` 직접 접근은 그대로 유지하도록 배포 설정을 분리했다.
+기존 ADOMS Graph API를 받기 전에는 `decision-v2.0`의 내장 검수 규칙 4개로 폴백한다. API 연결 시에는 원문 anchor·시행일·snapshot hash와 검수 이력을 포함한 근거 bundle이 완전한 항목만 시연 결과에 포함해야 한다.
 
-## 원격 DB 적용 결과
+1600×1000 전체 화면 캡처에서 `/`와 `/applicability`가 동일한 판정 첫 화면을 표시했고, 용인시 브랜드 셸 안에서 입력·L1/L2/L3 요약·3구간 후보·근거 패널이 한 화면에 렌더링됐다. 기존 `/dashboard`, `/laws`, `/obligations` 화면도 정상 유지됐다.
 
-Supabase 프로젝트 `gxpfnszbwvfyogwshvas`에 핵심 스키마, 보안·인덱스 강화, 추진현황 마이그레이션과 시연 시드를 적용했다. 브라우저 헤더에서 `Supabase DB 준비됨`을 확인했으며, 비공개 버킷은 `public=false`, 파일 제한 10MB, `demo/` 접두 경로 정책으로 동작한다. 추진현황은 `project_plan_item` 49건을 원격 조회하고 상태·진행률·메모 변경을 `project_plan_event`에 남긴다. 스모크 테스트 후 업무 임시 대상과 임시 파일은 0건이고 계획 항목은 원래 값으로 복원됐다.
+## 원격 DB 상태
+
+Supabase 프로젝트 `gxpfnszbwvfyogwshvas`에는 법령·대상·적용판정·의무·이행·증빙·점검·감사 핵심 스키마가 유지된다. 웹 추진현황용 `project_plan`, `project_plan_item`, `project_plan_event`는 사용자 요청에 따라 제거했다.

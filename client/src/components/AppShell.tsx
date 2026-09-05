@@ -9,7 +9,6 @@ import {
   Database,
   FileCheck2,
   LayoutDashboard,
-  ListChecks,
   LogOut,
   RefreshCcw,
   ShieldCheck,
@@ -19,6 +18,7 @@ import { checkSupabaseConnection } from "@/lib/supabase";
 import { useDemo } from "@/contexts/DemoContext";
 
 const navItems = [
+  { href: "/applicability", label: "적용범위 판정", icon: ShieldCheck },
   { href: "/dashboard", label: "이행현황", icon: LayoutDashboard },
   { href: "/targets", label: "관리대상 현황", icon: Building2 },
   { href: "/laws", label: "관계 법령", icon: BookOpenText },
@@ -26,7 +26,6 @@ const navItems = [
   { href: "/evidence", label: "의무이행(실적증빙)", icon: ClipboardCheck },
   { href: "/inspection", label: "이행점검 및 조치", icon: ShieldCheck },
   { href: "/summary", label: "점검 총괄표", icon: BarChart3 },
-  { href: "/plan", label: "추진현황", icon: ListChecks },
 ];
 
 const roleMeta: Record<Role, { org: string; name: string }> = {
@@ -42,7 +41,6 @@ const sideGroups = [
     title: "시연 플로우",
     items: ["법령 적용 판정", "증빙 등록", "점검 및 보완"],
   },
-  { title: "구축 일정", items: ["화요일 추진현황"] },
 ];
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -53,7 +51,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     connected: false,
     reason: "연결 확인 중",
   });
-  const homeHref = "/dashboard";
+  const homeHref = "/applicability";
 
   useEffect(() => {
     checkSupabaseConnection().then(setConnection);
@@ -61,7 +59,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   const activeHref =
     navItems.find(item => item.href === location)?.href ||
-    (location === "/" ? "/plan" : "/dashboard");
+    (location === "/" ? "/applicability" : "/dashboard");
 
   return (
     <div className="app-frame">
@@ -159,11 +157,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   const selected =
                     (groupIndex === 1 && index === 0) ||
                     (groupIndex === 2 &&
-                      location !== "/" &&
-                      location !== "/dashboard" &&
-                      location !== "/plan") ||
-                    (groupIndex === 3 &&
-                      (location === "/plan" || location === "/"));
+                      index === 0 &&
+                      (location === "/" || location === "/applicability")) ||
+                    (groupIndex === 2 &&
+                      index === 1 &&
+                      location === "/evidence") ||
+                    (groupIndex === 2 &&
+                      index === 2 &&
+                      (location === "/inspection" || location === "/summary"));
                   return (
                     <button
                       key={label}
