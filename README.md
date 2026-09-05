@@ -18,6 +18,17 @@ VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
 
 **서비스 역할 키, 데이터베이스 비밀번호, GitHub 토큰은 저장소에 넣지 마십시오.**
 
+## Netlify 배포
+
+저장소 루트의 `netlify.toml`에 빌드 명령, `dist/public` 배포 경로, SPA 라우팅 리다이렉트를 설정했습니다. Netlify에서 GitHub 저장소를 연결한 뒤 **Site configuration → Environment variables**에 다음 값만 등록합니다.
+
+```text
+VITE_SUPABASE_URL
+VITE_SUPABASE_PUBLISHABLE_KEY
+```
+
+Build command와 Publish directory는 `netlify.toml`에서 자동으로 읽으므로 Netlify 화면에서 다시 입력할 필요가 없습니다.
+
 ## 화면
 
 | Route | Function |
