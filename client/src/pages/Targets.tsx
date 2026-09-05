@@ -19,6 +19,10 @@ import {
   LOCAL_MANAGED_TARGETS,
   type ManagedTargetRow,
 } from "@/lib/facility-api";
+import {
+  loadTargetObligations,
+  type MappedObligation,
+} from "@/lib/facility-obligation-api";
 import { useDemo } from "@/contexts/DemoContext";
 
 type Screen = "target-list" | "target-form" | "contract-list" | "contract-form";
@@ -366,6 +370,13 @@ export default function Targets() {
   const [facilitySource, setFacilitySource] = useState<
     "loading" | "supabase" | "fallback"
   >("loading");
+  const [targetObligations, setTargetObligations] = useState<
+    MappedObligation[]
+  >([]);
+  const [obligationSource, setObligationSource] = useState<
+    "loading" | "supabase" | "fallback"
+  >("loading");
+  const [obligationReason, setObligationReason] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -383,6 +394,22 @@ export default function Targets() {
     managedTargets.find(item => item.id === selectedTargetId) ||
     managedTargets[0] ||
     LOCAL_MANAGED_TARGETS[0];
+
+  useEffect(() => {
+    let active = true;
+    setObligationSource("loading");
+    setObligationReason("");
+    loadTargetObligations(selected.id).then(result => {
+      if (!active) return;
+      setTargetObligations(result.items);
+      setObligationSource(result.source);
+      setObligationReason(result.reason || "");
+    });
+    return () => {
+      active = false;
+    };
+  }, [selected.id]);
+
   const normalizedQuery = searchedQuery.trim();
   const filteredTargets = useMemo(() => {
     const base = managedTargets.filter(item => {
@@ -506,6 +533,8 @@ export default function Targets() {
       setTargetDraft(previous => ({
         ...previous,
         address: nextTarget.address === "-" ? "" : nextTarget.address,
+        industry: nextTarget.detailKind || nextTarget.category,
+        industryCode: nextTarget.sourceKind,
       }));
     }
     setScreen("target-form");
@@ -522,7 +551,7 @@ export default function Targets() {
   };
   const saveTarget = () => {
     setTargetSaved(true);
-    announce("용인시청 기본정보와 세부정보를 저장했습니다.");
+    announce(`${selected.name} 기본정보와 세부정보를 저장했습니다.`);
   };
   const saveContract = () => {
     if (!contractDraft.contractName.trim()) {
@@ -615,6 +644,115 @@ export default function Targets() {
       </span>
       {children}
     </label>
+  );
+
+  const renderTargetObligations = () => (
+    <div className="adoms-target-obligations" style={sectionStyle}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          minHeight: 52,
+          padding: "0 16px",
+          borderBottom: "1px solid #dfe4de",
+          background: "#f2f3f5",
+        }}
+      >
+        <div>
+          <strong style={{ fontSize: 13 }}>3. 대상별 적용 의무</strong>
+          <span style={{ marginLeft: 8, color: "#a93193", fontSize: 12 }}>
+            {obligationSource === "loading"
+              ? "조회 중"
+              : `${targetObligations.length}건`}
+          </span>
+        </div>
+        <span style={{ color: "#70787e", fontSize: 10 }}>
+          {obligationSource === "supabase"
+            ? `Supabase · ${selected.id}`
+            : obligationSource === "loading"
+              ? "시설-의무 매핑 조회 중"
+              : obligationReason || "로컬 시연 의무"}
+        </span>
+      </div>
+
+      {obligationSource === "loading" ? (
+        <div style={{ padding: 28, color: "#717980", fontSize: 12 }}>
+          {selected.name}의 적용 의무를 조회하고 있습니다.
+        </div>
+      ) : targetObligations.length > 0 ? (
+        <div style={{ maxHeight: 440, overflow: "auto" }}>
+          <div
+            style={{
+              minWidth: 1000,
+              display: "grid",
+              gridTemplateColumns:
+                "50px 130px 150px minmax(240px,1.2fr) minmax(210px,1fr) minmax(150px,.7fr)",
+              background: "#e9edf1",
+              color: "#41484e",
+              fontSize: 11,
+              fontWeight: 800,
+            }}
+          >
+            {["번호", "의무 ID", "법령", "의무", "근거", "주기·증빙"].map(
+              label => (
+                <span
+                  key={label}
+                  style={{
+                    ...tableCellStyle,
+                    display: "grid",
+                    placeItems: "center",
+                  }}
+                >
+                  {label}
+                </span>
+              )
+            )}
+          </div>
+          {targetObligations.map((obligation, index) => (
+            <div
+              key={obligation.id}
+              style={{
+                minWidth: 1000,
+                display: "grid",
+                gridTemplateColumns:
+                  "50px 130px 150px minmax(240px,1.2fr) minmax(210px,1fr) minmax(150px,.7fr)",
+                background: index % 2 === 0 ? "#fff" : "#fbfbfc",
+              }}
+            >
+              <span style={{ ...tableCellStyle, textAlign: "center" }}>
+                {index + 1}
+              </span>
+              <span
+                style={{
+                  ...tableCellStyle,
+                  color: "#8b256f",
+                  fontWeight: 750,
+                }}
+              >
+                {obligation.id}
+              </span>
+              <span style={tableCellStyle}>{obligation.lawName}</span>
+              <span style={{ ...tableCellStyle, fontWeight: 700 }}>
+                {obligation.title}
+              </span>
+              <span style={tableCellStyle}>{obligation.article}</span>
+              <span style={tableCellStyle}>
+                {obligation.scheduleType === "half"
+                  ? "반기"
+                  : obligation.defaultDue}
+                {obligation.evidence ? ` · ${obligation.evidence}` : ""}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ padding: 28, color: "#717980", fontSize: 12 }}>
+          {selected.name}에 연결된 적용 의무가 없습니다.
+          {obligationReason ? ` (${obligationReason})` : ""}
+        </div>
+      )}
+    </div>
   );
 
   const renderTargetList = () => (
@@ -1029,8 +1167,16 @@ export default function Targets() {
           >
             기본정보 / {selected.category}
           </p>
-          <h1>{selected.name} 기본정보 등록·관리</h1>
-          <p>기준일자별 근무인원과 담당자 정보를 하나의 양식에서 저장합니다.</p>
+          <h1>
+            {selected.category === "사업장"
+              ? `${selected.name} 기본정보 등록·관리`
+              : `${selected.name} 기준정보·적용의무`}
+          </h1>
+          <p>
+            {selected.category === "사업장"
+              ? "기준일자별 근무인원과 담당자 정보를 하나의 양식에서 저장합니다."
+              : "선택 관리대상의 기준정보와 시설별 법령 의무 매핑을 확인합니다."}
+          </p>
         </div>
         <button
           type="button"
@@ -1099,41 +1245,75 @@ export default function Targets() {
                 <LabeledField label="주소" required wide>
                   <input
                     value={targetDraft.address}
+                    readOnly={selected.category !== "사업장"}
                     onChange={event =>
                       setTargetDraft(previous => ({
                         ...previous,
                         address: event.target.value,
                       }))
                     }
-                    style={fieldStyle}
+                    style={
+                      selected.category === "사업장"
+                        ? fieldStyle
+                        : readonlyStyle
+                    }
                   />
                 </LabeledField>
-                <LabeledField label="업종분류(안) (한국표준산업분류)" required>
+                <LabeledField
+                  label={
+                    selected.category === "사업장"
+                      ? "업종분류(안) (한국표준산업분류)"
+                      : "관리대상 세부분류"
+                  }
+                  required
+                >
                   <input
                     value={targetDraft.industry}
+                    readOnly={selected.category !== "사업장"}
                     onChange={event =>
                       setTargetDraft(previous => ({
                         ...previous,
                         industry: event.target.value,
                       }))
                     }
-                    style={fieldStyle}
+                    style={
+                      selected.category === "사업장"
+                        ? fieldStyle
+                        : readonlyStyle
+                    }
                   />
                 </LabeledField>
-                <LabeledField label="업종분류 코드">
+                <LabeledField
+                  label={
+                    selected.category === "사업장"
+                      ? "업종분류 코드"
+                      : "기준정보 출처"
+                  }
+                >
                   <input
                     value={targetDraft.industryCode}
+                    readOnly={selected.category !== "사업장"}
                     onChange={event =>
                       setTargetDraft(previous => ({
                         ...previous,
                         industryCode: event.target.value,
                       }))
                     }
-                    style={fieldStyle}
+                    style={
+                      selected.category === "사업장"
+                        ? fieldStyle
+                        : readonlyStyle
+                    }
                   />
                 </LabeledField>
               </div>
-              <div style={{ marginTop: 24, overflowX: "auto" }}>
+              <div
+                style={{
+                  display: selected.category === "사업장" ? undefined : "none",
+                  marginTop: 24,
+                  overflowX: "auto",
+                }}
+              >
                 <div
                   style={{
                     display: "flex",
@@ -1306,7 +1486,13 @@ export default function Targets() {
           )}
         </div>
 
-        <div className="adoms-detail-section" style={sectionStyle}>
+        <div
+          className="adoms-detail-section"
+          style={{
+            ...sectionStyle,
+            display: selected.category === "사업장" ? undefined : "none",
+          }}
+        >
           <FormSectionTitle
             number="2."
             title="세부정보"
@@ -1568,6 +1754,7 @@ export default function Targets() {
             </div>
           )}
         </div>
+        {renderTargetObligations()}
       </section>
       <div
         className="adoms-form-actions"
@@ -1584,13 +1771,15 @@ export default function Targets() {
         >
           〈 목록으로
         </button>
-        <button
-          type="button"
-          className="adoms-save-target primary-btn"
-          onClick={saveTarget}
-        >
-          <Check size={15} /> 저장하기
-        </button>
+        {selected.category === "사업장" && (
+          <button
+            type="button"
+            className="adoms-save-target primary-btn"
+            onClick={saveTarget}
+          >
+            <Check size={15} /> 저장하기
+          </button>
+        )}
       </div>
     </>
   );
