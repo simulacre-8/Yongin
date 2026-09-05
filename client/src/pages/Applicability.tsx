@@ -28,7 +28,7 @@ type Preset = { label: string; description: string; facts: ApplicabilityFacts };
 
 const presets: Preset[] = [
   {
-    label: "시청 기준",
+    label: "용인시청 기본값",
     description: "120명 · 39,872㎡ · 대상시설",
     facts: BASELINE_FACTS,
   },
@@ -44,13 +44,13 @@ const presets: Preset[] = [
     },
   },
   {
-    label: "수지레스피아",
-    description: "62명 · 6,200㎡ · 대상시설",
+    label: "경계값 이상",
+    description: "5명 · 5,000㎡ · 대상시설",
     facts: {
-      profile: "상하수도",
+      profile: "청사·사무시설",
       targetTrack: "public_facility",
-      workerCount: 62,
-      grossArea: 6200,
+      workerCount: 5,
+      grossArea: 5000,
       facilitySafetyAct: true,
     },
   },
@@ -58,14 +58,6 @@ const presets: Preset[] = [
 
 const targetPresets: Record<string, ApplicabilityFacts> = {
   "target-yongin-cityhall": presets[0].facts,
-  "target-suji-water": presets[2].facts,
-  "target-jukjeon-bridge": {
-    profile: "도로·교량",
-    targetTrack: "public_facility",
-    workerCount: 4,
-    grossArea: 3200,
-    facilitySafetyAct: true,
-  },
 };
 
 function ruleState(rule: RuleEvaluation) {
@@ -113,10 +105,10 @@ export default function Applicability() {
       <div className="page-heading applicability-heading">
         <div>
           <span className="eyebrow">APPLICABILITY · L1 → L2 → L3</span>
-          <h1>법 적용범위 1차 판정</h1>
+          <h1>용인시청 법 적용범위 1차 판정</h1>
           <p>
-            대상 프로필과 규모 값을 바꾸면 검수된 시연 규칙이 법령·대상·의무
-            후보를 즉시 다시 계산합니다.
+            현재 용인시청 기본값으로 시작하며, 연계 후에는 사업장 마스터의
+            인원·면적 값으로 자동 전환됩니다.
           </p>
         </div>
         <div className="source-stack">
@@ -192,8 +184,6 @@ export default function Applicability() {
               }
             >
               <option>청사·사무시설</option>
-              <option>상하수도</option>
-              <option>도로·교량</option>
             </select>
             <small>
               출처: 시연 시나리오 선택 · 실제 대상 해당 여부는 담당자 확인

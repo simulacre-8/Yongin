@@ -24,9 +24,10 @@
 1. `supabase/migrations/001_demo_schema.sql`
 2. `supabase/migrations/002_security_and_index_hardening.sql`
 3. `supabase/migrations/004_remove_project_plan_progress.sql`
-4. `supabase/seed.sql`
+4. `supabase/migrations/005_yongin_cityhall_only.sql`
+5. `supabase/seed.sql`
 
-세 번째 파일은 과거 배포에 존재할 수 있는 내부 추진현황 테이블을 안전하게 제거한다. 신규 환경에서 테이블이 없어도 오류 없이 통과한다.
+세 번째 파일은 과거 배포에 존재할 수 있는 내부 추진현황 테이블을 안전하게 제거한다. 네 번째 파일은 클라이언트 범위에 없던 임시 시설을 제거하고 용인시청 단일 대상으로 정리한다.
 
 ## 적재된 시연 데이터
 
@@ -38,13 +39,13 @@
 | `ref_obligation` | 10 |
 | `ref_rule_obligation` | 10 |
 | `demo_scenario` | 1 |
-| `target` | 3 |
-| `target_applicability` | 12 |
-| `target_obligation` | 30 |
-| `compliance_record` | 30 |
+| `target` | 1 (`용인시청`) |
+| `target_applicability` | 4 |
+| `target_obligation` | 10 |
+| `compliance_record` | 10 |
 | `inspection_run` | 1 |
-| `inspection_scope` | 30 |
-| `inspection_result` | 30 |
+| `inspection_scope` | 10 |
+| `inspection_result` | 10 |
 
 최종 법령 축소본 50–150건은 `scripts/build_demo_projection.py` 결과를 검수한 뒤 `ref_*`에 교체 적재한다. 자동 판정에는 원문 대조가 끝난 규칙 8–12개만 사용한다.
 

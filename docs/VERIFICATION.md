@@ -13,6 +13,10 @@
 | 내부 추진현황 제거 | UI 라우트·메뉴·소스 삭제, 원격 3개 테이블과 Realtime 등록 제거 |
 | 첫 화면 | `/`와 `/applicability`에서 프로필·인원·면적 변경에 따른 L1/L2/L3 후보·근거 표시 |
 | 기존 시연 흐름 | `/dashboard`, `/targets`, `/laws`, `/obligations`, `/evidence`, `/inspection`, `/summary` 유지 |
+| 화면 단순화 | PPT형 경영목표·경영방침 상단 줄 제거 |
+| 좌측 메뉴 | 상단 메뉴 선택 시 자동 접힘, 토글 클릭으로 접기·다시 열기 확인 |
+| 관리대상 | 프런트와 원격 Supabase 모두 `용인시청` 1개소만 유지 |
+| 단일 대상 종속 데이터 | 적용판정 4건, 대상의무·이행·점검범위·점검결과 각 10건 |
 | 민감정보 검사 | GitHub PAT, JWT anon key, 실제 publishable/비공개 Graph API 키를 추적 파일에 포함하지 않음 |
 | Supabase Security Advisor | 경고 0건 |
 | Supabase Performance Advisor | 신규 DB의 미사용 인덱스 INFO만 존재 |

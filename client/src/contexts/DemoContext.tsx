@@ -1,4 +1,10 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   initialStatuses,
   obligations,
@@ -19,7 +25,11 @@ type DemoContextValue = {
   selectedTargetId: string;
   setSelectedTargetId: (id: string) => void;
   statuses: Record<string, Record<string, ComplianceStatus>>;
-  updateStatus: (targetId: string, obligationId: string, status: ComplianceStatus) => void;
+  updateStatus: (
+    targetId: string,
+    obligationId: string,
+    status: ComplianceStatus
+  ) => void;
   dueDates: Record<string, string>;
   updateDueDate: (obligationId: string, value: string) => void;
   evidence: Record<string, EvidenceRecord>;
@@ -29,9 +39,11 @@ type DemoContextValue = {
   resetDemo: () => void;
 };
 
-const STORAGE_KEY = "yongin-safety-demo-v1";
+const STORAGE_KEY = "yongin-safety-demo-v2-cityhall";
 
-const defaultDueDates = Object.fromEntries(obligations.map((item) => [item.id, item.defaultDue]));
+const defaultDueDates = Object.fromEntries(
+  obligations.map(item => [item.id, item.defaultDue])
+);
 
 function loadPersisted() {
   try {
@@ -50,14 +62,24 @@ const DemoContext = createContext<DemoContextValue | null>(null);
 export function DemoProvider({ children }: { children: ReactNode }) {
   const saved = typeof window === "undefined" ? null : loadPersisted();
   const [role, setRoleState] = useState<Role>(saved?.role || "경영책임자");
-  const [selectedTargetId, setSelectedTargetIdState] = useState(saved?.selectedTargetId || "target-yongin-cityhall");
+  const [selectedTargetId, setSelectedTargetIdState] = useState(
+    saved?.selectedTargetId || "target-yongin-cityhall"
+  );
   const [statuses, setStatuses] = useState(saved?.statuses || initialStatuses);
-  const [dueDates, setDueDates] = useState<Record<string, string>>(saved?.dueDates || defaultDueDates);
-  const [evidence, setEvidence] = useState<Record<string, EvidenceRecord>>(saved?.evidence || {});
-  const [inspectionNotes, setInspectionNotes] = useState<Record<string, string>>(saved?.inspectionNotes || {
-    "target-yongin-cityhall:OBL-02": "집행계획서의 세부 산출근거 보완 필요",
-    "target-yongin-cityhall:OBL-09": "개선 조치 결과와 증빙자료 등록 필요",
-  });
+  const [dueDates, setDueDates] = useState<Record<string, string>>(
+    saved?.dueDates || defaultDueDates
+  );
+  const [evidence, setEvidence] = useState<Record<string, EvidenceRecord>>(
+    saved?.evidence || {}
+  );
+  const [inspectionNotes, setInspectionNotes] = useState<
+    Record<string, string>
+  >(
+    saved?.inspectionNotes || {
+      "target-yongin-cityhall:OBL-02": "집행계획서의 세부 산출근거 보완 필요",
+      "target-yongin-cityhall:OBL-09": "개선 조치 결과와 증빙자료 등록 필요",
+    }
+  );
 
   const snapshot = (override: Record<string, unknown> = {}) => ({
     role,
@@ -77,8 +99,15 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     setSelectedTargetIdState(next);
     persist(snapshot({ selectedTargetId: next }));
   };
-  const updateStatus = (targetId: string, obligationId: string, status: ComplianceStatus) => {
-    const next = { ...statuses, [targetId]: { ...statuses[targetId], [obligationId]: status } };
+  const updateStatus = (
+    targetId: string,
+    obligationId: string,
+    status: ComplianceStatus
+  ) => {
+    const next = {
+      ...statuses,
+      [targetId]: { ...statuses[targetId], [obligationId]: status },
+    };
     setStatuses(next);
     persist(snapshot({ statuses: next }));
   };
@@ -111,8 +140,22 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo(
-    () => ({ role, setRole, selectedTargetId, setSelectedTargetId, statuses, updateStatus, dueDates, updateDueDate, evidence, saveEvidence, inspectionNotes, saveInspectionNote, resetDemo }),
-    [role, selectedTargetId, statuses, dueDates, evidence, inspectionNotes],
+    () => ({
+      role,
+      setRole,
+      selectedTargetId,
+      setSelectedTargetId,
+      statuses,
+      updateStatus,
+      dueDates,
+      updateDueDate,
+      evidence,
+      saveEvidence,
+      inspectionNotes,
+      saveInspectionNote,
+      resetDemo,
+    }),
+    [role, selectedTargetId, statuses, dueDates, evidence, inspectionNotes]
   );
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;

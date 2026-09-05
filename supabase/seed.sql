@@ -57,9 +57,7 @@ on conflict (scenario_id) do update set source_snapshot=excluded.source_snapshot
 
 insert into public.org(org_id, parent_org_id, name, org_type, code, is_demo) values
 ('20000000-0000-0000-0000-000000000001',null,'용인특례시','CITY','YONGIN',true),
-('20000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001','시민안전관','DEPARTMENT','SAFE',true),
-('20000000-0000-0000-0000-000000000003','20000000-0000-0000-0000-000000000001','하수시설과','DEPARTMENT','SEWER',true),
-('20000000-0000-0000-0000-000000000004','20000000-0000-0000-0000-000000000001','도로관리과','DEPARTMENT','ROAD',true)
+('20000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001','시민안전관','DEPARTMENT','SAFE',true)
 on conflict (org_id) do update set name=excluded.name;
 
 insert into public.profile(profile_id, org_id, display_name, role_code, is_demo) values
@@ -69,9 +67,7 @@ insert into public.profile(profile_id, org_id, display_name, role_code, is_demo)
 on conflict (profile_id) do update set display_name=excluded.display_name, role_code=excluded.role_code;
 
 insert into public.target(target_id, scenario_id, org_id, name, target_type, detail_type, address, manager_name, attributes, is_demo) values
-('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002','용인시청 청사 (시연)','public_facility','building','경기도 용인시 처인구 중부대로 1199','김안전','{"gross_area":39872,"capacity":1800,"completion_year":2005,"facility_safety_act":true,"worker_count":120,"target_track":"public_facility"}',true),
-('40000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000003','수지레스피아 (시연)','public_facility','waterworks','경기도 용인시 수지구 포은대로 499','이점검','{"daily_capacity":150000,"worker_count":62,"facility_safety_act":true,"target_track":"public_facility"}',true),
-('40000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000004','죽전교 (시연)','public_facility','bridge','경기도 용인시 수지구 죽전동 일원','박시설','{"length_m":284,"lanes":6,"facility_grade":"2종","facility_safety_act":true,"target_track":"public_facility"}',true)
+('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002','용인시청','public_facility','building','경기도 용인시 처인구 중부대로 1199','김안전','{"gross_area":39872,"completion_year":2005,"facility_safety_act":true,"worker_count":120,"target_track":"public_facility"}',true)
 on conflict (target_id) do update set attributes=excluded.attributes, name=excluded.name;
 
 insert into public.scenario_law(scenario_id, law_id)
@@ -110,7 +106,7 @@ cross join public.ref_rule r
 where t.scenario_id = '10000000-0000-0000-0000-000000000001'
   and r.demo_approved = true
 order by t.target_id, r.rul_id
-limit 12
+limit 4
 on conflict (target_id, rul_id) do update set
   is_applicable=excluded.is_applicable,
   input_snapshot=excluded.input_snapshot,
@@ -127,9 +123,9 @@ select
   case when o.n in (2,6,8,9,10) then '2026-H2' else '2026-' || lpad((8 + ((o.n - 1) % 4))::text,2,'0') end,
   '{"source":"demo-approved-rules"}'::jsonb,
   true
-from generate_series(1,3) t(n) cross join generate_series(1,10) o(n)
+from generate_series(1,1) t(n) cross join generate_series(1,10) o(n)
 order by t.n, o.n
-limit 30
+limit 10
 on conflict (target_id, obl_id) do update set due_value=excluded.due_value, is_active=true;
 
 insert into public.compliance_record(target_obligation_id, period_key, status, action_date, action_detail, note, submitted_at)
@@ -139,11 +135,6 @@ select
   case
     when t.target_id = '40000000-0000-0000-0000-000000000001' and o.obl_id in ('OBL-DEMO-02') then 'SUPP'
     when t.target_id = '40000000-0000-0000-0000-000000000001' and o.obl_id in ('OBL-DEMO-09') then 'NONE'
-    when t.target_id = '40000000-0000-0000-0000-000000000002' and o.obl_id in ('OBL-DEMO-03') then 'NONE'
-    when t.target_id = '40000000-0000-0000-0000-000000000002' and o.obl_id in ('OBL-DEMO-06','OBL-DEMO-09') then 'NA'
-    when t.target_id = '40000000-0000-0000-0000-000000000003' and o.obl_id in ('OBL-DEMO-07') then 'NONE'
-    when t.target_id = '40000000-0000-0000-0000-000000000003' and o.obl_id in ('OBL-DEMO-08') then 'SUPP'
-    when t.target_id = '40000000-0000-0000-0000-000000000003' and o.obl_id in ('OBL-DEMO-03') then 'NA'
     else 'DONE'
   end,
   case when o.obl_id in ('OBL-DEMO-09') then null else date '2026-09-05' end,
@@ -154,7 +145,7 @@ from public.target_obligation tro
 join public.target t on t.target_id = tro.target_id
 join public.ref_obligation o on o.obl_id = tro.obl_id
 order by tro.target_obligation_id
-limit 30
+limit 10
 on conflict (target_obligation_id, period_key) do update set status=excluded.status, action_date=excluded.action_date, note=excluded.note, updated_at=now();
 
 insert into public.inspection_run(inspection_run_id, scenario_id, title, period_key, status, created_by) values
@@ -169,7 +160,7 @@ select
   true
 from public.target_obligation tro
 order by tro.target_obligation_id
-limit 30
+limit 10
 on conflict (inspection_run_id, target_id, target_obligation_id) do update set is_active=true;
 
 insert into public.inspection_result(inspection_run_id, compliance_id, status, inspection_note, inspected_by)
@@ -181,5 +172,5 @@ select
   '30000000-0000-0000-0000-000000000002'
 from public.compliance_record cr
 order by cr.compliance_id
-limit 30
+limit 10
 on conflict (inspection_run_id, compliance_id) do update set status=excluded.status, inspection_note=excluded.inspection_note, inspected_at=now();

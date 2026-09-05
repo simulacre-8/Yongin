@@ -10,6 +10,8 @@ import {
   FileCheck2,
   LayoutDashboard,
   LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
   RefreshCcw,
   ShieldCheck,
 } from "lucide-react";
@@ -51,6 +53,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     connected: false,
     reason: "연결 확인 중",
   });
+  const [sideCollapsed, setSideCollapsed] = useState(false);
   const homeHref = "/applicability";
 
   useEffect(() => {
@@ -63,18 +66,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="app-frame">
-      <div className="goal-strip">
-        <div>
-          <strong>경영목표</strong>
-          <span>시민과 함께 만드는 안전도시 용인</span>
-        </div>
-        <div className="goal-policy">
-          <strong>경영방침</strong>
-          <span className="pause-mark">Ⅱ</span>
-          <span>1. 현장 중심의 안전문화 정착</span>
-        </div>
-      </div>
-
       <header className="main-header">
         <Link href={homeHref} className="brand" aria-label="첫 화면으로 이동">
           <img
@@ -96,6 +87,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               key={item.href}
               href={item.href}
               className={activeHref === item.href ? "active" : ""}
+              onClick={() => setSideCollapsed(true)}
             >
               {item.label}
             </Link>
@@ -143,8 +135,21 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className="workspace">
-        <aside className="side-panel">
+      <div className={`workspace ${sideCollapsed ? "side-collapsed" : ""}`}>
+        <button
+          className="side-toggle"
+          onClick={() => setSideCollapsed(current => !current)}
+          aria-expanded={!sideCollapsed}
+          aria-label={sideCollapsed ? "왼쪽 메뉴 열기" : "왼쪽 메뉴 접기"}
+          title={sideCollapsed ? "왼쪽 메뉴 열기" : "왼쪽 메뉴 접기"}
+        >
+          {sideCollapsed ? (
+            <PanelLeftOpen size={17} />
+          ) : (
+            <PanelLeftClose size={17} />
+          )}
+        </button>
+        <aside className="side-panel" aria-hidden={sideCollapsed}>
           <div className="side-kicker">법 의무사항</div>
           {sideGroups.map((group, groupIndex) => (
             <section className="side-group" key={group.title}>
@@ -170,6 +175,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                       key={label}
                       className={selected ? "selected" : ""}
                       disabled={!selected}
+                      onClick={() => setSideCollapsed(true)}
                     >
                       {selected && <span className="side-dot" />}
                       {label}
