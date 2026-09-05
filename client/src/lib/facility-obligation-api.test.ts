@@ -40,13 +40,18 @@ describe("facility obligation adapter", () => {
         title_ko: "수도시설의 관리",
         detail_ko: " 관계  법령에 따른 의무이행 ",
         obligation_group: "③개별관계법령",
+        law_id: "LAW-KR-WATER",
         law_name: "수도법",
+        doc_id: "DOC-WATER",
         unit_path: "a21/p2",
         article_no: "21",
+        article_title: "수도시설의 관리",
+        anchor_text: "② 일반수도사업자는 급수설비의 상태를 검사할 수 있다.",
         cycle: null,
         evidence_required: true,
         review_status: "approved",
         display_order: 1,
+        source_version: "yongin-obligation-pool-20260906",
       },
     ] as Parameters<typeof joinMappedObligations>[1];
 
@@ -54,6 +59,9 @@ describe("facility obligation adapter", () => {
     expect(item.title).toBe("수도시설의 관리");
     expect(item.lawName).toBe("수도법");
     expect(item.article).toBe("제21조 제2항");
+    expect(item.articleTitle).toBe("수도시설의 관리");
+    expect(item.sourceText).toContain("급수설비의 상태");
+    expect(item.lawId).toBe("LAW-KR-WATER");
     expect(item.detail).toBe("관계 법령에 따른 의무이행 · 증빙: 급수설비 검사");
   });
 
@@ -86,13 +94,18 @@ describe("facility obligation adapter", () => {
         title_ko: "적격 수급인 선정 의무",
         detail_ko: null,
         obligation_group: "도급·용역·위탁",
+        law_id: "LAW-KR-OCCUPATIONAL-SAFETY",
         law_name: "산업안전보건법",
+        doc_id: "DOC-OCCUPATIONAL-SAFETY",
         unit_path: "a61",
         article_no: "61",
+        article_title: "적격 수급인 선정 의무",
+        anchor_text: "사업주는 적격 수급인을 선정하여야 한다.",
         cycle: null,
         evidence_required: true,
         review_status: "approved",
         display_order: 1,
+        source_version: "yongin-obligation-pool-20260906",
       },
     ] as Parameters<typeof joinMappedObligations>[1];
 

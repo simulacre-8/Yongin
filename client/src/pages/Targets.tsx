@@ -24,6 +24,15 @@ import {
   type MappedObligation,
 } from "@/lib/facility-obligation-api";
 import { useDemo } from "@/contexts/DemoContext";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Screen = "target-list" | "target-form" | "contract-list" | "contract-form";
 type TargetKind = "사업장" | "시설물" | "공중교통수단" | "도급·용역·위탁";
@@ -377,6 +386,8 @@ export default function Targets() {
     "loading" | "supabase" | "fallback"
   >("loading");
   const [obligationReason, setObligationReason] = useState("");
+  const [selectedLegalBasis, setSelectedLegalBasis] =
+    useState<MappedObligation | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -397,6 +408,7 @@ export default function Targets() {
 
   useEffect(() => {
     let active = true;
+    setSelectedLegalBasis(null);
     setObligationSource("loading");
     setObligationReason("");
     loadTargetObligations(selected.id).then(result => {
@@ -742,7 +754,28 @@ export default function Targets() {
                 {obligation.title}
               </span>
               <span style={tableCellStyle}>
-                {obligation.lawName} {obligation.article}
+                <button
+                  type="button"
+                  aria-label={`${obligation.lawName} ${obligation.article} 원문 보기`}
+                  title="조문 원문 보기"
+                  onClick={() => setSelectedLegalBasis(obligation)}
+                  style={{
+                    padding: 0,
+                    border: 0,
+                    color: "#8b256f",
+                    background: "transparent",
+                    font: "inherit",
+                    fontWeight: 750,
+                    lineHeight: 1.55,
+                    textAlign: "left",
+                    textDecoration: "underline",
+                    textDecorationColor: "rgba(169,49,147,.4)",
+                    textUnderlineOffset: 3,
+                    cursor: "pointer",
+                  }}
+                >
+                  {obligation.lawName} {obligation.article}
+                </button>
               </span>
               <span style={tableCellStyle}>
                 {obligation.scheduleType === "half"
@@ -2574,6 +2607,140 @@ export default function Targets() {
       {screen === "target-form" && renderTargetForm()}
       {screen === "contract-list" && renderContractList()}
       {screen === "contract-form" && renderContractForm()}
+      <Dialog
+        open={Boolean(selectedLegalBasis)}
+        onOpenChange={open => {
+          if (!open) setSelectedLegalBasis(null);
+        }}
+      >
+        <DialogContent
+          aria-describedby="legal-basis-description"
+          className="max-h-[86vh] overflow-hidden border-[#d7d0d8] bg-[#fbfbfc] p-0 sm:max-w-[760px]"
+        >
+          {selectedLegalBasis && (
+            <>
+              <DialogHeader className="gap-3 border-b border-[#e4e0e5] bg-white px-7 py-6 text-left">
+                <span
+                  style={{
+                    width: "fit-content",
+                    padding: "4px 9px",
+                    border: "1px solid #dfb8d6",
+                    borderRadius: 999,
+                    color: "#8b256f",
+                    background: "#fff4fb",
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: ".05em",
+                  }}
+                >
+                  법령 조문 원문
+                </span>
+                <DialogTitle className="pr-8 text-[20px] leading-[1.45] text-[#202624]">
+                  {selectedLegalBasis.lawName} {selectedLegalBasis.article}
+                </DialogTitle>
+                <DialogDescription
+                  id="legal-basis-description"
+                  className="text-[12px] leading-5 text-[#68716b]"
+                >
+                  {selectedLegalBasis.articleTitle || selectedLegalBasis.title}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: 16,
+                  maxHeight: "calc(86vh - 210px)",
+                  padding: "22px 28px",
+                  overflowY: "auto",
+                }}
+              >
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "110px minmax(0,1fr)",
+                    gap: "9px 14px",
+                    padding: 16,
+                    border: "1px solid #e1e4e2",
+                    borderRadius: 8,
+                    background: "#f4f6f5",
+                    fontSize: 11,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  <strong style={{ color: "#68716b" }}>적용 의무</strong>
+                  <span style={{ color: "#29322d", fontWeight: 750 }}>
+                    {selectedLegalBasis.title}
+                  </span>
+                  <strong style={{ color: "#68716b" }}>근거</strong>
+                  <span style={{ color: "#29322d", fontWeight: 750 }}>
+                    {selectedLegalBasis.lawName} {selectedLegalBasis.article}
+                  </span>
+                  <strong style={{ color: "#68716b" }}>데이터 기준</strong>
+                  <span style={{ color: "#505a54" }}>
+                    {selectedLegalBasis.sourceVersion ===
+                    "yongin-obligation-pool-20260906"
+                      ? "용인시 관련법령 의무풀 (2026-09-06)"
+                      : selectedLegalBasis.sourceVersion ||
+                        "용인시청 기본 시연 의무"}
+                  </span>
+                </div>
+
+                <section aria-label="조문 원문">
+                  <h3
+                    style={{
+                      margin: "0 0 10px",
+                      color: "#252b28",
+                      fontSize: 14,
+                    }}
+                  >
+                    조문 원문
+                  </h3>
+                  <div
+                    style={{
+                      minHeight: 150,
+                      padding: "18px 20px",
+                      borderLeft: "3px solid #a93193",
+                      borderRadius: "0 8px 8px 0",
+                      color: selectedLegalBasis.sourceText
+                        ? "#303834"
+                        : "#707972",
+                      background: "#fff",
+                      boxShadow: "inset 0 0 0 1px #e4e7e5",
+                      fontSize: 13,
+                      lineHeight: 1.85,
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {selectedLegalBasis.sourceText ||
+                      "이 항목은 로컬 시연 의무로 등록되어 있어 법령 원문 DB와 아직 연결되지 않았습니다. 법령명과 조문을 기준으로 원문 식별자를 연결해야 합니다."}
+                  </div>
+                </section>
+
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#7a827d",
+                    fontSize: 10,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  본문은 Supabase에 적재된 기준일 버전입니다. 실제 업무 적용
+                  전에는 최신 개정 여부와 시행일을 확인해야 합니다.
+                </p>
+              </div>
+
+              <DialogFooter className="border-t border-[#e4e0e5] bg-white px-7 py-4">
+                <DialogClose asChild>
+                  <button type="button" className="primary-btn">
+                    닫기
+                  </button>
+                </DialogClose>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
       {toast && (
         <div
           role="status"

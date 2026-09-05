@@ -22,13 +22,18 @@ type ObligationRow = {
   title_ko: string;
   detail_ko: string | null;
   obligation_group: string;
+  law_id: string | null;
   law_name: string | null;
+  doc_id: string | null;
   unit_path: string | null;
   article_no: string | null;
+  article_title: string | null;
+  anchor_text: string | null;
   cycle: string | null;
   evidence_required: boolean;
   review_status: string;
   display_order: number;
+  source_version: string;
 };
 
 export type MappedObligation = DemoObligation & {
@@ -39,6 +44,11 @@ export type MappedObligation = DemoObligation & {
   applicability: string;
   mappingSource: string;
   isDemoVirtual: boolean;
+  articleTitle: string;
+  sourceText: string;
+  lawId: string;
+  documentId: string;
+  sourceVersion: string;
 };
 
 export type TargetObligationResult = {
@@ -137,6 +147,11 @@ export function joinMappedObligations(
         applicability: mapping.l2_result,
         mappingSource: mapping.mapping_source,
         isDemoVirtual: mapping.is_demo_virtual,
+        articleTitle: master?.article_title?.trim() || master?.title_ko || "",
+        sourceText: master?.anchor_text?.trim() || "",
+        lawId: master?.law_id || "",
+        documentId: master?.doc_id || "",
+        sourceVersion: master?.source_version || "",
       } satisfies MappedObligation;
     })
     .sort((a, b) => {
@@ -161,6 +176,11 @@ function fallbackItems(): MappedObligation[] {
     applicability: "해당",
     mappingSource: "LOCAL_FALLBACK",
     isDemoVirtual: true,
+    articleTitle: item.title,
+    sourceText: "",
+    lawId: "",
+    documentId: "",
+    sourceVersion: "",
   }));
 }
 
@@ -205,7 +225,7 @@ export async function loadTargetObligations(
   const { data: masterData, error: masterError } = await supabase
     .from("ref_obligation")
     .select(
-      "obl_id,title_ko,detail_ko,obligation_group,law_name,unit_path,article_no,cycle,evidence_required,review_status,display_order"
+      "obl_id,title_ko,detail_ko,obligation_group,law_id,law_name,doc_id,unit_path,article_no,article_title,anchor_text,cycle,evidence_required,review_status,display_order,source_version"
     )
     .in("obl_id", obligationIds)
     .limit(500);
