@@ -1074,26 +1074,17 @@ export default function Targets() {
               placeholder={searchPlaceholder}
               style={fieldStyle}
             />
-            <Search
-              size={15}
-              style={{
-                position: "absolute",
-                right: 10,
-                top: 12,
-                color: "#8b9690",
-              }}
-            />
           </div>
           <button
             type="button"
-            className="adoms-search-button outline-btn"
+            className="adoms-search-button adoms-target-search-button"
             onClick={() => {
               setSearchedQuery(query);
               announce("검색 조건을 적용했습니다.");
             }}
             style={{ marginRight: 16 }}
           >
-            <Search size={14} /> 검색
+            검색
           </button>
         </div>
         <div
@@ -1124,28 +1115,16 @@ export default function Targets() {
           >
             {(["전체", "미입력", "입력"] as TargetStatusFilter[]).map(
               status => (
-                <button
-                  type="button"
-                  key={status}
-                  className="adoms-status-filter"
-                  onClick={() => setStatusFilter(status)}
-                  aria-pressed={statusFilter === status}
-                  style={{
-                    border: 0,
-                    padding: "5px 0",
-                    background: "transparent",
-                    color: statusFilter === status ? "#1d6fa3" : "#647068",
-                    fontSize: 11,
-                    fontWeight: statusFilter === status ? 800 : 600,
-                    cursor: "pointer",
-                    borderBottom:
-                      statusFilter === status
-                        ? "2px solid #2f66b0"
-                        : "2px solid transparent",
-                  }}
-                >
-                  {status}
-                </button>
+                <label key={status} className="adoms-status-filter">
+                  <input
+                    type="radio"
+                    name="target-input-status"
+                    value={status}
+                    checked={statusFilter === status}
+                    onChange={() => setStatusFilter(status)}
+                  />
+                  <span>{status}</span>
+                </label>
               )
             )}
           </div>

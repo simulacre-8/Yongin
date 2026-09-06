@@ -5459,3 +5459,203 @@ a {
   .adoms-obligations-total {
   margin: 0 !important;
 }
+
+/* Final UI pass — target search and settings typography */
+.adoms-targets-page .adoms-target-search-button {
+  min-width: 82px;
+  min-height: 36px;
+  border: 1px solid #1d6fa3 !important;
+  border-radius: 8px !important;
+  background: #1d6fa3 !important;
+  color: #fff !important;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.adoms-targets-page .adoms-target-search-button:hover:not(:disabled) {
+  border-color: #155985 !important;
+  background: #155985 !important;
+  color: #fff !important;
+}
+
+.adoms-targets-page label.adoms-status-filter {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  min-height: 30px;
+  align-items: center;
+  border: 0 !important;
+  background: transparent !important;
+  cursor: pointer;
+}
+
+.adoms-targets-page label.adoms-status-filter input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.adoms-targets-page label.adoms-status-filter span {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  padding: 0 2px;
+  border-bottom: 2px solid transparent;
+  color: #647068;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.adoms-targets-page label.adoms-status-filter input:checked + span {
+  border-bottom-color: #1d6fa3;
+  color: #155985;
+  font-weight: 850;
+}
+
+.adoms-targets-page label.adoms-status-filter:focus-within span {
+  outline: 2px solid rgba(29, 111, 163, 0.2);
+  outline-offset: 3px;
+}
+
+.settings-page .page-heading h1 {
+  font-weight: 850;
+}
+
+.settings-page :is(.settings-profile-card, .settings-org-card) h2 {
+  font-weight: 850;
+}
+
+/* Final UI pass — repeatable correction entry and log */
+.adoms-evidence-page .adoms-target-log-csv {
+  min-height: 38px;
+  padding-inline: 14px;
+  background: #fff;
+}
+
+.adoms-evidence-page .adoms-action-entry-table {
+  table-layout: fixed;
+  min-width: 980px !important;
+}
+
+.adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(1) {
+  width: 88px;
+}
+
+.adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(2) {
+  width: 230px;
+}
+
+.adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(3) {
+  width: 125px;
+}
+
+.adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(4) {
+  width: auto;
+}
+
+.adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(5) {
+  width: 132px;
+}
+
+.adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(6) {
+  width: 150px;
+}
+
+.adoms-evidence-page .adoms-action-detail-input {
+  width: 100%;
+  min-height: 68px;
+  resize: vertical;
+  padding: 8px 9px;
+  border: 1px solid #c8ced0;
+  border-radius: 7px;
+  background: #fff;
+  color: #26364d;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.adoms-evidence-page .adoms-action-detail-input:focus {
+  border-color: #1d6fa3;
+  outline: 2px solid rgba(29, 111, 163, 0.14);
+}
+
+.adoms-evidence-page
+  .adoms-action-entry-table
+  .adoms-action-detail-input
+  + .adoms-attachment-cell {
+  min-width: 0 !important;
+  margin-top: 7px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.adoms-evidence-page
+  .adoms-action-entry-table
+  .adoms-attachment-cell
+  > .adoms-file-line {
+  min-width: 0;
+}
+
+.adoms-evidence-page .adoms-correction-entry > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.adoms-evidence-page .adoms-correction-entry > header > span {
+  min-width: 48px;
+  padding: 4px 8px;
+  border: 1px solid #b9d3e6;
+  border-radius: 999px;
+  background: #eef4f8;
+  color: #155985;
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.adoms-evidence-page .adoms-log-attachments {
+  display: grid;
+  gap: 5px;
+  margin: 7px 0;
+}
+
+.adoms-evidence-page .adoms-log-attachments button {
+  width: 100%;
+  min-height: 36px;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid #b9d3e6;
+  border-radius: 7px;
+  background: #f1f7fb;
+  color: #155985;
+  text-align: left;
+}
+
+.adoms-evidence-page .adoms-log-attachments button:hover {
+  border-color: #1d6fa3;
+  background: #e5f1f8;
+}
+
+.adoms-evidence-page .adoms-log-attachments button > span {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: underline;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adoms-evidence-page .adoms-log-attachments button > small {
+  color: #5d7890;
+  font-size: 9px;
+  white-space: nowrap;
+}

@@ -17,13 +17,15 @@ import {
 } from "@/lib/facility-api";
 import {
   downloadEvidenceFile,
+  hasComplianceActionRequest,
+  logComplianceAction,
   loadComplianceActionLog,
+  loadComplianceActionLogsByTargetObligationIds,
   loadComplianceExportEvents,
-  loadEvidenceMetadata,
-  loadEvidenceMetadataByComplianceIds,
   loadFacilityWorkflow,
   logComplianceCsvExport,
   resolveEvidenceSaveStatus,
+  rollbackComplianceActionPersistence,
   saveEvidenceRecord,
   toKoreanStatus,
   type ComplianceActionLogEntry,
@@ -39,6 +41,7 @@ import {
 } from "@/lib/my-work-files";
 
 type StepId = string;
+type ComplianceActionType = "이행" | "변경" | "긴급";
 type TableKind =
   | "personnel"
   | "budget"
@@ -66,6 +69,7 @@ type EvidenceRow = {
   executionAmount?: string;
   lawName?: string;
   article?: string;
+  actionType: ComplianceActionType;
   attachments: Attachment[];
   roster?: Attachment;
 };
@@ -263,6 +267,7 @@ function getSeedRows(
     id: createId(id),
     date: saved?.actionDate || DEFAULT_DATE,
     note: saved?.note || "",
+    actionType: "이행" as ComplianceActionType,
     attachments: savedAttachment(saved?.fileName),
   };
 
@@ -330,7 +335,7 @@ function getSeedRows(
       category: "법률",
       lawName: "관계 법령",
       article: "근거 조항",
-      content: "이행·조치 내용을 입력하세요",
+      content: "",
       detail: "",
     },
   ];
@@ -347,6 +352,7 @@ function getEducationSeed(): EvidenceRow[] {
       content: "시설관리 담당자",
       detail: "용인시 안전교육센터",
       note: "",
+      actionType: "이행",
       attachments: [],
     },
   ];
@@ -375,18 +381,38 @@ function formatLogDateTime(value?: string) {
   }).format(new Date(value));
 }
 
+function formatActionDate(value?: string) {
+  if (!value) return "날짜 미입력";
+  return value.replace(/-/g, ".");
+}
+
+function toEvidenceStatus(status?: string | null) {
+  const label = toKoreanStatus(
+    status as FacilityWorkflowItem["complianceStatus"]
+  );
+  return label === "이행완료" ? "이행" : label;
+}
+
+function toActionType(
+  actionKind: ComplianceActionLogEntry["actionKind"]
+): ComplianceActionType {
+  return {
+    IMPLEMENT: "이행",
+    CHANGE: "변경",
+    URGENT: "긴급",
+  }[actionKind] as ComplianceActionType;
+}
+
 function AttachmentCell({
   row,
   inputId,
   onSelect,
   onDelete,
-  onDownload,
 }: {
   row: EvidenceRow;
   inputId: string;
   onSelect: (event: ChangeEvent<HTMLInputElement>) => void;
   onDelete: (attachmentId: string) => void;
-  onDownload: (attachment: Attachment) => void;
 }) {
   return (
     <div
@@ -400,62 +426,52 @@ function AttachmentCell({
         style={{ display: "none" }}
         onChange={onSelect}
       />
-      {row.attachments.map(attachment => (
-        <div
-          className="adoms-file-line"
-          key={attachment.id}
-          style={{
-            display: "grid",
-            gridTemplateColumns: attachment.file
-              ? "minmax(0, 1fr) 26px 26px"
-              : "minmax(0, 1fr) 26px",
-            gap: 3,
-            alignItems: "center",
-            width: "100%",
-          }}
-        >
-          <span
-            title={attachment.name}
+      {row.attachments
+        .filter(attachment => Boolean(attachment.file))
+        .map(attachment => (
+          <div
+            className="adoms-file-line"
+            key={attachment.id}
             style={{
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              minHeight: 28,
-              display: "flex",
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1fr) 26px",
+              gap: 3,
               alignItems: "center",
-              padding: "0 7px",
-              border: "1px solid #d1d6d3",
-              background: "#f6f7f6",
-              color: "#4c5850",
-              fontSize: 11,
+              width: "100%",
             }}
           >
-            {attachment.name}
-          </span>
-          <button
-            className="adoms-file-action"
-            type="button"
-            aria-label={`${attachment.name} 다운로드`}
-            title="다운로드"
-            onClick={() => onDownload(attachment)}
-            style={{ ...iconButtonStyle, width: 26, height: 28 }}
-          >
-            <Download size={14} />
-          </button>
-          {attachment.file && (
-            <button
-              className="adoms-file-action"
-              type="button"
-              aria-label={`${attachment.name} 선택 취소`}
-              title="선택 취소"
-              onClick={() => onDelete(attachment.id)}
-              style={{ ...iconButtonStyle, width: 26, height: 28 }}
+            <span
+              title={attachment.name}
+              style={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                minHeight: 28,
+                display: "flex",
+                alignItems: "center",
+                padding: "0 7px",
+                border: "1px solid #d1d6d3",
+                background: "#f6f7f6",
+                color: "#4c5850",
+                fontSize: 11,
+              }}
             >
-              <Trash2 size={14} />
-            </button>
-          )}
-        </div>
-      ))}
+              {attachment.name}
+            </span>
+            {attachment.file && (
+              <button
+                className="adoms-file-action"
+                type="button"
+                aria-label={`${attachment.name} 선택 취소`}
+                title="선택 취소"
+                onClick={() => onDelete(attachment.id)}
+                style={{ ...iconButtonStyle, width: 26, height: 28 }}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
+        ))}
       <div
         className="adoms-file-actions"
         style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}
@@ -549,7 +565,7 @@ export default function Evidence() {
         tableTitle: activeWorkflow.title,
         kind: "law",
         inputGuide:
-          "선택 시설에 적용된 의무의 조치일자·조치내용·상태·비고와 증빙파일을 저장합니다.",
+          "이번 이행·변경·긴급 조치의 일자·내용·상태·비고와 증빙을 등록합니다. 저장된 내용은 아래 시정조치 로그로 이동하고 입력창은 비워집니다.",
         addLabel: "이행 내역 추가",
         evidenceExamples: [activeWorkflow.evidenceRequirement],
         requiredItems: ["조치일자", "조치내용", "상태", "증빙자료"],
@@ -594,11 +610,8 @@ export default function Evidence() {
   useEffect(() => {
     if (!activeWorkflow) return;
     let active = true;
-    Promise.all([
-      loadEvidenceMetadata(activeWorkflow.complianceId),
-      loadComplianceActionLog(activeWorkflow.targetObligationId),
-    ])
-      .then(([metadata, log]) => {
+    loadComplianceActionLog(activeWorkflow.targetObligationId)
+      .then(log => {
         if (!active) return;
         setActionLog(log);
         const seed = getSeedRows(activeWorkflow.obligationId)[0];
@@ -607,18 +620,15 @@ export default function Evidence() {
           [activeWorkflow.obligationId]: [
             {
               ...seed,
-              date: activeWorkflow.actionDate || DEFAULT_DATE,
+              date: DEFAULT_DATE,
               category: activeWorkflow.documentType,
               lawName: activeWorkflow.lawName,
               article: activeWorkflow.article,
-              content: activeWorkflow.actionDetail || "",
-              detail: activeWorkflow.detail,
-              note: activeWorkflow.note || "",
-              attachments: metadata.map(file => ({
-                id: file.evidenceId,
-                name: file.originalName,
-                metadata: file,
-              })),
+              content: "",
+              detail: "",
+              note: "",
+              actionType: "이행",
+              attachments: [],
             },
           ],
         }));
@@ -653,31 +663,21 @@ export default function Evidence() {
 
   const getRows = (id: StepId) => rowSets[id] || getSeedRows(id, evidence[id]);
   const activeRows = getRows(activeId);
-  const statusSummary = useMemo(
-    () =>
-      workflowItems.reduce(
-        (summary, item) => {
-          const status = item.complianceStatus || "NONE";
-          if (status === "DONE") summary.done += 1;
-          else if (status === "SUPP") summary.supplement += 1;
-          else if (status === "NONE") summary.incomplete += 1;
-          else summary.notApplicable += 1;
-          return summary;
-        },
-        { done: 0, supplement: 0, incomplete: 0, notApplicable: 0 }
-      ),
-    [workflowItems]
+  const actionLogPresentation = useMemo(() => {
+    return {
+      entries: actionLog.map(event => ({
+        event,
+        sequence: event.sequenceNo,
+        actionType: toActionType(event.actionKind),
+        note: event.note || "",
+        files: event.evidence,
+      })),
+    };
+  }, [actionLog]);
+  const activeEvidenceCount = useMemo(
+    () => actionLog.reduce((sum, event) => sum + event.evidence.length, 0),
+    [actionLog]
   );
-  const activeEvidenceMetadata = useMemo(
-    () =>
-      activeRows.flatMap(row =>
-        row.attachments.flatMap(attachment =>
-          attachment.metadata ? [attachment.metadata] : []
-        )
-      ),
-    [activeRows]
-  );
-
   const setRows = (
     id: StepId,
     updater: (current: EvidenceRow[]) => EvidenceRow[]
@@ -820,17 +820,22 @@ export default function Evidence() {
     const names = rows.flatMap(row =>
       row.attachments.map(attachment => attachment.name)
     );
-    saveEvidence(activeDuty.id, {
-      actionDate: firstRow.date,
-      note: `${firstRow.content}${firstRow.note ? ` · ${firstRow.note}` : ""}`.trim(),
-      fileName: names.length ? names.join(" | ") : "선택된 파일 없음",
-      uploadedAt: new Date().toISOString(),
-    });
     if (!activeWorkflow) {
+      saveEvidence(activeDuty.id, {
+        actionDate: firstRow.date,
+        note: `${firstRow.content}${firstRow.note ? ` · ${firstRow.note}` : ""}`.trim(),
+        fileName: names.length ? names.join(" | ") : "선택된 파일 없음",
+        uploadedAt: new Date().toISOString(),
+      });
       toast.info(`${label} 실적을 현재 브라우저에 저장했습니다.`);
       return;
     }
+    if (!firstRow.content.trim()) {
+      toast.error("조치내용을 입력해 주세요.");
+      return;
+    }
 
+    const requestId = crypto.randomUUID();
     setSaving(true);
     try {
       const files = rows.flatMap(row =>
@@ -853,11 +858,13 @@ export default function Evidence() {
         status: effectiveStatus,
       };
       let saveItem: FacilityWorkflowItem = activeWorkflow;
+      const savedEvidence: EvidenceMetadata[] = [];
       const persist = async (file?: File) => {
         const result = await saveEvidenceRecord(saveItem, {
           ...payload,
           file,
         });
+        if (result.evidence) savedEvidence.push(result.evidence);
         saveItem = {
           ...saveItem,
           complianceId: result.compliance.compliance_id,
@@ -874,6 +881,54 @@ export default function Evidence() {
       } else {
         for (const file of files) await persist(file);
       }
+      if (!saveItem.complianceId || !saveItem.complianceStatus) {
+        throw new Error("저장된 이행기록 식별자를 확인하지 못했습니다.");
+      }
+      try {
+        await logComplianceAction({
+          requestId,
+          complianceId: saveItem.complianceId,
+          targetObligationId: activeWorkflow.targetObligationId,
+          actionKind: {
+            이행: "IMPLEMENT",
+            변경: "CHANGE",
+            긴급: "URGENT",
+          }[firstRow.actionType] as ComplianceActionLogEntry["actionKind"],
+          statusBefore: activeWorkflow.complianceStatus || "NONE",
+          statusAfter: saveItem.complianceStatus,
+          actionDate: firstRow.date,
+          actionDetail: payload.actionDetail,
+          note: firstRow.note,
+          actorRole: role,
+          evidenceIds: savedEvidence.map(metadata => metadata.evidenceId),
+          occurredAt: saveItem.submittedAt,
+        });
+      } catch (logError) {
+        let actionCommitted: boolean;
+        try {
+          actionCommitted = await hasComplianceActionRequest(requestId);
+        } catch {
+          throw new Error(
+            "시정조치 저장 결과를 확인하지 못했습니다. 새로고침 후 시정조치 로그를 확인해 주세요."
+          );
+        }
+        if (!actionCommitted) {
+          try {
+            await rollbackComplianceActionPersistence({
+              before: activeWorkflow,
+              persistedComplianceId: saveItem.complianceId,
+              createdEvidence: savedEvidence,
+            });
+          } catch (recoveryError) {
+            throw new Error(
+              `${logError instanceof Error ? logError.message : "시정조치 로그 저장 실패"} · 자동 복구도 완료되지 않았습니다: ${recoveryError instanceof Error ? recoveryError.message : "복구 실패"}`
+            );
+          }
+          throw new Error(
+            `${logError instanceof Error ? logError.message : "시정조치 로그 저장 실패"} · 새 증빙과 이행상태는 저장 전 값으로 복원되었습니다.`
+          );
+        }
+      }
       const refreshed = await loadFacilityWorkflow(activeWorkflow.targetRef);
       setWorkflowItems(refreshed.items);
       setStatusByObligation(current => ({
@@ -883,30 +938,27 @@ export default function Evidence() {
       const refreshedActive = refreshed.items.find(
         item => item.obligationId === activeWorkflow.obligationId
       );
-      const refreshedMetadata = await loadEvidenceMetadata(
-        refreshedActive?.complianceId
-      );
-      setRows(activeWorkflow.obligationId, current =>
-        current.map((row, index) =>
-          index === 0
-            ? {
-                ...row,
-                attachments: refreshedMetadata.map(file => ({
-                  id: file.evidenceId,
-                  name: file.originalName,
-                  metadata: file,
-                })),
-              }
-            : row
-        )
-      );
+      const nextSeed = getSeedRows(activeWorkflow.obligationId)[0];
+      setRows(activeWorkflow.obligationId, () => [
+        {
+          ...nextSeed,
+          category: activeWorkflow.documentType,
+          lawName: activeWorkflow.lawName,
+          article: activeWorkflow.article,
+          content: "",
+          detail: "",
+          note: "",
+          actionType: "이행",
+          attachments: [],
+        },
+      ]);
       setActionLog(
         await loadComplianceActionLog(refreshedActive?.targetObligationId)
       );
       toast.success(
         files.length > 0 && selectedStatus === "미이행"
-          ? `${label} 증빙자료를 저장하고 이행상태를 이행완료로 변경했습니다.`
-          : `${label} 실적과 증빙자료가 Supabase에 저장되었습니다.`
+          ? `${label} 증빙자료를 저장하고 이행상태를 이행으로 변경했습니다.`
+          : `${label} 이행 기록과 증빙자료가 Supabase에 저장되었습니다.`
       );
     } catch (error) {
       toast.error(
@@ -917,84 +969,74 @@ export default function Evidence() {
     }
   };
 
-  const downloadWorkflowCsv = async () => {
+  const downloadCorrectionLogCsv = async () => {
     if (workflowItems.length === 0 || exporting) return;
     setExporting(true);
     try {
-      const complianceIds = workflowItems.flatMap(item =>
-        item.complianceId ? [item.complianceId] : []
+      const events = await loadComplianceActionLogsByTargetObligationIds(
+        workflowItems.map(item => item.targetObligationId)
       );
-      const evidenceByCompliance =
-        await loadEvidenceMetadataByComplianceIds(complianceIds);
+      const workflowByTargetObligation = new Map(
+        workflowItems.map(item => [item.targetObligationId, item])
+      );
       const safeTargetName = target.name.replace(/[\\/:*?"<>|]/g, "_");
-      const fileName = `용인시_${safeTargetName}_의무이행_${csvDateStamp()}.csv`;
-      const csv = serializeCsv(workflowItems, [
+      const fileName = `용인시_${safeTargetName}_시정조치로그_${csvDateStamp()}.csv`;
+      const csv = serializeCsv(events, [
         { header: "번호", value: (_, index) => index + 1 },
-        { header: "관리대상 ID", value: item => item.targetRef },
-        { header: "관리대상명", value: item => item.targetName },
-        { header: "대상구분", value: item => item.targetCategory },
-        { header: "관리부서", value: item => item.department },
-        { header: "의무 ID", value: item => item.obligationId },
-        { header: "의무명", value: item => item.title },
-        { header: "구분", value: item => item.documentType },
-        { header: "법률명", value: item => item.lawName },
-        { header: "조항·호·목", value: item => item.article },
-        { header: "주기", value: item => item.cycle },
-        { header: "증빙요건", value: item => item.evidenceRequirement },
+        { header: "관리대상명", value: () => target.name },
+        {
+          header: "의무 ID",
+          value: event =>
+            workflowByTargetObligation.get(event.targetObligationId)
+              ?.obligationId,
+        },
+        {
+          header: "의무명",
+          value: event =>
+            workflowByTargetObligation.get(event.targetObligationId)?.title,
+        },
+        {
+          header: "시정조치 제목",
+          value: event =>
+            `${event.sequenceNo}차 시정조치 (${formatActionDate(event.actionDate)})`,
+        },
+        {
+          header: "기록유형",
+          value: event => toActionType(event.actionKind),
+        },
         {
           header: "이행상태",
-          value: item => toKoreanStatus(item.complianceStatus || "NONE"),
+          value: event => toEvidenceStatus(event.statusAfter),
         },
-        { header: "조치일자", value: item => item.actionDate },
-        { header: "조치내용", value: item => item.actionDetail },
-        { header: "비고", value: item => item.note },
-        { header: "제출시각", value: item => item.submittedAt },
-        { header: "최종기록시각", value: item => item.updatedAt },
+        { header: "조치일자", value: event => event.actionDate },
+        { header: "조치내용", value: event => event.actionDetail },
         {
-          header: "점검상태",
-          value: item =>
-            item.inspectionStatus
-              ? toKoreanStatus(item.inspectionStatus)
-              : "미점검",
-        },
-        { header: "점검메모", value: item => item.inspectionNote },
-        { header: "점검시각", value: item => item.inspectedAt },
-        {
-          header: "첨부파일수",
-          value: item =>
-            item.complianceId
-              ? (evidenceByCompliance.get(item.complianceId) || []).length
-              : 0,
+          header: "비고",
+          value: event => event.note,
         },
         {
           header: "첨부파일명",
-          value: item =>
-            item.complianceId
-              ? (evidenceByCompliance.get(item.complianceId) || [])
-                  .map(file => file.originalName)
-                  .join(" | ")
-              : "",
+          value: event =>
+            event.evidence.map(file => file.originalName).join(" | "),
         },
         {
-          header: "첨부업로드시각",
-          value: item =>
-            item.complianceId
-              ? (evidenceByCompliance.get(item.complianceId) || [])
-                  .map(file => file.uploadedAt)
-                  .join(" | ")
-              : "",
+          header: "증빙등록시각",
+          value: event =>
+            event.evidence.map(file => file.uploadedAt).join(" | "),
         },
+        { header: "발생시각", value: event => event.occurredAt },
+        { header: "DB기록시각", value: event => event.createdAt },
       ]);
       await logComplianceCsvExport({
         targetRef: target.id,
-        rowCount: workflowItems.length,
+        rowCount: events.length,
         fileName,
         actorRole: role,
       });
       downloadCsv(csv, fileName);
       setExportLog(await loadComplianceExportEvents(target.id));
       toast.success(
-        `${target.name} 의무이행 ${workflowItems.length}건을 내려받고 로그를 저장했습니다.`
+        `${target.name} 시정조치 로그 ${events.length}건을 내려받고 기록했습니다.`
       );
     } catch (error) {
       toast.error(
@@ -1075,7 +1117,6 @@ export default function Evidence() {
               )
             )
       }
-      onDownload={downloadAttachment}
     />
   );
 
@@ -1581,34 +1622,38 @@ export default function Evidence() {
   );
 
   const renderLawTable = () => (
-    <table className="adoms-grid-table" style={tableStyle}>
+    <table
+      className="adoms-grid-table adoms-action-entry-table"
+      style={tableStyle}
+    >
       <thead>
         <tr>
-          <th style={tableHeaderStyle}>구분</th>
+          <th style={tableHeaderStyle}>기록유형</th>
           <th style={tableHeaderStyle}>법률명</th>
           <th style={tableHeaderStyle}>조항·호·목</th>
-          <th style={tableHeaderStyle}>조치내용</th>
+          <th style={tableHeaderStyle}>조치내용·증빙자료</th>
           <th style={tableHeaderStyle}>조치 일자</th>
           <th style={tableHeaderStyle}>비고</th>
-          <th style={tableHeaderStyle}>
-            증빙자료
-            <br />
-            <small style={{ fontWeight: 500 }}>※개당 10MB 이하</small>
-          </th>
-          <th style={tableHeaderStyle} aria-label="삭제" />
         </tr>
       </thead>
       <tbody>
         {activeRows.map(row => (
           <tr key={row.id}>
             <td style={tableCellStyle}>
-              <input
-                className="adoms-legal-reference-input"
+              <select
                 style={inputStyle}
-                value={row.category}
-                aria-label="법령 구분"
-                readOnly
-              />
+                value={row.actionType}
+                aria-label="기록유형"
+                onChange={event =>
+                  updateRow(activeId, row.id, {
+                    actionType: event.target.value as ComplianceActionType,
+                  })
+                }
+              >
+                <option>이행</option>
+                <option>변경</option>
+                <option>긴급</option>
+              </select>
             </td>
             <td style={tableCellStyle}>
               <input
@@ -1629,14 +1674,16 @@ export default function Evidence() {
               />
             </td>
             <td style={tableCellStyle}>
-              <input
-                style={inputStyle}
+              <textarea
+                className="adoms-action-detail-input"
                 value={row.content}
                 aria-label="조치내용"
+                placeholder="이번 이행·변경·긴급 조치내용을 입력하세요"
                 onChange={event =>
                   updateRow(activeId, row.id, { content: event.target.value })
                 }
               />
+              {renderAttachment(row)}
             </td>
             <td style={tableCellStyle}>
               <input
@@ -1658,19 +1705,6 @@ export default function Evidence() {
                   updateRow(activeId, row.id, { note: event.target.value })
                 }
               />
-            </td>
-            <td style={tableCellStyle}>{renderAttachment(row)}</td>
-            <td style={{ ...tableCellStyle, textAlign: "center" }}>
-              <button
-                className="adoms-row-delete"
-                type="button"
-                aria-label="행 삭제"
-                title="행 삭제"
-                onClick={() => deleteRow(activeId, row.id)}
-                style={{ ...iconButtonStyle, width: 29, height: 30 }}
-              >
-                <Trash2 size={15} />
-              </button>
             </td>
           </tr>
         ))}
@@ -2059,83 +2093,23 @@ export default function Evidence() {
                       </option>
                     ))}
                 </select>
-                <div
-                  className="adoms-target-display"
-                  style={{
-                    minWidth: 190,
-                    border: "1px solid #bec9c0",
-                    background: "#f7f8f7",
-                    display: "grid",
-                    gridTemplateColumns: "52px 1fr",
-                    fontSize: 12,
-                  }}
+                <button
+                  type="button"
+                  className="adoms-csv-button adoms-target-log-csv"
+                  onClick={() => void downloadCorrectionLogCsv()}
+                  disabled={
+                    workflowLoading || exporting || workflowItems.length === 0
+                  }
                 >
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "8px 5px",
-                      color: "#fff",
-                      background: "#55565c",
-                      fontWeight: 700,
-                    }}
-                  >
-                    대상
-                  </span>
-                  <strong
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      padding: "8px 10px",
-                      color: "#2f3f34",
-                    }}
-                  >
-                    {target.name}
-                  </strong>
-                </div>
+                  <Download size={14} aria-hidden="true" />
+                  {exporting ? "로그 저장 중" : "시정조치 로그 CSV"}
+                </button>
               </div>
             </div>
             <p style={{ margin: "9px 0 0", color: "#6e7971", fontSize: 12 }}>
-              {target.name} · {target.department} · 해당년도: 2026년
+              {target.department} · 해당년도: 2026년
             </p>
           </header>
-
-          <section
-            className="adoms-compliance-summary"
-            aria-label={`${target.name} 의무 이행 상태 요약`}
-          >
-            <div className="adoms-compliance-counts">
-              <article className="done">
-                <span>이행완료</span>
-                <strong>{statusSummary.done}</strong>
-              </article>
-              <article className="supplement">
-                <span>보완필요</span>
-                <strong>{statusSummary.supplement}</strong>
-              </article>
-              <article className="incomplete">
-                <span>미이행</span>
-                <strong>{statusSummary.incomplete}</strong>
-              </article>
-            </div>
-            <div className="adoms-compliance-summary-actions">
-              {statusSummary.notApplicable > 0 && (
-                <span>해당없음 {statusSummary.notApplicable}건</span>
-              )}
-              <button
-                type="button"
-                className="adoms-csv-button"
-                onClick={() => void downloadWorkflowCsv()}
-                disabled={
-                  workflowLoading || exporting || workflowItems.length === 0
-                }
-              >
-                <Download size={14} aria-hidden="true" />
-                {exporting ? "로그 저장 중" : "CSV 내려받기"}
-              </button>
-            </div>
-          </section>
 
           <section
             className="adoms-duty-table-section"
@@ -2195,11 +2169,10 @@ export default function Evidence() {
                 }
                 style={{ ...inputStyle, width: 126 }}
               >
-                {(["이행완료", "보완필요", "미이행", "해당없음"] as const).map(
-                  status => (
-                    <option key={status}>{status}</option>
-                  )
-                )}
+                <option value="이행완료">이행</option>
+                <option value="보완필요">보완필요</option>
+                <option value="미이행">미이행</option>
+                <option value="해당없음">해당없음</option>
               </select>
             </div>
             <div
@@ -2257,57 +2230,69 @@ export default function Evidence() {
               </div>
               <span>
                 {activeDuty.title} · 저장 {actionLog.length}건 · 첨부{" "}
-                {activeEvidenceMetadata.length}건
+                {activeEvidenceCount}건
               </span>
             </div>
 
-            {actionLog.length === 0 && activeEvidenceMetadata.length === 0 ? (
+            {actionLog.length === 0 ? (
               <div className="adoms-log-empty">
                 아직 저장된 시정조치 또는 증빙 이력이 없습니다.
               </div>
             ) : (
               <div className="adoms-log-list">
-                {actionLog.map(event => (
-                  <article key={`action-${event.auditEventId}`}>
-                    <strong>
-                      {event.action === "insert"
-                        ? "시정조치 최초 등록"
-                        : "시정조치 변경"}
-                    </strong>
-                    <p>
-                      상태{" "}
-                      {event.beforeStatus
-                        ? `${toKoreanStatus(event.beforeStatus)} → `
-                        : ""}
-                      {event.afterStatus
-                        ? toKoreanStatus(event.afterStatus)
-                        : "상태 미표기"}
-                      {event.actionDetail ? ` · ${event.actionDetail}` : ""}
-                      {event.note ? ` · ${event.note}` : ""}
-                    </p>
-                    <small>
-                      조치일 {event.actionDate || "-"} · 제출 발생시각{" "}
-                      {formatLogDateTime(event.submittedAt)} · DB 기록시각{" "}
-                      {formatLogDateTime(event.occurredAt)}
-                    </small>
-                  </article>
-                ))}
-                {activeEvidenceMetadata.map(file => (
-                  <article key={`file-${file.evidenceId}`}>
-                    <strong>증빙자료 등록 · {file.originalName}</strong>
-                    <p>
-                      {Math.max(
-                        1,
-                        Math.ceil(file.sizeBytes / 1024)
-                      ).toLocaleString("ko-KR")}
-                      KB · 버전 {file.versionNo} ·{" "}
-                      {file.isCurrent ? "현재 파일" : "이전 파일"}
-                    </p>
-                    <small>
-                      DB 기록시각 {formatLogDateTime(file.uploadedAt)}
-                    </small>
-                  </article>
-                ))}
+                {actionLogPresentation.entries.map(
+                  ({ event, sequence, actionType, note, files }) => (
+                    <article
+                      className="adoms-correction-entry"
+                      key={`action-${event.actionEventId}`}
+                    >
+                      <header>
+                        <strong>
+                          {sequence}차 시정조치 (
+                          {formatActionDate(event.actionDate)})
+                        </strong>
+                        <span>{actionType}</span>
+                      </header>
+                      <p>
+                        상태{" "}
+                        {event.statusBefore
+                          ? `${toEvidenceStatus(event.statusBefore)} → `
+                          : ""}
+                        {toEvidenceStatus(event.statusAfter)}
+                        {event.actionDetail ? ` · ${event.actionDetail}` : ""}
+                        {note ? ` · ${note}` : ""}
+                      </p>
+                      {files.length > 0 && (
+                        <div className="adoms-log-attachments">
+                          {files.map(file => (
+                            <button
+                              type="button"
+                              key={file.evidenceId}
+                              onClick={() =>
+                                void downloadAttachment({
+                                  id: file.evidenceId,
+                                  name: file.originalName,
+                                  metadata: file,
+                                })
+                              }
+                            >
+                              <Download size={13} aria-hidden="true" />
+                              <span>{file.originalName}</span>
+                              <small>
+                                등록 {formatLogDateTime(file.uploadedAt)}
+                              </small>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <small>
+                        조치일 {event.actionDate || "-"} · 발생시각{" "}
+                        {formatLogDateTime(event.occurredAt)} · DB 기록시각{" "}
+                        {formatLogDateTime(event.createdAt)}
+                      </small>
+                    </article>
+                  )
+                )}
               </div>
             )}
 

@@ -48,6 +48,8 @@ const tables = [
   "compliance_record",
   "evidence",
   "demo_compliance_export_event",
+  "demo_compliance_action_event",
+  "demo_compliance_action_evidence",
   "inspection_run",
   "inspection_scope",
   "inspection_result",

@@ -79,14 +79,17 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 16. `supabase/migrations/017_harden_demo_work_delegation.sql`
 17. `supabase/migrations/018_guard_demo_work_status_transitions.sql`
 18. `supabase/migrations/019_compliance_export_log.sql`
-19. `supabase/seed.sql`
-20. `supabase/seed_adoms.sql`
-21. `supabase/seed_facility_catalog.sql`
-22. `supabase/seed_yongin_obligation_pool.sql`
-23. `supabase/seed_facility_workflow.sql`
-24. `supabase/seed_legal_source_popup.sql`
-25. `supabase/seed_yongin_org.sql`
-26. `supabase/seed_my_work_runtime.sql`
+19. `supabase/migrations/020_compliance_action_events.sql`
+20. `supabase/migrations/021_harden_compliance_action_logging.sql`
+21. `supabase/seed.sql`
+22. `supabase/seed_adoms.sql`
+23. `supabase/seed_facility_catalog.sql`
+24. `supabase/seed_yongin_obligation_pool.sql`
+25. `supabase/seed_facility_workflow.sql`
+26. `supabase/seed_legal_source_popup.sql`
+27. `supabase/seed_yongin_org.sql`
+28. `supabase/seed_my_work_runtime.sql`
+29. `supabase/seed_compliance_action_runtime.sql`
 
 `seed_adoms.sql`은 스키마 변경 없이 ADOMS 그래프 식별자를 보존한 법령 104건·조문 304건·의무 216건·규칙 128건·연결 128건을 추가합니다. 실제 SQL에서 `demo_approved=true`인 ADOMS 규칙·연결은 31건이며, 첫 화면에서는 용인시청 시연과 직접 관련된 승인 규칙 4개를 실행합니다.
 
@@ -100,7 +103,9 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 
 `012`~`018`은 법령·시설·조직 기준정보와 분리된 **내 업무 시연 런타임 계층**을 구성한다. `seed_my_work_runtime.sql`은 공식 조직도와 시설 workflow 시드가 끝난 뒤 시연 내부 소관규칙과 기준 업무를 생성한다. 초기 2,891건 중 2,235건을 자동배정하고 656건을 수동 선택 대기로 둔다. 배정·수락·위임·재배정·완료·완료 확인은 각각 사건 시각과 DB 기록 시각을 분리해 저장한다. 최초 `assigned_at`은 재배정 때 덮어쓰지 않고 `reassigned_at`을 별도로 기록한다. 완료 업무는 재배정·위임하거나 실행 상태로 되돌릴 수 없다. 물리 테이블은 PostgREST 호환을 위해 `public.demo_work_*`를 사용하며 논리 도메인은 `demo_runtime`이다.
 
-`019_compliance_export_log.sql`은 의무이행 전체 목록 CSV 다운로드를 `demo_compliance_export_event`에 기록한다. 관리대상·의무 체크리스트·홈 의무 목록은 현재 필터 결과를 CSV로 내보내며, 의무이행 CSV는 시설의 전체 적용 의무와 상태·조치·증빙·점검 필드를 포함한다. 증빙을 저장할 때 기존 상태가 미이행이면 이행완료로 자동 전환하고, 보완필요·해당없음처럼 사용자가 명시한 상태는 유지한다.
+`019_compliance_export_log.sql`은 의무이행 CSV 다운로드를 `demo_compliance_export_event`에 기록한다. `020_compliance_action_events.sql`은 같은 시설·의무에 반복 등록되는 시정조치를 `1차·2차…`, `이행·변경·긴급`, 사건 발생시각과 DB 기록시각으로 분리하고 각 증빙을 해당 차수에 외래키로 연결한다. 관리대상·의무 체크리스트·홈은 현재 필터 결과를 CSV로 내보내며, 의무이행은 현재 선택한 관리대상의 시정조치 로그만 CSV로 내보낸다. 증빙과 조치를 저장하면 입력칸은 비워지고 파일 다운로드는 시정조치 로그에서 제공한다.
+
+`021_harden_compliance_action_logging.sql`은 저장 요청 UUID로 시정조치 기록을 멱등 처리하고 이미 다른 차수에 연결된 증빙을 조용히 무시하지 않고 거부한다. `seed_compliance_action_runtime.sql`은 `seed.sql` 등 모든 이행·증빙 생성 시드가 끝난 뒤 기존 기록을 1차 시정조치와 정확한 증빙 링크로 보존한다.
 
 ## 검증
 

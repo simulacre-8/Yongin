@@ -61,11 +61,28 @@ python3 /home/ubuntu/skills/compliance-demo-factory/scripts/validate_sql.py .
 5. `supabase/migrations/006_facility_catalog.sql`
 6. `supabase/migrations/007_facility_workflow_bridge.sql`
 7. `supabase/migrations/008_yongin_obligation_pool.sql`
-8. `supabase/seed.sql`
-9. `supabase/seed_adoms.sql`
-10. `supabase/seed_facility_catalog.sql`
-11. `supabase/seed_yongin_obligation_pool.sql`
-12. `supabase/seed_facility_workflow.sql`
+8. `supabase/migrations/009_legal_source_popup.sql`
+9. `supabase/migrations/010_yongin_org_catalog.sql`
+10. `supabase/migrations/011_yongin_org_tree_view.sql`
+11. `supabase/migrations/012_demo_my_work.sql`
+12. `supabase/migrations/013_fix_demo_my_work_reset.sql`
+13. `supabase/migrations/014_demo_my_work_confirmation.sql`
+14. `supabase/migrations/015_harden_demo_my_work_transitions.sql`
+15. `supabase/migrations/016_index_demo_my_work_foreign_keys.sql`
+16. `supabase/migrations/017_harden_demo_work_delegation.sql`
+17. `supabase/migrations/018_guard_demo_work_status_transitions.sql`
+18. `supabase/migrations/019_compliance_export_log.sql`
+19. `supabase/migrations/020_compliance_action_events.sql`
+20. `supabase/migrations/021_harden_compliance_action_logging.sql`
+21. `supabase/seed.sql`
+22. `supabase/seed_adoms.sql`
+23. `supabase/seed_facility_catalog.sql`
+24. `supabase/seed_yongin_obligation_pool.sql`
+25. `supabase/seed_facility_workflow.sql`
+26. `supabase/seed_legal_source_popup.sql`
+27. `supabase/seed_yongin_org.sql`
+28. `supabase/seed_my_work_runtime.sql`
+29. `supabase/seed_compliance_action_runtime.sql`
 
 모든 시드는 `on conflict` 기반으로 재실행할 수 있다. 시설 업무 시드는 사용자가 바꾼 이행시기·실적·증빙·점검 결과를 덮어쓰지 않는다. 시설 시드도 `client_provided` 전체 의무풀을 축소 매핑 데이터로 되돌리지 않는다.
 

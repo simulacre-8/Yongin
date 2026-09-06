@@ -102,16 +102,21 @@ export type EvidenceMetadata = {
 };
 
 export type ComplianceActionLogEntry = {
-  auditEventId: number;
-  action: string;
+  actionEventId: string;
+  complianceId: string;
+  targetObligationId: string;
+  periodKey: string;
+  sequenceNo: number;
+  actionKind: "IMPLEMENT" | "CHANGE" | "URGENT";
   occurredAt: string;
-  beforeStatus?: DbComplianceStatus;
-  afterStatus?: DbComplianceStatus;
+  createdAt: string;
+  statusBefore?: DbComplianceStatus;
+  statusAfter: DbComplianceStatus;
   actionDate?: string;
-  actionDetail?: string;
+  actionDetail: string;
   note?: string;
-  submittedAt?: string;
-  updatedAt?: string;
+  actorRole?: string;
+  evidence: EvidenceMetadata[];
 };
 
 export type ComplianceExportEvent = {
@@ -603,42 +608,227 @@ export async function loadEvidenceMetadataByComplianceIds(
   return result;
 }
 
-function auditData(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object"
-    ? (value as Record<string, unknown>)
-    : {};
+async function attachEvidenceToActionEvents(
+  rows: Array<Record<string, unknown>>
+) {
+  const result = new Map<string, EvidenceMetadata[]>();
+  if (!supabase || rows.length === 0) return result;
+  const eventIds = rows.map(row => String(row.action_event_id));
+  const { data: links, error: linkError } = await supabase
+    .from("demo_compliance_action_evidence")
+    .select("action_event_id,evidence_id")
+    .in("action_event_id", eventIds)
+    .limit(5000);
+  if (linkError) throw new Error(linkError.message);
+  const evidenceIds = Array.from(
+    new Set((links || []).map(link => link.evidence_id))
+  );
+  if (evidenceIds.length === 0) return result;
+  const { data: evidenceRows, error: evidenceError } = await supabase
+    .from("evidence")
+    .select(
+      "evidence_id,compliance_id,storage_path,original_name,mime_type,size_bytes,version_no,uploaded_at,is_current"
+    )
+    .in("evidence_id", evidenceIds)
+    .limit(5000);
+  if (evidenceError) throw new Error(evidenceError.message);
+  const evidenceById = new Map(
+    (evidenceRows || []).map(row => [
+      row.evidence_id,
+      {
+        evidenceId: row.evidence_id,
+        complianceId: row.compliance_id,
+        storagePath: row.storage_path,
+        originalName: row.original_name,
+        mimeType: row.mime_type || "application/octet-stream",
+        sizeBytes: Number(row.size_bytes),
+        versionNo: row.version_no,
+        uploadedAt: row.uploaded_at,
+        isCurrent: row.is_current,
+      } satisfies EvidenceMetadata,
+    ])
+  );
+  for (const link of links || []) {
+    const evidence = evidenceById.get(link.evidence_id);
+    if (!evidence) continue;
+    result.set(link.action_event_id, [
+      ...(result.get(link.action_event_id) || []),
+      evidence,
+    ]);
+  }
+  return result;
 }
+
+async function mapComplianceActionEvents(rows: Array<Record<string, unknown>>) {
+  const evidenceByEvent = await attachEvidenceToActionEvents(rows);
+  return rows.map(row => ({
+    actionEventId: String(row.action_event_id),
+    complianceId: String(row.compliance_id),
+    targetObligationId: String(row.target_obligation_id),
+    periodKey: String(row.period_key),
+    sequenceNo: Number(row.sequence_no),
+    actionKind: row.action_kind as ComplianceActionLogEntry["actionKind"],
+    occurredAt: String(row.occurred_at),
+    createdAt: String(row.created_at),
+    statusBefore: row.status_before as DbComplianceStatus | undefined,
+    statusAfter: row.status_after as DbComplianceStatus,
+    actionDate: row.action_date ? String(row.action_date) : undefined,
+    actionDetail: String(row.action_detail),
+    note: row.note ? String(row.note) : undefined,
+    actorRole: row.actor_role ? String(row.actor_role) : undefined,
+    evidence: evidenceByEvent.get(String(row.action_event_id)) || [],
+  }));
+}
+
+const COMPLIANCE_ACTION_COLUMNS =
+  "action_event_id,compliance_id,target_obligation_id,period_key,sequence_no,action_kind,status_before,status_after,action_date,action_detail,note,actor_role,occurred_at,created_at";
 
 export async function loadComplianceActionLog(targetObligationId?: string) {
   if (!supabase || !targetObligationId) return [] as ComplianceActionLogEntry[];
   const { data, error } = await supabase
-    .from("audit_event")
-    .select("audit_event_id,action,before_data,after_data,occurred_at")
-    .eq("entity_type", "compliance_record")
-    .eq("entity_id", targetObligationId)
-    .order("occurred_at", { ascending: false })
-    .limit(30);
+    .from("demo_compliance_action_event")
+    .select(COMPLIANCE_ACTION_COLUMNS)
+    .eq("target_obligation_id", targetObligationId)
+    .order("sequence_no", { ascending: false })
+    .limit(100);
   if (error) throw new Error(error.message);
-  return (data || []).map(row => {
-    const before = auditData(row.before_data);
-    const after = auditData(row.after_data);
-    return {
-      auditEventId: Number(row.audit_event_id),
-      action: row.action,
-      occurredAt: row.occurred_at,
-      beforeStatus: before.status as DbComplianceStatus | undefined,
-      afterStatus: after.status as DbComplianceStatus | undefined,
-      actionDate:
-        String(after.action_date || before.action_date || "") || undefined,
-      actionDetail:
-        String(after.action_detail || before.action_detail || "") || undefined,
-      note: String(after.note || before.note || "") || undefined,
-      submittedAt:
-        String(after.submitted_at || before.submitted_at || "") || undefined,
-      updatedAt:
-        String(after.updated_at || before.updated_at || "") || undefined,
-    };
+  return mapComplianceActionEvents(
+    (data || []) as Array<Record<string, unknown>>
+  );
+}
+
+export async function loadComplianceActionLogsByTargetObligationIds(
+  targetObligationIds: string[]
+) {
+  if (!supabase || targetObligationIds.length === 0) {
+    return [] as ComplianceActionLogEntry[];
+  }
+  const { data, error } = await supabase
+    .from("demo_compliance_action_event")
+    .select(COMPLIANCE_ACTION_COLUMNS)
+    .in("target_obligation_id", targetObligationIds)
+    .order("occurred_at", { ascending: false })
+    .limit(2000);
+  if (error) throw new Error(error.message);
+  return mapComplianceActionEvents(
+    (data || []) as Array<Record<string, unknown>>
+  );
+}
+
+export async function logComplianceAction(input: {
+  requestId: string;
+  complianceId: string;
+  targetObligationId: string;
+  actionKind: ComplianceActionLogEntry["actionKind"];
+  statusBefore?: DbComplianceStatus;
+  statusAfter: DbComplianceStatus;
+  actionDate?: string;
+  actionDetail: string;
+  note?: string;
+  actorRole: string;
+  evidenceIds: string[];
+  occurredAt?: string;
+}) {
+  if (!supabase) throw new Error("Supabase 연결이 없습니다.");
+  const { data, error } = await supabase.rpc("demo_log_compliance_action", {
+    p_request_id: input.requestId,
+    p_compliance_id: input.complianceId,
+    p_target_obligation_id: input.targetObligationId,
+    p_period_key: CURRENT_PERIOD,
+    p_action_kind: input.actionKind,
+    p_status_before: input.statusBefore || null,
+    p_status_after: input.statusAfter,
+    p_action_date: input.actionDate || null,
+    p_action_detail: input.actionDetail,
+    p_note: input.note || null,
+    p_actor_role: input.actorRole,
+    p_evidence_ids: input.evidenceIds,
+    p_occurred_at: input.occurredAt || new Date().toISOString(),
   });
+  if (error || !data) {
+    throw new Error(error?.message || "시정조치 로그 저장에 실패했습니다.");
+  }
+  return String(data);
+}
+
+export async function hasComplianceActionRequest(requestId: string) {
+  if (!supabase) throw new Error("Supabase 연결이 없습니다.");
+  const { data, error } = await supabase
+    .from("demo_compliance_action_event")
+    .select("action_event_id")
+    .eq("request_id", requestId)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return Boolean(data?.action_event_id);
+}
+
+export async function rollbackComplianceActionPersistence(input: {
+  before: FacilityWorkflowItem;
+  persistedComplianceId: string;
+  createdEvidence: EvidenceMetadata[];
+}) {
+  if (!supabase) throw new Error("Supabase 연결이 없습니다.");
+  const recoveryErrors: string[] = [];
+
+  for (const metadata of input.createdEvidence) {
+    const { error: metadataDeleteError } = await supabase
+      .from("evidence")
+      .delete()
+      .eq("evidence_id", metadata.evidenceId);
+    if (metadataDeleteError) {
+      recoveryErrors.push(metadataDeleteError.message);
+      continue;
+    }
+
+    const { error: storageDeleteError } = await supabase.storage
+      .from(EVIDENCE_BUCKET)
+      .remove([metadata.storagePath]);
+    if (storageDeleteError) recoveryErrors.push(storageDeleteError.message);
+
+    const { data: previous, error: previousError } = await supabase
+      .from("evidence")
+      .select("evidence_id")
+      .eq("compliance_id", metadata.complianceId)
+      .eq("original_name", metadata.originalName)
+      .order("version_no", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (previousError) {
+      recoveryErrors.push(previousError.message);
+    } else if (previous?.evidence_id) {
+      const { error: versionRestoreError } = await supabase
+        .from("evidence")
+        .update({ is_current: true })
+        .eq("evidence_id", previous.evidence_id);
+      if (versionRestoreError) recoveryErrors.push(versionRestoreError.message);
+    }
+  }
+
+  if (input.before.complianceId) {
+    const { error } = await supabase
+      .from("compliance_record")
+      .update({
+        status: input.before.complianceStatus || "NONE",
+        action_date: input.before.actionDate || null,
+        action_detail: input.before.actionDetail || null,
+        note: input.before.note || null,
+        submitted_at: input.before.submittedAt || null,
+        updated_at: input.before.updatedAt || new Date().toISOString(),
+      })
+      .eq("compliance_id", input.before.complianceId);
+    if (error) recoveryErrors.push(error.message);
+  } else {
+    const { error } = await supabase
+      .from("compliance_record")
+      .delete()
+      .eq("compliance_id", input.persistedComplianceId);
+    if (error) recoveryErrors.push(error.message);
+  }
+
+  if (recoveryErrors.length > 0) {
+    throw new Error(recoveryErrors.join(" · "));
+  }
 }
 
 export async function logComplianceCsvExport(input: {
