@@ -5,6 +5,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { DemoProvider } from "@/contexts/DemoContext";
 import AppShell from "@/components/AppShell";
+import Home from "@/pages/Home";
 import Dashboard from "@/pages/Dashboard";
 import Targets from "@/pages/Targets";
 import Laws from "@/pages/Laws";
@@ -20,6 +21,9 @@ function Router() {
     <AppShell>
       <Switch>
         <Route path="/" component={Applicability} />
+        <Route path="/home" component={Home} />
+        <Route path="/home/:view" component={Home} />
+        <Route path="/home/:view/:detailId" component={Home} />
         <Route path="/applicability" component={Applicability} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/targets" component={Targets} />

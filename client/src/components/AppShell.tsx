@@ -3,6 +3,10 @@ import { Link, useLocation } from "wouter";
 import { ChevronDown, Database, RefreshCcw } from "lucide-react";
 import { targets as demoTargets, type Role } from "@/lib/demo-data";
 import { loadManagedTargets } from "@/lib/facility-api";
+import {
+  loadHomeNavigation,
+  type HomeNavigationData,
+} from "@/lib/home-obligation-api";
 import { checkSupabaseConnection } from "@/lib/supabase";
 import { useDemo } from "@/contexts/DemoContext";
 
@@ -11,6 +15,7 @@ type LnbItem = {
   href?: string;
   selected?: boolean;
   nested?: boolean;
+  count?: number;
 };
 
 type LnbGroup = {
@@ -19,6 +24,7 @@ type LnbGroup = {
 };
 
 const gnbItems = [
+  { href: "/home", label: "홈" },
   { href: "/applicability", label: "적용범위 판정" },
   { href: "/dashboard", label: "이행현황" },
   { href: "/targets", label: "관리대상 현황" },
@@ -35,6 +41,7 @@ const roleMeta: Record<Role, { org: string; name: string }> = {
 };
 
 function routeKey(location: string) {
+  if (location === "/home" || location.startsWith("/home/")) return "home";
   if (location === "/" || location === "/applicability") return "applicability";
   if (location === "/dashboard") return "dashboard";
   if (location === "/targets") return "targets";
@@ -46,8 +53,105 @@ function routeKey(location: string) {
   return "applicability";
 }
 
-function menuFor(location: string): { title: string; groups: LnbGroup[] } {
+function menuFor(
+  location: string,
+  homeNavigation: HomeNavigationData | null
+): { title: string; groups: LnbGroup[] } {
+  const homeSegments = location.split("?")[0].split("/").filter(Boolean);
+  const homeView = homeSegments[1] || "all";
+  const homeDetailId = homeSegments[2] || "";
+  const categoryCounts = homeNavigation?.categories || {
+    safetySystem: 24,
+    recurrence: 3,
+    correctiveOrder: 3,
+    relatedLaw: 3658,
+  };
+  const accidentCounts = homeNavigation?.accidentTypes || {
+    industrial: 14,
+    citizen: 22,
+    citizenFacility: 13,
+    citizenProduct: 9,
+  };
+
   switch (routeKey(location)) {
+    case "home":
+      return {
+        title: "홈",
+        groups: [
+          {
+            title: "중처법 카테고리별",
+            items: [
+              {
+                label: "전체",
+                href: "/home/all",
+                selected: homeView === "all",
+                count: homeNavigation?.total || 3688,
+              },
+              {
+                label: "안전보건관리체계",
+                href: "/home/safety-system",
+                selected: homeView === "safety-system",
+                count: categoryCounts.safetySystem,
+              },
+              {
+                label: "재발방지 대책",
+                href: "/home/recurrence",
+                selected: homeView === "recurrence",
+                count: categoryCounts.recurrence,
+              },
+              {
+                label: "개선·시정명령 이행",
+                href: "/home/corrective-order",
+                selected: homeView === "corrective-order",
+                count: categoryCounts.correctiveOrder,
+              },
+              {
+                label: "관계법령 관리조치",
+                href: "/home/related-law",
+                selected: homeView === "related-law",
+                count: categoryCounts.relatedLaw,
+              },
+            ],
+          },
+          {
+            title: "중대재해 유형별",
+            items: [
+              {
+                label: "중대산업재해",
+                href: "/home/industrial",
+                selected: homeView === "industrial" && !homeDetailId,
+                count: accidentCounts.industrial,
+              },
+              ...(homeView === "industrial"
+                ? (homeNavigation?.industrialSubtypes || []).map(item => ({
+                    label: item.title,
+                    href: `/home/industrial/${item.id}`,
+                    selected: homeDetailId === item.id,
+                    nested: true,
+                  }))
+                : []),
+              {
+                label: "중대시민재해",
+                count: accidentCounts.citizen,
+              },
+              {
+                label: "공중이용시설·공중교통수단",
+                href: "/home/citizen-facility",
+                selected: homeView === "citizen-facility",
+                nested: true,
+                count: accidentCounts.citizenFacility,
+              },
+              {
+                label: "원료·제조물",
+                href: "/home/citizen-product",
+                selected: homeView === "citizen-product",
+                nested: true,
+                count: accidentCounts.citizenProduct,
+              },
+            ],
+          },
+        ],
+      };
     case "dashboard":
       return {
         title: "이행현황",
@@ -248,10 +352,34 @@ const shellStyles = `
   .adoms-shell .side-items a.side-item:hover { color: #a93193; background: rgba(255,255,255,.52); }
   .adoms-shell .side-items .side-item.nested { padding-left: 34px; color: #706a72; font-size: 12px; }
   .adoms-shell .side-items .side-item.selected { color: #9b226f; background: rgba(255,255,255,.72); font-weight: 800; }
+  .adoms-shell .side-item-count { margin-left: auto; color: #807681; font-size: 11px; font-weight: 800; }
+  .adoms-shell .side-items .side-item.selected .side-item-count { color: #9b226f; }
   .adoms-shell .side-dot {
     left: 7px; top: 12px; width: 7px; height: 7px; border: 3px solid #df3355;
     background: #fff; box-sizing: content-box;
   }
+  .adoms-shell .home-side-menu .side-kicker { margin-bottom: 14px; }
+  .adoms-shell .home-side-menu .side-group { margin-bottom: 22px; }
+  .adoms-shell .home-side-menu .side-group-title {
+    padding: 6px 5px 8px; border-radius: 0; border-bottom: 1px solid rgba(91,69,91,.14);
+    background: transparent; color: #716872; font-size: 12px; font-weight: 800;
+  }
+  .adoms-shell .home-side-menu .side-group-title svg { display: none; }
+  .adoms-shell .home-side-menu .side-items { gap: 1px; padding: 6px 0 0; }
+  .adoms-shell .home-side-menu .side-items .side-item {
+    display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px;
+    min-height: 34px; padding: 7px 9px 7px 18px; font-size: 12px;
+  }
+  .adoms-shell .home-side-menu .side-items .side-item.nested {
+    min-height: 29px; padding: 5px 8px 5px 31px; color: #736c74; font-size: 10px;
+  }
+  .adoms-shell .home-side-menu .side-items .side-item.nested::before {
+    content: "-"; position: absolute; left: 20px; color: #b69caf;
+  }
+  .adoms-shell .home-side-menu .side-items .side-item.selected {
+    border: 1px solid #e1d3df; background: rgba(255,255,255,.88);
+  }
+  .adoms-shell .home-side-menu .side-dot { top: 9px; }
   .adoms-shell .side-target {
     margin-top: 22px; padding: 14px; border: 1px solid #e1cbe0; border-radius: 10px;
     background: rgba(255,255,255,.72);
@@ -291,8 +419,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
     connected: false,
     reason: "연결 확인 중",
   });
-  const homeHref = "/applicability";
-  const sideMenu = menuFor(location);
+  const [homeNavigation, setHomeNavigation] =
+    useState<HomeNavigationData | null>(null);
+  const homeHref = "/home";
+  const sideMenu = menuFor(location, homeNavigation);
 
   useEffect(() => {
     checkSupabaseConnection().then(setConnection);
@@ -303,24 +433,23 @@ export default function AppShell({ children }: { children: ReactNode }) {
           .map(target => ({ id: target.id, name: target.name }))
       );
     });
+    loadHomeNavigation().then(setHomeNavigation);
   }, []);
 
   const activeHref =
-    location === "/" || location === "/applicability"
-      ? "/applicability"
-      : location === "/laws" || location === "/obligations"
-        ? "/obligations"
-        : location;
+    location === "/home" || location.startsWith("/home/")
+      ? "/home"
+      : location === "/" || location === "/applicability"
+        ? "/applicability"
+        : location === "/laws" || location === "/obligations"
+          ? "/obligations"
+          : location;
 
   return (
     <div className="app-frame adoms-shell">
       <style>{shellStyles}</style>
       <header className="main-header">
-        <Link
-          href={homeHref}
-          className="brand"
-          aria-label="적용범위 판정으로 이동"
-        >
+        <Link href={homeHref} className="brand" aria-label="홈으로 이동">
           <img
             className="brand-logo"
             src="https://www.yongin.go.kr/resources/site/www_2026/images/common/heard_logo.png?v=20260818"
@@ -392,7 +521,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <div className="workspace">
         <aside className="side-panel">
-          <div className="side-menu-container">
+          <div
+            className={`side-menu-container${routeKey(location) === "home" ? " home-side-menu" : ""}`}
+          >
             <div className="side-kicker">{sideMenu.title}</div>
             {sideMenu.groups.map(group => (
               <section className="side-group" key={group.title}>
@@ -406,7 +537,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
                     const contents = (
                       <>
                         {item.selected && <span className="side-dot" />}
-                        {item.label}
+                        <span className="side-item-label">{item.label}</span>
+                        {typeof item.count === "number" && (
+                          <strong className="side-item-count">
+                            {item.count.toLocaleString("ko-KR")}
+                          </strong>
+                        )}
                       </>
                     );
                     return item.href ? (
@@ -426,20 +562,22 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 </div>
               </section>
             ))}
-            <div className="side-target">
-              <label htmlFor="target-select">현재 관리대상</label>
-              <select
-                id="target-select"
-                value={selectedTargetId}
-                onChange={event => setSelectedTargetId(event.target.value)}
-              >
-                {targets.map(target => (
-                  <option key={target.id} value={target.id}>
-                    {target.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {routeKey(location) !== "home" && (
+              <div className="side-target">
+                <label htmlFor="target-select">현재 관리대상</label>
+                <select
+                  id="target-select"
+                  value={selectedTargetId}
+                  onChange={event => setSelectedTargetId(event.target.value)}
+                >
+                  {targets.map(target => (
+                    <option key={target.id} value={target.id}>
+                      {target.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </aside>
 
