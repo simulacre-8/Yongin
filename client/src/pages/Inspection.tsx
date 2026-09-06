@@ -66,9 +66,9 @@ function SelectionButton({
         placeItems: "center",
         borderWidth: 1,
         borderStyle: "solid",
-        borderColor: selected ? "#84256f" : "#c4c8ce",
+        borderColor: selected ? "#174d73" : "#c4c8ce",
         borderRadius: "50%",
-        background: selected ? "#a93193" : "#fff",
+        background: selected ? "#1d6fa3" : "#fff",
         color: "#fff",
         padding: 0,
       }}
@@ -351,9 +351,9 @@ export default function Inspection() {
                       placeItems: "center",
                       borderWidth: 1,
                       borderStyle: "solid",
-                      borderColor: selected ? "#84256f" : "#c4c8ce",
+                      borderColor: selected ? "#174d73" : "#c4c8ce",
                       borderRadius: "50%",
-                      background: selected ? "#a93193" : "#fff",
+                      background: selected ? "#1d6fa3" : "#fff",
                       color: "#fff",
                     }}
                   >
@@ -398,7 +398,7 @@ export default function Inspection() {
                     : workflowItems.map(item => item.obligationId)
                 )
               }
-              style={{ border: 0, background: "transparent", color: "#84256f" }}
+              style={{ border: 0, background: "transparent", color: "#174d73" }}
             >
               전체 선택
             </button>
@@ -434,7 +434,7 @@ export default function Inspection() {
                       label={`${item.title} 선택 또는 해제`}
                     />
                     <span style={{ fontSize: 12 }}>
-                      <b style={{ color: "#a93193", marginRight: 7 }}>
+                      <b style={{ color: "#1d6fa3", marginRight: 7 }}>
                         {index + 1}.
                       </b>
                       {item.title}
@@ -513,7 +513,7 @@ export default function Inspection() {
                   textAlign: "left",
                 }}
               >
-                <b style={{ color: "#a93193", fontSize: 13 }}>{index + 1}.</b>
+                <b style={{ color: "#1d6fa3", fontSize: 13 }}>{index + 1}.</b>
                 <span style={{ fontSize: 13, fontWeight: 750 }}>
                   {item.title}
                 </span>

@@ -200,7 +200,7 @@ const sectionStyle: CSSProperties = {
   border: "1px solid #dfe4de",
   borderRadius: 8,
   background: "rgba(255,255,255,.96)",
-  boxShadow: "0 10px 25px rgba(94,54,130,.055)",
+  boxShadow: "0 10px 25px rgba(23,43,77,.055)",
   overflow: "hidden",
 };
 
@@ -714,7 +714,7 @@ export default function Targets() {
       }}
     >
       <span>
-        <b style={{ color: "#a93193", marginRight: 8 }}>{number}</b>
+        <b style={{ color: "#1d6fa3", marginRight: 8 }}>{number}</b>
         {title}
       </span>
       <ChevronDown
@@ -770,7 +770,7 @@ export default function Targets() {
       >
         <div>
           <strong style={{ fontSize: 13 }}>3. 대상별 적용 의무</strong>
-          <span style={{ marginLeft: 8, color: "#a93193", fontSize: 12 }}>
+          <span style={{ marginLeft: 8, color: "#1d6fa3", fontSize: 12 }}>
             {obligationSource === "loading"
               ? "조회 중"
               : `${targetObligations.length}건`}
@@ -841,7 +841,7 @@ export default function Targets() {
               <span
                 style={{
                   ...tableCellStyle,
-                  color: "#8b256f",
+                  color: "#1d6fa3",
                   fontWeight: 750,
                 }}
               >
@@ -861,7 +861,7 @@ export default function Targets() {
                   style={{
                     padding: 0,
                     border: 0,
-                    color: "#8b256f",
+                    color: "#1d6fa3",
                     background: "transparent",
                     fontFamily: "inherit",
                     fontSize: 11,
@@ -869,7 +869,7 @@ export default function Targets() {
                     lineHeight: 1.55,
                     textAlign: "left",
                     textDecoration: "underline",
-                    textDecorationColor: "rgba(169,49,147,.4)",
+                    textDecorationColor: "rgba(29,111,163,.4)",
                     textUnderlineOffset: 3,
                     cursor: "pointer",
                   }}
@@ -967,7 +967,7 @@ export default function Targets() {
                   gap: 6,
                   border: 0,
                   background: "transparent",
-                  color: targetKind === kind ? "#8b256f" : "#657066",
+                  color: targetKind === kind ? "#1d6fa3" : "#657066",
                   fontSize: 12,
                   fontWeight: targetKind === kind ? 800 : 600,
                   cursor: "pointer",
@@ -979,9 +979,9 @@ export default function Targets() {
                     placeItems: "center",
                     width: 16,
                     height: 16,
-                    border: `1px solid ${targetKind === kind ? "#a93193" : "#aeb7b1"}`,
+                    border: `1px solid ${targetKind === kind ? "#1d6fa3" : "#aeb7b1"}`,
                     borderRadius: "50%",
-                    background: targetKind === kind ? "#a93193" : "#fff",
+                    background: targetKind === kind ? "#1d6fa3" : "#fff",
                     color: "#fff",
                   }}
                 >
@@ -1102,13 +1102,13 @@ export default function Targets() {
                     border: 0,
                     padding: "5px 0",
                     background: "transparent",
-                    color: statusFilter === status ? "#a93193" : "#647068",
+                    color: statusFilter === status ? "#1d6fa3" : "#647068",
                     fontSize: 11,
                     fontWeight: statusFilter === status ? 800 : 600,
                     cursor: "pointer",
                     borderBottom:
                       statusFilter === status
-                        ? "2px solid #df3355"
+                        ? "2px solid #2f66b0"
                         : "2px solid transparent",
                   }}
                 >
@@ -1192,7 +1192,7 @@ export default function Targets() {
         >
           <strong style={{ fontSize: 12 }}>
             총{" "}
-            <b style={{ color: "#a93193", fontSize: 17 }}>
+            <b style={{ color: "#1d6fa3", fontSize: 17 }}>
               {filteredTargets.length}
             </b>
             개소
@@ -1248,7 +1248,7 @@ export default function Targets() {
                 display: "grid",
                 gridTemplateColumns: "1.15fr .8fr 1.45fr .5fr .55fr",
                 border: 0,
-                background: item.id === selected.id ? "#fbf2f8" : "#fff",
+                background: item.id === selected.id ? "#f3f7fa" : "#fff",
                 color: "#354139",
                 textAlign: "left",
                 cursor: "pointer",
@@ -1267,7 +1267,7 @@ export default function Targets() {
               <span
                 style={{
                   ...tableCellStyle,
-                  color: item.isDemoVirtual ? "#a93193" : "#4d5650",
+                  color: item.isDemoVirtual ? "#1d6fa3" : "#4d5650",
                   textAlign: "center",
                   fontWeight: item.isDemoVirtual ? 800 : 600,
                 }}
@@ -1601,14 +1601,14 @@ export default function Targets() {
                 >
                   <span>
                     총 현원{" "}
-                    <b style={{ color: "#8b256f", fontSize: 14 }}>
+                    <b style={{ color: "#1d6fa3", fontSize: 14 }}>
                       {totalCurrent}
                     </b>
                     명
                   </span>
                   <span>
                     총 현업업무 종사자{" "}
-                    <b style={{ color: "#8b256f", fontSize: 14 }}>
+                    <b style={{ color: "#1d6fa3", fontSize: 14 }}>
                       {totalField}
                     </b>
                     명
@@ -2010,7 +2010,7 @@ export default function Targets() {
         >
           <strong style={{ fontSize: 12 }}>
             총{" "}
-            <b style={{ color: "#a93193", fontSize: 17 }}>
+            <b style={{ color: "#1d6fa3", fontSize: 17 }}>
               {filteredContracts.length}
             </b>
             건
@@ -2495,10 +2495,10 @@ export default function Targets() {
                           flex: "0 0 auto",
                           width: 17,
                           height: 17,
-                          border: `1px solid ${active ? "#a93193" : "#b3bcb5"}`,
+                          border: `1px solid ${active ? "#1d6fa3" : "#b3bcb5"}`,
                           borderRadius: "50%",
                           color: "#fff",
-                          background: active ? "#a93193" : "#fff",
+                          background: active ? "#1d6fa3" : "#fff",
                         }}
                       >
                         {active && <Check size={11} />}
@@ -2717,7 +2717,7 @@ export default function Targets() {
                     padding: "4px 9px",
                     border: "1px solid #dfb8d6",
                     borderRadius: 999,
-                    color: "#8b256f",
+                    color: "#1d6fa3",
                     background: "#fff4fb",
                     fontSize: 10,
                     fontWeight: 800,
@@ -2897,7 +2897,7 @@ export default function Targets() {
                           style={{
                             minHeight: 110,
                             padding: "16px 18px",
-                            borderLeft: "3px solid #a93193",
+                            borderLeft: "3px solid #1d6fa3",
                             borderRadius: "0 8px 8px 0",
                             color: "#303834",
                             background: "#f8f9f8",

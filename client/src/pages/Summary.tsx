@@ -326,11 +326,11 @@ export default function Summary() {
             )}
           </tbody>
           <tfoot>
-            <tr style={{ backgroundColor: "#f3d8ea" }}>
+            <tr style={{ backgroundColor: "#e7f1f8" }}>
               <th
                 style={{
                   ...bodyCellStyle,
-                  color: "#64204f",
+                  color: "#174d73",
                   fontSize: 16,
                   fontWeight: 800,
                 }}
@@ -340,7 +340,7 @@ export default function Summary() {
               <td
                 style={{
                   ...bodyCellStyle,
-                  color: "#84256f",
+                  color: "#174d73",
                   fontSize: 16,
                   fontWeight: 800,
                 }}

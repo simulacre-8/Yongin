@@ -103,6 +103,30 @@ export type HomeObligationResult = {
   reason?: string;
 };
 
+export type HomeObligationStatusCounts = {
+  total: number;
+  done: number;
+  supplement: number;
+  incomplete: number;
+  notApplicable: number;
+  completionRate: number;
+};
+
+export type HomeObligationDetail = {
+  obligationId: string;
+  counts: HomeObligationStatusCounts;
+  mappedTargetCount: number;
+  organizationAssignmentAvailable: boolean;
+  source: "supabase" | "fallback";
+  reason?: string;
+};
+
+type WorkflowStatusRow = {
+  target_ref: string;
+  compliance_status: "DONE" | "SUPP" | "NONE" | "NA" | null;
+  inspection_status: "DONE" | "SUPP" | "NONE" | "NA" | null;
+};
+
 export const RELATED_LAW_OPTIONS = [
   "산업안전보건법",
   "시설물안전법",
@@ -163,6 +187,44 @@ function toHomeItem(row: ObligationRow): HomeObligationItem {
     frequency: formatObligationFrequency(row.cycle),
     evidenceRequired: row.evidence_required,
     sourceVersion: row.source_version,
+  };
+}
+
+export function buildChecklistSubitems(
+  item: Pick<HomeObligationItem, "title" | "detail" | "articleTitle">
+): string[] {
+  const details = item.detail
+    .replace(/^\s*(?:[①-⑳]|\d+[.)])\s*/, "")
+    .split(/(?:\r?\n)+|(?=[①-⑳])|(?=\s+[가-하]\.[ \t])/)
+    .map(value => value.replace(/^\s*(?:[①-⑳]|[가-하]\.)\s*/, "").trim())
+    .filter(Boolean);
+  const candidates = [
+    item.articleTitle && item.articleTitle !== item.title
+      ? item.articleTitle
+      : "",
+    ...details,
+  ];
+  return Array.from(new Set(candidates.filter(Boolean))).slice(0, 6);
+}
+
+export function summarizeWorkflowStatuses(
+  rows: WorkflowStatusRow[]
+): HomeObligationStatusCounts {
+  const statuses = rows.map(
+    row => row.inspection_status || row.compliance_status || "NA"
+  );
+  const done = statuses.filter(status => status === "DONE").length;
+  const supplement = statuses.filter(status => status === "SUPP").length;
+  const incomplete = statuses.filter(status => status === "NONE").length;
+  const notApplicable = statuses.filter(status => status === "NA").length;
+  const denominator = statuses.length - notApplicable;
+  return {
+    total: statuses.length,
+    done,
+    supplement,
+    incomplete,
+    notApplicable,
+    completionRate: denominator ? (done / denominator) * 100 : 0,
   };
 }
 
@@ -445,6 +507,31 @@ export async function loadHomeObligations(options: {
   detailId?: string;
 }): Promise<HomeObligationResult> {
   const search = options.search?.trim() || "";
+  if (options.detailId) {
+    if (!supabase) {
+      const items = fallbackItems(options.view).filter(
+        item => item.id === options.detailId
+      );
+      return {
+        items,
+        totalCount: items.length,
+        source: "fallback",
+        reason: "Supabase 환경변수 미설정",
+      };
+    }
+    const { data, error } = await supabase
+      .from("ref_obligation")
+      .select(OBLIGATION_COLUMNS)
+      .eq("source_version", YONGIN_SOURCE_VERSION)
+      .eq("obl_id", options.detailId)
+      .limit(1);
+    return {
+      items: error || !data ? [] : (data as ObligationRow[]).map(toHomeItem),
+      totalCount: error || !data ? 0 : data.length,
+      source: error ? "fallback" : "supabase",
+      reason: error?.message,
+    };
+  }
   if (options.view === "related-law") {
     return loadRelatedLawSet(search, options.lawName || "");
   }
@@ -485,6 +572,48 @@ export async function loadHomeObligations(options: {
   return {
     items: (data as ObligationRow[]).map(toHomeItem),
     totalCount: count || 0,
+    source: "supabase",
+  };
+}
+
+export async function loadHomeObligationDetail(
+  obligationId: string
+): Promise<HomeObligationDetail> {
+  const emptyCounts = summarizeWorkflowStatuses([]);
+  if (!supabase) {
+    return {
+      obligationId,
+      counts: emptyCounts,
+      mappedTargetCount: 0,
+      organizationAssignmentAvailable: false,
+      source: "fallback",
+      reason: "Supabase 환경변수 미설정",
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("v_facility_workflow")
+    .select("target_ref,compliance_status,inspection_status")
+    .eq("obl_id", obligationId)
+    .limit(1000);
+
+  if (error || !data) {
+    return {
+      obligationId,
+      counts: emptyCounts,
+      mappedTargetCount: 0,
+      organizationAssignmentAvailable: false,
+      source: "fallback",
+      reason: error?.message || "의무 상세 집계 조회 실패",
+    };
+  }
+
+  const rows = data as WorkflowStatusRow[];
+  return {
+    obligationId,
+    counts: summarizeWorkflowStatuses(rows),
+    mappedTargetCount: new Set(rows.map(row => row.target_ref)).size,
+    organizationAssignmentAvailable: false,
     source: "supabase",
   };
 }

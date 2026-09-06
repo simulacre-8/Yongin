@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildChecklistSubitems,
   CITIZEN_FACILITY_OBLIGATION_IDS,
   CITIZEN_PRODUCT_OBLIGATION_IDS,
   classifyHomeCategory,
+  summarizeWorkflowStatuses,
 } from "@/lib/home-obligation-api";
 
 describe("home obligation taxonomy", () => {
@@ -59,5 +61,55 @@ describe("home obligation taxonomy", () => {
         title_ko: "안전점검",
       })
     ).toBe("related-law");
+  });
+
+  it("turns legal detail text into numbered checklist subitems without inventing text", () => {
+    expect(
+      buildChecklistSubitems({
+        title: "유해·위험요인 확인·개선",
+        articleTitle: "안전보건관리체계의 구축 및 이행 조치",
+        detail:
+          "3. 사업장의 유해ㆍ위험요인을 확인할 것 가. 확인 결과를 기록할 것 나. 필요한 조치를 할 것",
+      })
+    ).toEqual([
+      "안전보건관리체계의 구축 및 이행 조치",
+      "사업장의 유해ㆍ위험요인을 확인할 것",
+      "확인 결과를 기록할 것",
+      "필요한 조치를 할 것",
+    ]);
+  });
+
+  it("computes completion rate from stored statuses and excludes NA", () => {
+    expect(
+      summarizeWorkflowStatuses([
+        {
+          target_ref: "A",
+          compliance_status: "DONE",
+          inspection_status: null,
+        },
+        {
+          target_ref: "B",
+          compliance_status: "SUPP",
+          inspection_status: "DONE",
+        },
+        {
+          target_ref: "C",
+          compliance_status: null,
+          inspection_status: "NONE",
+        },
+        {
+          target_ref: "D",
+          compliance_status: null,
+          inspection_status: null,
+        },
+      ])
+    ).toEqual({
+      total: 4,
+      done: 2,
+      supplement: 0,
+      incomplete: 1,
+      notApplicable: 1,
+      completionRate: (2 / 3) * 100,
+    });
   });
 });

@@ -153,7 +153,7 @@ const styles: Record<string, CSSProperties> = {
     width: 19,
     height: 19,
     margin: 0,
-    accentColor: "#a93193",
+    accentColor: "#1d6fa3",
     cursor: "pointer",
   },
   searchBox: {
@@ -171,7 +171,7 @@ const styles: Record<string, CSSProperties> = {
     padding: "0 11px",
     border: 0,
     borderRight: "1px solid #d1d7d3",
-    color: "#a93193",
+    color: "#1d6fa3",
     background: "#fff",
     fontSize: 12,
     outline: "none",
@@ -190,9 +190,9 @@ const styles: Record<string, CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    border: "1px solid #a93193",
+    border: "1px solid #1d6fa3",
     borderRadius: 3,
-    color: "#8b256f",
+    color: "#1d6fa3",
     background: "#fff",
     fontSize: 12,
     fontWeight: 700,
@@ -238,7 +238,7 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 14,
   },
   totalNumber: {
-    color: "#a93193",
+    color: "#1d6fa3",
     fontSize: 17,
     fontWeight: 800,
   },
@@ -1078,7 +1078,7 @@ export default function Obligations() {
                     className="adoms-obligations-list-cell"
                     style={styles.listCell}
                   >
-                    <strong style={{ color: "#a93193" }}>
+                    <strong style={{ color: "#1d6fa3" }}>
                       {facility.target.obligationCount}건
                     </strong>
                   </td>

@@ -86,11 +86,11 @@ function targetSubtypeFor(type: string) {
 
 const dashboardStyles = `
   .adoms-dashboard {
-    --adoms-green-dark: #84256f;
-    --adoms-green: #a93193;
+    --adoms-green-dark: #174d73;
+    --adoms-green: #1d6fa3;
     --adoms-green-soft: #f1f1f3;
     --adoms-line: #a8ada7;
-    --adoms-red: #a93193;
+    --adoms-red: #c6473c;
     --adoms-text: #161b17;
     width: 100%;
     max-width: 1500px;
@@ -365,7 +365,7 @@ const dashboardStyles = `
     line-height: 1;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.14);
   }
-  .adoms-half-bar-good { background: #a93193; }
+  .adoms-half-bar-good { background: #1d6fa3; }
   .adoms-half-bar-normal { background: #ffc000; }
   .adoms-half-bar-poor { background: #ed7d31; }
   .adoms-half-bar-label { color: #6e716e; font-size: 13px; font-weight: 750; }

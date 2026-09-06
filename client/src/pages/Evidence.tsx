@@ -6,15 +6,7 @@ import {
   type CSSProperties,
   type ReactElement,
 } from "react";
-import {
-  Download,
-  FilePlus2,
-  FileUp,
-  Image as ImageIcon,
-  Plus,
-  Save,
-  Trash2,
-} from "lucide-react";
+import { Download, FilePlus2, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ComplianceStatus } from "@/lib/demo-data";
 import { useDemo } from "@/contexts/DemoContext";
@@ -383,78 +375,60 @@ function AttachmentCell({
         style={{ display: "none" }}
         onChange={onSelect}
       />
-      {row.attachments.length === 0 ? (
+      {row.attachments.map(attachment => (
         <div
-          className="adoms-empty-file"
+          className="adoms-file-line"
+          key={attachment.id}
           style={{
-            minHeight: 28,
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) 26px 26px",
+            gap: 3,
             alignItems: "center",
-            padding: "0 7px",
-            border: "1px solid #d1d6d3",
-            background: "#f6f7f6",
-            color: "#707a73",
-            fontSize: 11,
           }}
         >
-          선택 파일 없음
-        </div>
-      ) : (
-        row.attachments.map(attachment => (
-          <div
-            className="adoms-file-line"
-            key={attachment.id}
+          <span
+            title={attachment.name}
             style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1fr) 26px 26px",
-              gap: 3,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              minHeight: 28,
+              display: "flex",
               alignItems: "center",
+              padding: "0 7px",
+              border: "1px solid #d1d6d3",
+              background: "#f6f7f6",
+              color: "#4c5850",
+              fontSize: 11,
             }}
           >
-            <span
-              title={attachment.name}
-              style={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                minHeight: 28,
-                display: "flex",
-                alignItems: "center",
-                padding: "0 7px",
-                border: "1px solid #d1d6d3",
-                background: "#f6f7f6",
-                color: "#4c5850",
-                fontSize: 11,
-              }}
-            >
-              {attachment.name}
-            </span>
-            <button
-              className="adoms-file-action"
-              type="button"
-              aria-label={`${attachment.name} 다운로드`}
-              title="다운로드"
-              onClick={() => onDownload(attachment)}
-              style={{ ...iconButtonStyle, width: 26, height: 28 }}
-            >
-              <Download size={14} />
-            </button>
-            <button
-              className="adoms-file-action"
-              type="button"
-              aria-label={`${attachment.name} 삭제`}
-              title="삭제"
-              onClick={() => onDelete(attachment.id)}
-              style={{ ...iconButtonStyle, width: 26, height: 28 }}
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
-        ))
-      )}
+            {attachment.name}
+          </span>
+          <button
+            className="adoms-file-action"
+            type="button"
+            aria-label={`${attachment.name} 다운로드`}
+            title="다운로드"
+            onClick={() => onDownload(attachment)}
+            style={{ ...iconButtonStyle, width: 26, height: 28 }}
+          >
+            <Download size={14} />
+          </button>
+          <button
+            className="adoms-file-action"
+            type="button"
+            aria-label={`${attachment.name} 삭제`}
+            title="삭제"
+            onClick={() => onDelete(attachment.id)}
+            style={{ ...iconButtonStyle, width: 26, height: 28 }}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      ))}
       <div
         className="adoms-file-actions"
-        style={{ display: "flex", justifyContent: "flex-end", gap: 4 }}
+        style={{ display: "flex", justifyContent: "flex-start" }}
       >
         <label
           htmlFor={inputId}
@@ -467,21 +441,7 @@ function AttachmentCell({
             gap: 4,
           }}
         >
-          <FileUp size={13} /> 파일선택
-        </label>
-        <label
-          htmlFor={inputId}
-          className="adoms-file-add"
-          aria-label="증빙자료 추가"
-          title="증빙자료 추가"
-          style={{
-            ...iconButtonStyle,
-            cursor: "pointer",
-            width: 29,
-            height: 27,
-          }}
-        >
-          <Plus size={15} />
+          <Plus size={13} /> 첨부
         </label>
       </div>
     </div>
@@ -1687,8 +1647,8 @@ export default function Evidence() {
             display: "inline-flex",
             alignItems: "center",
             gap: 5,
-            borderColor: "#b23d99",
-            color: "#8b256f",
+            borderColor: "#4e87b2",
+            color: "#1d6fa3",
           }}
         >
           <Plus size={14} /> 관계 법령 이행사항 추가
@@ -1739,7 +1699,7 @@ export default function Evidence() {
             className="adoms-duty-sidebar-title"
             style={{
               padding: "14px 15px",
-              background: "#a93193",
+              background: "#1d6fa3",
               color: "#fff",
               fontWeight: 700,
               fontSize: 14,
@@ -1751,7 +1711,7 @@ export default function Evidence() {
             className="adoms-track-label"
             style={{
               padding: "13px 15px 9px",
-              color: "#a93193",
+              color: "#1d6fa3",
               fontWeight: 700,
               fontSize: 13,
             }}
@@ -1805,7 +1765,7 @@ export default function Evidence() {
           <header
             className="adoms-duty-header"
             style={{
-              borderBottom: "2px solid #a93193",
+              borderBottom: "2px solid #1d6fa3",
               paddingBottom: 15,
               marginBottom: 16,
             }}
@@ -1999,8 +1959,8 @@ export default function Evidence() {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 5,
-                  borderColor: "#b23d99",
-                  color: "#8b256f",
+                  borderColor: "#4e87b2",
+                  color: "#1d6fa3",
                 }}
               >
                 <Plus size={14} /> {activeDuty.addLabel}
@@ -2018,36 +1978,6 @@ export default function Evidence() {
           </section>
 
           {activeId === "OBL-10" && renderEducationTable()}
-
-          <section
-            className="adoms-evidence-viewer"
-            style={{
-              marginTop: 25,
-              border: "1px solid #d2d7d3",
-              background: "#f4f5f5",
-              minHeight: 142,
-              padding: "14px 16px",
-            }}
-          >
-            <h2 style={{ margin: 0, color: "#35463b", fontSize: 14 }}>
-              이미지 뷰어
-            </h2>
-            <div
-              style={{
-                minHeight: 98,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#9aa39c",
-              }}
-            >
-              <ImageIcon size={29} strokeWidth={1.3} />
-              <span style={{ marginTop: 6, fontSize: 11 }}>
-                선택한 증빙자료를 확인할 수 있습니다.
-              </span>
-            </div>
-          </section>
 
           <section
             className="adoms-evidence-guide"
@@ -2133,7 +2063,7 @@ const stepButtonStyle: CSSProperties = {
 const activeStepButtonStyle: CSSProperties = {
   borderColor: "#d890ca",
   background: "#f7e7f3",
-  color: "#8b256f",
+  color: "#1d6fa3",
   fontWeight: 700,
 };
 
@@ -2142,9 +2072,9 @@ const saveButtonStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 5,
-  border: "1px solid #8b256f",
+  border: "1px solid #1d6fa3",
   borderRadius: 1,
-  background: "#a93193",
+  background: "#1d6fa3",
   color: "#fff",
   padding: "6px 14px",
   fontSize: 12,

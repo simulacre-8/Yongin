@@ -90,6 +90,14 @@ const [
 const safetySystem =
   sapaTotal - recurrence - correctiveOrder - directRelatedLaw;
 const relatedLaw = total - sapaTotal + directRelatedLaw;
+const { data: detailRows, error: detailError } = await supabase
+  .from("v_facility_workflow")
+  .select("target_ref,compliance_status,inspection_status")
+  .eq("obl_id", "OBL-0000003")
+  .limit(10);
+if (detailError) {
+  throw new Error(`Home obligation detail failed: ${detailError.message}`);
+}
 const checks = {
   total: total === 3688,
   safetySystem: safetySystem === 24,
@@ -100,6 +108,7 @@ const checks = {
   citizenTotal: citizenFacility + citizenProduct === 22,
   citizenFacility: citizenFacility === 13,
   citizenProduct: citizenProduct === 9,
+  detailWorkflow: detailRows?.length === 2,
 };
 
 console.log(
@@ -113,6 +122,7 @@ console.log(
       industrial,
       citizenFacility,
       citizenProduct,
+      detailWorkflowRows: detailRows?.length || 0,
       checks,
     },
     null,

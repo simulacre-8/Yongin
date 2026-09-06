@@ -14,6 +14,7 @@ import Evidence from "@/pages/Evidence";
 import Inspection from "@/pages/Inspection";
 import Summary from "@/pages/Summary";
 import Applicability from "@/pages/Applicability";
+import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 
 function Router() {
@@ -25,6 +26,7 @@ function Router() {
         <Route path="/home/:view" component={Home} />
         <Route path="/home/:view/:detailId" component={Home} />
         <Route path="/applicability" component={Applicability} />
+        <Route path="/settings" component={Settings} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/targets" component={Targets} />
         <Route path="/laws" component={Laws} />

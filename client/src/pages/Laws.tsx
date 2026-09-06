@@ -213,7 +213,7 @@ const pageStyles = `
     width: 17px;
     height: 17px;
     margin: 0;
-    accent-color: #a93193;
+    accent-color: #1d6fa3;
     cursor: pointer;
   }
   .adoms-law-radio-small {
@@ -264,8 +264,8 @@ const pageStyles = `
     cursor: pointer;
   }
   .adoms-law-search-button:hover {
-    border-color: #a93193;
-    color: #8b256f;
+    border-color: #1d6fa3;
+    color: #1d6fa3;
     background: #fcf3f9;
   }
   .adoms-law-list-top {
@@ -283,7 +283,7 @@ const pageStyles = `
     letter-spacing: -0.04em;
   }
   .adoms-law-list-count b {
-    color: #a93193;
+    color: #1d6fa3;
     font-weight: 800;
   }
   .adoms-law-new-button {

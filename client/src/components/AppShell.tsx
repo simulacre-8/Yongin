@@ -1,12 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { ChevronDown, Database, RefreshCcw } from "lucide-react";
-import { targets as demoTargets, type Role } from "@/lib/demo-data";
-import { loadManagedTargets } from "@/lib/facility-api";
-import {
-  loadHomeNavigation,
-  type HomeNavigationData,
-} from "@/lib/home-obligation-api";
+import type { Role } from "@/lib/demo-data";
+import type { HomeNavigationData } from "@/lib/home-obligation-api";
 import { checkSupabaseConnection } from "@/lib/supabase";
 import { useDemo } from "@/contexts/DemoContext";
 
@@ -25,20 +21,13 @@ type LnbGroup = {
 
 const gnbItems = [
   { href: "/home", label: "홈" },
-  { href: "/applicability", label: "적용범위 판정" },
   { href: "/dashboard", label: "이행현황" },
   { href: "/targets", label: "관리대상 현황" },
-  { href: "/obligations", label: "법 의무사항" },
-  { href: "/evidence", label: "의무이행(실적증빙)" },
-  { href: "/inspection", label: "이행점검 및 조치" },
-  { label: "통계 및 사례" },
+  { href: "/obligations", label: "의무사항" },
+  { href: "/evidence", label: "의무이행" },
+  { href: "/inspection", label: "이행점검" },
+  { href: "/settings", label: "설정" },
 ];
-
-const roleMeta: Record<Role, { org: string; name: string }> = {
-  담당자: { org: "시민안전관", name: "김안전" },
-  "실·국 점검자": { org: "안전정책과", name: "이점검" },
-  경영책임자: { org: "용인시장(경영책임자)", name: "용인시장" },
-};
 
 function routeKey(location: string) {
   if (location === "/home" || location.startsWith("/home/")) return "home";
@@ -50,6 +39,7 @@ function routeKey(location: string) {
   if (location === "/evidence") return "evidence";
   if (location === "/inspection") return "inspection";
   if (location === "/summary") return "summary";
+  if (location === "/settings") return "settings";
   return "applicability";
 }
 
@@ -122,14 +112,6 @@ function menuFor(
                 selected: homeView === "industrial" && !homeDetailId,
                 count: accidentCounts.industrial,
               },
-              ...(homeView === "industrial"
-                ? (homeNavigation?.industrialSubtypes || []).map(item => ({
-                    label: item.title,
-                    href: `/home/industrial/${item.id}`,
-                    selected: homeDetailId === item.id,
-                    nested: true,
-                  }))
-                : []),
               {
                 label: "중대시민재해",
                 count: accidentCounts.citizen,
@@ -176,7 +158,7 @@ function menuFor(
       };
     case "laws":
       return {
-        title: "법 의무사항",
+        title: "의무 체크리스트",
         groups: [
           {
             title: "관계법령 관리",
@@ -190,10 +172,10 @@ function menuFor(
       };
     case "obligations":
       return {
-        title: "법 의무사항",
+        title: "의무 체크리스트",
         groups: [
           {
-            title: "법 의무사항",
+            title: "의무 체크리스트",
             items: [
               { label: "사업장" },
               {
@@ -264,16 +246,19 @@ function menuFor(
     }
     default:
       return {
-        title: "적용범위 판정",
+        title: "진단·설정",
         groups: [
           {
-            title: "현재 적용범위 판정",
+            title: "진단·설정",
             items: [
+              { label: "기관 기본정보" },
+              { label: "조직도·담당자 등록" },
               {
-                label: "대상 정보 및 적용 법령",
+                label: "적용 법령 자동 추천",
                 href: "/applicability",
                 selected: true,
               },
+              { label: "법령 예외 처리 및 사유이력" },
             ],
           },
         ],
@@ -283,49 +268,49 @@ function menuFor(
 
 const shellStyles = `
   .adoms-shell .main-header {
-    min-height: 96px;
-    grid-template-columns: 304px minmax(620px, 1fr) 280px;
-    background: #17151a;
-    border-bottom: 1px solid #2f2a32;
-    box-shadow: 0 10px 28px rgba(30, 24, 31, .14);
+    min-height: 72px;
+    grid-template-columns: 296px minmax(560px, 1fr) auto;
+    background: #172b4d;
+    border-bottom: 1px solid #10213c;
+    box-shadow: 0 10px 28px rgba(23, 43, 77, .16);
   }
   .adoms-shell .brand {
     padding: 0 22px; gap: 12px; background: #fff;
     border-right: 1px solid #eee8ef;
   }
-  .adoms-shell .brand-logo { width: 126px; }
-  .adoms-shell .brand-divider { height: 42px; background: #ded7df; }
+  .adoms-shell .brand-logo { width: 118px; }
+  .adoms-shell .brand-divider { height: 34px; background: #d9e0e8; }
   .adoms-shell .brand-product { color: #1e2124; font-size: 14px; font-weight: 750; line-height: 1.32; }
-  .adoms-shell .top-nav { justify-content: center; gap: clamp(10px, 1.2vw, 22px); padding: 0 14px; }
+  .adoms-shell .top-nav { justify-content: flex-end; gap: clamp(12px, 1.3vw, 24px); padding: 0 16px; }
   .adoms-shell .top-nav a,
   .adoms-shell .top-nav .top-nav-label {
-    height: 100%; padding: 3px 1px 0; border-bottom: 3px solid transparent;
+    height: 72px; padding: 3px 1px 0; border-bottom: 3px solid transparent;
     display: flex; align-items: center; color: #ddd8df; font-size: 14px; font-weight: 650;
   }
   .adoms-shell .top-nav a:hover,
-  .adoms-shell .top-nav a.active { color: #ff6a88; border-bottom-color: #df3355; }
+  .adoms-shell .top-nav a.active { color: #8dc6ed; border-bottom-color: #5aa7d6; }
   .adoms-shell .user-tools {
-    gap: 5px; padding: 9px 16px; border-left: 1px solid #39333c;
-    background: #111014;
+    flex-direction: row; align-items: center; gap: 7px; padding: 0 16px; border-left: 1px solid #2b456c;
+    background: #10213c;
   }
-  .adoms-shell .connection-pill { padding: 4px 8px; color: #f1c779; background: #33291a; font-size: 12px; }
+  .adoms-shell .connection-pill { padding: 5px 8px; color: #f1c779; background: #33291a; font-size: 10px; white-space: nowrap; }
   .adoms-shell .connection-pill[data-connected="true"] { color: #8fe6d7; background: #173b36; }
   .adoms-shell .user-copy span { color: #aaa3ad; font-size: 12px; }
   .adoms-shell .user-copy strong { font-size: 14px; }
   .adoms-shell .role-select-wrap select {
     border-color: #594c60; border-radius: 8px; background: #2c2730; color: #fff;
-    font-size: 12px; padding: 7px 28px 7px 10px;
+    font-size: 11px; padding: 6px 26px 6px 9px;
   }
-  .adoms-shell .role-select-wrap svg { top: 8px; color: #d8d1da; }
+  .adoms-shell .role-select-wrap svg { top: 7px; color: #d8d1da; }
   .adoms-shell .header-actions button {
     border-color: #554b58; border-radius: 8px; color: #ddd6df; padding: 5px 9px;
-    font-size: 12px;
+    font-size: 11px; white-space: nowrap;
   }
-  .adoms-shell .header-actions button:hover { background: #4c2849; border-color: #a93193; color: #fff; }
-  .adoms-shell .workspace { --side-width: 280px; max-width: 1920px; background: #f7f7fa; }
+  .adoms-shell .header-actions button:hover { background: #1d4f78; border-color: #5aa7d6; color: #fff; }
+  .adoms-shell .workspace { display: block; max-width: none; background: #f5f6f8; }
   .adoms-shell .side-panel {
     padding: 28px 20px 30px 26px; min-height: calc(100vh - 134px);
-    background: linear-gradient(165deg, #f7dff1 0%, #f9edf5 52%, #fbfbdc 120%);
+    background: linear-gradient(165deg, #e7f1f8 0%, #eef4f8 52%, #fbfbdc 120%);
     border-right: 1px solid #eadde8;
   }
   .adoms-shell .side-menu-container {
@@ -334,13 +319,13 @@ const shellStyles = `
   }
   .adoms-shell .side-kicker {
     margin-bottom: 18px; padding: 14px 16px; border-radius: 10px;
-    background: linear-gradient(135deg, #a93193, #df3355);
-    box-shadow: 0 10px 22px rgba(169, 49, 147, .18);
+    background: linear-gradient(135deg, #1d6fa3, #2f66b0);
+    box-shadow: 0 10px 22px rgba(29, 111, 163, .18);
     color: #fff; font-size: 20px; font-weight: 800; line-height: 1.2;
   }
   .adoms-shell .side-group { margin-bottom: 16px; }
   .adoms-shell .side-group-title {
-    padding: 10px 13px; border-radius: 8px; background: #5e3682; color: #fff;
+    padding: 10px 13px; border-radius: 8px; background: #172b4d; color: #fff;
     font-size: 14px; font-weight: 750;
   }
   .adoms-shell .side-group-title svg { width: 15px; height: 15px; transform: rotate(180deg); }
@@ -349,13 +334,13 @@ const shellStyles = `
     position: relative; display: block; width: 100%; padding: 9px 9px 9px 22px;
     border-radius: 7px; color: #3e3741; font-size: 14px; line-height: 1.35; text-align: left;
   }
-  .adoms-shell .side-items a.side-item:hover { color: #a93193; background: rgba(255,255,255,.52); }
+  .adoms-shell .side-items a.side-item:hover { color: #1d6fa3; background: rgba(255,255,255,.52); }
   .adoms-shell .side-items .side-item.nested { padding-left: 34px; color: #706a72; font-size: 12px; }
-  .adoms-shell .side-items .side-item.selected { color: #9b226f; background: rgba(255,255,255,.72); font-weight: 800; }
+  .adoms-shell .side-items .side-item.selected { color: #155985; background: rgba(255,255,255,.72); font-weight: 800; }
   .adoms-shell .side-item-count { margin-left: auto; color: #807681; font-size: 11px; font-weight: 800; }
-  .adoms-shell .side-items .side-item.selected .side-item-count { color: #9b226f; }
+  .adoms-shell .side-items .side-item.selected .side-item-count { color: #155985; }
   .adoms-shell .side-dot {
-    left: 7px; top: 12px; width: 7px; height: 7px; border: 3px solid #df3355;
+    left: 7px; top: 12px; width: 7px; height: 7px; border: 3px solid #2f66b0;
     background: #fff; box-sizing: content-box;
   }
   .adoms-shell .home-side-menu .side-kicker { margin-bottom: 14px; }
@@ -389,17 +374,31 @@ const shellStyles = `
     border-color: #dccfdd; border-radius: 8px; color: #392d3c; font-size: 14px; padding: 9px 10px;
   }
   .adoms-shell .page-stage {
-    padding: 32px 36px 52px;
-    background:
-      radial-gradient(circle at 82% 0%, rgba(247,223,241,.48), transparent 27%),
-      #f7f7fa;
+    width: 100%; padding: 28px 32px 52px;
+    background: #f5f6f8;
   }
+  .adoms-shell .diagnosis-subnav {
+    display: flex; align-items: center; gap: 8px; width: 100%; max-width: 1720px;
+    margin: 0 auto 18px; padding: 10px; border: 1px solid #dce3ea; border-radius: 10px;
+    background: #fff; box-shadow: 0 5px 16px rgba(23,43,77,.04);
+  }
+  .adoms-shell .diagnosis-subnav span,
+  .adoms-shell .diagnosis-subnav a {
+    display: inline-flex; align-items: center; min-height: 34px; padding: 0 13px;
+    border: 1px solid transparent; border-radius: 8px; color: #6c7789;
+    font-size: 12px; font-weight: 700;
+  }
+  .adoms-shell .diagnosis-subnav a.active {
+    border-color: #b9d3e6; background: #e7f1f8; color: #155985;
+  }
+  .adoms-shell .diagnosis-subnav span { color: #9aa3ae; background: #f5f6f8; }
+  .adoms-shell .diagnosis-subnav em { margin-left: 6px; color: #8a94a3; font-size: 9px; font-style: normal; }
   .adoms-shell .main-footer {
     min-height: 38px; padding: 0 40px; border-top: 1px solid #e6e1e7;
     background: #fff; color: #848087; font-size: 12px;
   }
   @media (max-width: 1380px) {
-    .adoms-shell .main-header { grid-template-columns: 282px minmax(540px, 1fr) 250px; }
+    .adoms-shell .main-header { grid-template-columns: 270px minmax(500px, 1fr) auto; }
     .adoms-shell .workspace { --side-width: 252px; }
     .adoms-shell .side-panel { padding-left: 20px; }
     .adoms-shell .top-nav { gap: 8px; padding-inline: 8px; }
@@ -410,37 +409,24 @@ const shellStyles = `
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const [location, navigate] = useLocation();
-  const { role, setRole, selectedTargetId, setSelectedTargetId, resetDemo } =
-    useDemo();
-  const [targets, setTargets] = useState(
-    demoTargets.map(target => ({ id: target.id, name: target.name }))
-  );
+  const { role, setRole, resetDemo } = useDemo();
   const [connection, setConnection] = useState({
     connected: false,
     reason: "연결 확인 중",
   });
-  const [homeNavigation, setHomeNavigation] =
-    useState<HomeNavigationData | null>(null);
   const homeHref = "/home";
-  const sideMenu = menuFor(location, homeNavigation);
 
   useEffect(() => {
     checkSupabaseConnection().then(setConnection);
-    loadManagedTargets().then(result => {
-      setTargets(
-        result.rows
-          .filter(target => target.obligationCount > 0)
-          .map(target => ({ id: target.id, name: target.name }))
-      );
-    });
-    loadHomeNavigation().then(setHomeNavigation);
   }, []);
 
   const activeHref =
     location === "/home" || location.startsWith("/home/")
       ? "/home"
-      : location === "/" || location === "/applicability"
-        ? "/applicability"
+      : location === "/" ||
+          location === "/applicability" ||
+          location === "/settings"
+        ? "/settings"
         : location === "/laws" || location === "/obligations"
           ? "/obligations"
           : location;
@@ -488,23 +474,17 @@ export default function AppShell({ children }: { children: ReactNode }) {
           >
             <Database size={12} /> {connection.reason}
           </div>
-          <div className="user-row">
-            <div className="user-copy">
-              <span>{roleMeta[role].org}</span>
-              <strong>{roleMeta[role].name}</strong>
-            </div>
-            <div className="role-select-wrap">
-              <select
-                value={role}
-                onChange={event => setRole(event.target.value as Role)}
-                aria-label="시연 역할 전환"
-              >
-                <option>경영책임자</option>
-                <option>실·국 점검자</option>
-                <option>담당자</option>
-              </select>
-              <ChevronDown size={13} />
-            </div>
+          <div className="role-select-wrap">
+            <select
+              value={role}
+              onChange={event => setRole(event.target.value as Role)}
+              aria-label="시연 역할 전환"
+            >
+              <option>경영책임자</option>
+              <option>실·국 점검자</option>
+              <option>담당자</option>
+            </select>
+            <ChevronDown size={13} />
           </div>
           <div className="header-actions">
             <button
@@ -513,74 +493,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 navigate(homeHref);
               }}
             >
-              <RefreshCcw size={12} /> 시연 초기화
+              <RefreshCcw size={12} /> 초기화
             </button>
           </div>
         </div>
       </header>
 
       <div className="workspace">
-        <aside className="side-panel">
-          <div
-            className={`side-menu-container${routeKey(location) === "home" ? " home-side-menu" : ""}`}
-          >
-            <div className="side-kicker">{sideMenu.title}</div>
-            {sideMenu.groups.map(group => (
-              <section className="side-group" key={group.title}>
-                <div className="side-group-title">
-                  <span>{group.title}</span>
-                  <ChevronDown size={16} aria-hidden="true" />
-                </div>
-                <div className="side-items">
-                  {group.items.map(item => {
-                    const className = `side-item${item.selected ? " selected" : ""}${item.nested ? " nested" : ""}`;
-                    const contents = (
-                      <>
-                        {item.selected && <span className="side-dot" />}
-                        <span className="side-item-label">{item.label}</span>
-                        {typeof item.count === "number" && (
-                          <strong className="side-item-count">
-                            {item.count.toLocaleString("ko-KR")}
-                          </strong>
-                        )}
-                      </>
-                    );
-                    return item.href ? (
-                      <Link
-                        key={item.label}
-                        href={item.href}
-                        className={className}
-                      >
-                        {contents}
-                      </Link>
-                    ) : (
-                      <span className={className} key={item.label}>
-                        {contents}
-                      </span>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-            {routeKey(location) !== "home" && (
-              <div className="side-target">
-                <label htmlFor="target-select">현재 관리대상</label>
-                <select
-                  id="target-select"
-                  value={selectedTargetId}
-                  onChange={event => setSelectedTargetId(event.target.value)}
-                >
-                  {targets.map(target => (
-                    <option key={target.id} value={target.id}>
-                      {target.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        </aside>
-
         <main className="page-stage">{children}</main>
       </div>
 
