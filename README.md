@@ -69,12 +69,15 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 6. `supabase/migrations/007_facility_workflow_bridge.sql`
 7. `supabase/migrations/008_yongin_obligation_pool.sql`
 8. `supabase/migrations/009_legal_source_popup.sql`
-9. `supabase/seed.sql`
-10. `supabase/seed_adoms.sql`
-11. `supabase/seed_facility_catalog.sql`
-12. `supabase/seed_yongin_obligation_pool.sql`
-13. `supabase/seed_facility_workflow.sql`
-14. `supabase/seed_legal_source_popup.sql`
+9. `supabase/migrations/010_yongin_org_catalog.sql`
+10. `supabase/migrations/011_yongin_org_tree_view.sql`
+11. `supabase/seed.sql`
+12. `supabase/seed_adoms.sql`
+13. `supabase/seed_facility_catalog.sql`
+14. `supabase/seed_yongin_obligation_pool.sql`
+15. `supabase/seed_facility_workflow.sql`
+16. `supabase/seed_legal_source_popup.sql`
+17. `supabase/seed_yongin_org.sql`
 
 `seed_adoms.sql`은 스키마 변경 없이 ADOMS 그래프 식별자를 보존한 법령 104건·조문 304건·의무 216건·규칙 128건·연결 128건을 추가합니다. 실제 SQL에서 `demo_approved=true`인 ADOMS 규칙·연결은 31건이며, 첫 화면에서는 용인시청 시연과 직접 관련된 승인 규칙 4개를 실행합니다.
 
@@ -83,6 +86,8 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 `seed_facility_catalog.sql`은 FMS 시설 150건과 의무 조인 2,906건을 적재하고, 공중교통수단 1건·도급 2건과 해당 의무 23건을 `DEMO_VIRTUAL`로 분리해 총 153개 대상·2,929개 매핑을 구성합니다. `seed_facility_workflow.sql`은 제외 대상을 빼고 151개 대상·2,891개 의무를 실제 업무 테이블에 idempotent 투영합니다.
 
 `seed_legal_source_popup.sql`은 관리대상 화면에서 사용하는 ADOMS 정식 조문 원문 100행과 법령 문서 13건을 적재합니다. 용인시청 로컬 의무 `OBL-01`~`OBL-10`은 별칭 브리지로 정식 `unit_id`에 연결되며 `OBL-10`은 제6조·제11조 두 원문을 함께 보여준다. 법령 최근 개정일·현행법령 시행일은 2026-09-06 국가법령정보센터 조회 스냅숏이고, 조문 효력일과 원문은 ADOMS 사실층 기준이다.
+
+`seed_yongin_org.sql`은 용인특례시 공식 조직도 3개 화면과 공개 부서 상세에서 파싱한 활성 조직 단위 792건을 적재한다. 공식 구조인 시청 2실·13국·66과, 직속기관 4기관·9과, 사업소 5개·14과, 3개 구청·38과·39읍면동을 보존하며, 팀 590건은 공개 직위의 고유한 `…팀장` 명칭에서만 파생한다. 개인 이름은 적재하지 않는다.
 
 ## 검증
 
@@ -98,6 +103,7 @@ pnpm smoke:core
 pnpm smoke:home
 pnpm smoke:facility
 pnpm smoke:legal-source
+pnpm smoke:org
 pnpm smoke:workflow
 ```
 
@@ -119,6 +125,7 @@ pnpm smoke:workflow
 - `docs/FACILITY_DATA_IMPORT.md`: FMS 시설·의무 매핑·공중교통수단·도급 시연값 구분
 - `docs/YONGIN_CORE_DATA_VERIFICATION.md`: 세 CSV 해시·논리 행·조인 무결성·원격 적재 검증
 - `docs/LEGAL_SOURCE_POPUP.md`: ADOMS 원문·국가법령정보센터 날짜·별칭 연결 기준
+- `docs/YONGIN_ORG_IMPORT.md`: 용인시 공식 조직도 파싱·수량·Supabase 계층·재현 절차
 - `docs/IA_IMPLEMENTATION_NOTES_20260906.md`: 기능 IA 메뉴·색상·조직 데이터 공백 반영 기준
 - `docs/REDESIGN_BRIEF_20260906.md`: 초기 용인시 브랜드 톤 복원과 공통 디자인 토큰
 - `docs/FONT_SIZE_SPEC.md`: Inter·Noto Sans KR 기반 통일 폰트 규격

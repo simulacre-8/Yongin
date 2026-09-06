@@ -16,6 +16,7 @@
     "smoke:core": "tsx scripts/yongin-core-data-smoke.ts",
     "smoke:home": "tsx scripts/home-obligation-smoke.ts",
     "smoke:legal-source": "tsx scripts/legal-source-popup-smoke.ts",
+    "smoke:org": "tsx scripts/yongin-org-smoke.ts",
     "smoke:workflow": "tsx scripts/facility-workflow-smoke.ts",
     "format": "prettier --write ."
   },

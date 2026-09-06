@@ -1,0 +1,60 @@
+{
+  "snapshot_date": "2026-09-06",
+  "fetched_at": "2026-09-06T13:51:50+00:00",
+  "source_urls": [
+    "https://www.yongin.go.kr/home/yiIf/yiIfHall/organizeGuide/organizeGuide01.jsp",
+    "https://www.yongin.go.kr/home/yiIf/yiIfHall/organizeGuide/organizeGuide02.jsp",
+    "https://www.yongin.go.kr/home/yiIf/yiIfHall/organizeGuide/organizeGuide03.jsp",
+    "https://www.yongin.go.kr/common/orgcht/BD_selectOrgList.do"
+  ],
+  "total_units": 792,
+  "counts_by_type": {
+    "BUREAU": 13,
+    "CITY": 1,
+    "COUNCIL_OFFICE": 1,
+    "DEPARTMENT": 129,
+    "DIRECT_AGENCY": 4,
+    "DISTRICT": 3,
+    "EXECUTIVE": 3,
+    "GROUP": 2,
+    "LOCAL_OFFICE": 39,
+    "OFFICE": 2,
+    "SERVICE_OFFICE": 5,
+    "TEAM": 590
+  },
+  "team_counts_by_section": {
+    "3개구청": 216,
+    "사업소": 48,
+    "시청": 277,
+    "의회사무국": 10,
+    "직속기관": 39
+  },
+  "team_counts_by_parent_type": {
+    "3개구청/DEPARTMENT": 119,
+    "3개구청/LOCAL_OFFICE": 97,
+    "사업소/DEPARTMENT": 41,
+    "사업소/SERVICE_OFFICE": 7,
+    "시청/DEPARTMENT": 277,
+    "의회사무국/DEPARTMENT": 10,
+    "직속기관/DEPARTMENT": 39
+  },
+  "detail_requests": 169,
+  "expected_official_counts": {
+    "city_departments": 66,
+    "city_teams": 276,
+    "council_departments": 2,
+    "council_teams": 9,
+    "direct_agencies": 4,
+    "direct_departments": 9,
+    "direct_teams": 39,
+    "service_offices": 5,
+    "service_departments": 14,
+    "service_teams": 66,
+    "districts": 3,
+    "district_departments": 38,
+    "district_teams": 166,
+    "local_offices": 39
+  },
+  "team_count_note": "Official page totals count chart teams. Derived TEAM rows include only currently published unique positions ending in 팀장; 읍·면·동 teams are reported separately and official summary totals can differ from live staff listings.",
+  "privacy_scope": "No personal names; organization units, public codes, locations and team representative phones only."
+}
