@@ -115,6 +115,7 @@ pnpm smoke:facility
 pnpm smoke:legal-source
 pnpm smoke:org
 pnpm smoke:my-work
+pnpm smoke:my-work-storage
 pnpm smoke:workflow
 ```
 

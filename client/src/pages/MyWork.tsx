@@ -29,6 +29,12 @@ import {
 } from "@/components/ui/dialog";
 import { useDemo } from "@/contexts/DemoContext";
 import {
+  formatMyWorkFileSelection,
+  MY_WORK_FILE_ACCEPT,
+  MY_WORK_FILE_GUIDE,
+  validateMyWorkFile,
+} from "@/lib/my-work-files";
+import {
   acceptMyWork,
   addMyWorkAttachment,
   assignMyWork,
@@ -64,6 +70,12 @@ const statusOptions: Array<{ value: MyWorkStatus | "ALL"; label: string }> = [
   { value: "COMPLETED", label: "완료" },
   { value: "NOT_APPLICABLE", label: "해당 없음" },
 ];
+
+const actionableStatuses = new Set<MyWorkStatus>([
+  "ACCEPTED",
+  "IN_PROGRESS",
+  "SUPPLEMENT_REQUIRED",
+]);
 
 const eventLabels: Record<string, string> = {
   CREATED: "업무 생성",
@@ -195,6 +207,7 @@ export default function MyWork() {
   );
   const [submitting, setSubmitting] = useState(false);
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const delegationUploadRef = useRef<HTMLInputElement | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -409,6 +422,14 @@ export default function MyWork() {
       );
       return;
     }
+    try {
+      validateMyWorkFile(delegationDraft.file);
+    } catch (reason) {
+      toast.error(
+        reason instanceof Error ? reason.message : "파일을 확인해 주세요."
+      );
+      return;
+    }
     const draft = delegationDraft;
     const selectedOrg = delegationDraft.org;
     const basisFile = delegationDraft.file;
@@ -479,6 +500,14 @@ export default function MyWork() {
 
   const confirmAttachment = (item: MyWorkItem, file?: File) => {
     if (!file) return;
+    try {
+      validateMyWorkFile(file);
+    } catch (reason) {
+      toast.error(
+        reason instanceof Error ? reason.message : "파일을 확인해 주세요."
+      );
+      return;
+    }
     setConfirmAction({
       title: "첨부파일을 저장하시겠습니까?",
       description: `${item.obligationTitle}에 ${file.name} (${Math.max(1, Math.ceil(file.size / 1024)).toLocaleString()}KB)을 등록합니다. 파일과 메타데이터, 발생시각·기록시각이 시연 런타임 DB에 저장됩니다.`,
@@ -682,6 +711,11 @@ export default function MyWork() {
             </select>
           </section>
 
+          <p className="my-work-file-policy">
+            첨부 가능: {MY_WORK_FILE_GUIDE} · 한글 파일명은 원본 표시명으로
+            보존됩니다.
+          </p>
+
           <div className="my-work-list-head">
             <div>
               <strong>나의 할 일</strong>
@@ -818,9 +852,7 @@ export default function MyWork() {
                     )}
                     {item.assignedOrgKey &&
                       item.acceptedAt &&
-                      !["COMPLETED", "NOT_APPLICABLE"].includes(
-                        item.statusCode
-                      ) && (
+                      actionableStatuses.has(item.statusCode) && (
                         <button
                           type="button"
                           onClick={() =>
@@ -836,7 +868,7 @@ export default function MyWork() {
                       )}
                     {item.assignedOrgKey &&
                       item.acceptedAt &&
-                      item.statusCode !== "COMPLETED" && (
+                      actionableStatuses.has(item.statusCode) && (
                         <button
                           type="button"
                           className="primary"
@@ -853,7 +885,7 @@ export default function MyWork() {
                       )}
                     {item.assignedOrgKey &&
                       item.acceptedAt &&
-                      item.statusCode !== "COMPLETED" && (
+                      actionableStatuses.has(item.statusCode) && (
                         <button
                           type="button"
                           onClick={() =>
@@ -886,11 +918,7 @@ export default function MyWork() {
                       )}
                     {item.assignedOrgKey &&
                       item.acceptedAt &&
-                      [
-                        "ACCEPTED",
-                        "IN_PROGRESS",
-                        "SUPPLEMENT_REQUIRED",
-                      ].includes(item.statusCode) && (
+                      actionableStatuses.has(item.statusCode) && (
                         <button
                           type="button"
                           onClick={() =>
@@ -909,6 +937,7 @@ export default function MyWork() {
                         uploadRefs.current[item.workItemId] = element;
                       }}
                       type="file"
+                      accept={MY_WORK_FILE_ACCEPT}
                       hidden
                       onChange={event => {
                         confirmAttachment(item, event.target.files?.[0]);
@@ -918,7 +947,7 @@ export default function MyWork() {
                     <button
                       type="button"
                       className="icon-action"
-                      title="파일 첨부"
+                      title={`파일 첨부 · ${MY_WORK_FILE_GUIDE}`}
                       aria-label={`${item.obligationTitle} 파일 첨부`}
                       onClick={() =>
                         uploadRefs.current[item.workItemId]?.click()
@@ -1269,23 +1298,43 @@ export default function MyWork() {
                     placeholder="위임이 필요한 근거와 인계사항을 입력하세요"
                   />
                 </label>
-                <label className="full file-field">
+                <div className="full file-field">
                   <span>근거자료 등록 (필수)</span>
                   <input
+                    ref={delegationUploadRef}
                     type="file"
-                    accept=".pdf,.hwp,.hwpx,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.txt"
-                    onChange={event =>
-                      setDelegationDraft({
-                        ...delegationDraft,
-                        file: event.target.files?.[0],
-                      })
-                    }
+                    accept={MY_WORK_FILE_ACCEPT}
+                    hidden
+                    onChange={event => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        validateMyWorkFile(file);
+                        setDelegationDraft({ ...delegationDraft, file });
+                      } catch (reason) {
+                        event.currentTarget.value = "";
+                        toast.error(
+                          reason instanceof Error
+                            ? reason.message
+                            : "파일을 확인해 주세요."
+                        );
+                      }
+                    }}
                   />
-                  <small>
-                    {delegationDraft.file?.name ||
-                      "10MB 이하 파일을 선택하세요."}
-                  </small>
-                </label>
+                  <div className="file-field-control">
+                    <button
+                      type="button"
+                      className="file-select-button"
+                      onClick={() => delegationUploadRef.current?.click()}
+                    >
+                      파일 선택
+                    </button>
+                    <small>
+                      {formatMyWorkFileSelection(delegationDraft.file)}
+                    </small>
+                  </div>
+                  <p>{MY_WORK_FILE_GUIDE}</p>
+                </div>
               </div>
               <DialogFooter>
                 <button

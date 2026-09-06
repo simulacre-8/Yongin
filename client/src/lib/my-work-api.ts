@@ -4,6 +4,7 @@ import {
   formatLegalArticlePath,
   formatObligationFrequency,
 } from "@/lib/facility-obligation-api";
+import { buildMyWorkStoragePath } from "@/lib/my-work-files";
 
 const EVIDENCE_BUCKET = "evidence-private";
 export const MY_WORK_PAGE_SIZE = 20;
@@ -571,25 +572,9 @@ export async function confirmMyWorkCompletion(input: {
   return data;
 }
 
-function safeSegment(value: string) {
-  return value.normalize("NFKC").replace(/[^0-9A-Za-z가-힣._-]+/g, "-");
-}
-
-function validateFile(file: File) {
-  if (file.size < 1 || file.size > 10 * 1024 * 1024) {
-    throw new Error("첨부파일은 1바이트 이상 10MB 이하만 등록할 수 있습니다.");
-  }
-}
-
 async function uploadWorkFile(workItemId: string, file: File) {
-  validateFile(file);
   const client = requireSupabase();
-  const storagePath = [
-    "demo",
-    "my-work",
-    safeSegment(workItemId),
-    `${crypto.randomUUID()}-${safeSegment(file.name)}`,
-  ].join("/");
+  const storagePath = buildMyWorkStoragePath(workItemId, file);
   const { error } = await client.storage
     .from(EVIDENCE_BUCKET)
     .upload(storagePath, file, {

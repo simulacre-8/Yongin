@@ -63,6 +63,8 @@
 
 목록에서는 자동·수동 배정, 수락, 업무 시작, 상태 변경, 완료, 완료 확인, 위임요청, 첨부, 이력, 선택 CSV를 처리한다. 미배정 업무는 먼저 공식 조직도에서 담당 조직을 선택해야 상태를 변경할 수 있다. 위임요청은 대상 조직, 근거 메모, 10MB 이하 근거파일을 필수로 요구한다. 일반 첨부도 파일 선택 후 파일명·크기를 보여주는 확인 모달을 거쳐야 Storage와 메타데이터에 저장된다.
 
+시연 첨부 허용 형식은 `HWP`, `TXT`, `PNG`, `JPG/JPEG`, `DOC/DOCX`, `PDF`이고 파일당 최대 크기는 10MB다. Supabase Storage 객체 키에는 원본 파일명을 넣지 않고 `demo/my-work/{workItemId}/{UUID}.{extension}` 형태의 ASCII 경로만 사용한다. 따라서 한글·공백·괄호가 포함된 원본명도 Storage의 `Invalid key` 오류 없이 업로드되며, 원본 파일명은 `demo_work_attachment.original_name`에 별도로 보존해 목록과 다운로드 파일명에 사용한다.
+
 CSV는 법률명·한글 조항호목·주기뿐 아니라 배정·수락·위임·재배정·완료·확인·레코드 생성·수정 시각과 첨부파일명을 분리해 출력한다. 셀 값이 `=`, `+`, `-`, `@`로 시작하면 스프레드시트 수식 실행을 방지하도록 작은따옴표를 앞에 붙인다.[2]
 
 ## 공유 시연 보안 경계
@@ -73,7 +75,7 @@ CSV는 법률명·한글 조항호목·주기뿐 아니라 배정·수락·위�
 
 ## 검증
 
-`pnpm smoke:my-work`는 공개 publishable key로 수동배정, 수락, 진행, 첨부 업로드·다운로드, 완료, 완료 확인자·확인시각, 위임요청, 이력의 `occurred_at`·`created_at` 분리를 검증한다. 검증 종료 시 내 업무 DB와 `demo/my-work/**` 파일을 초기화하고 2,891건 기준상태, 자동 2,235건, 수동 656건, 첨부 0건, 위임 0건을 확인한다. 초기화 중 기존 `evidence` 행 수와 `demo/my-work` 바깥 Storage 목록이 바뀌지 않는 것도 함께 확인한다.[4]
+`pnpm smoke:my-work`는 공개 publishable key로 수동배정, 수락, 진행, 첨부 업로드·다운로드, 완료, 완료 확인자·확인시각, 위임요청, 이력의 `occurred_at`·`created_at` 분리를 검증한다. 검증 종료 시 내 업무 DB와 `demo/my-work/**` 파일을 초기화하고 2,891건 기준상태, 자동 2,235건, 수동 656건, 첨부 0건, 위임 0건을 확인한다. 초기화 중 기존 `evidence` 행 수와 `demo/my-work` 바깥 Storage 목록이 바뀌지 않는 것도 함께 확인한다.[4] `pnpm smoke:my-work-storage`는 한글 원본 PDF 이름을 ASCII 객체 키로 변환한 뒤 실제 Storage 업로드·다운로드·삭제를 수행한다.[8]
 
 ## References
 
@@ -84,3 +86,4 @@ CSV는 법률명·한글 조항호목·주기뿐 아니라 배정·수락·위�
 [5]: https://github.com/simulacre-8/Yongin/blob/main/supabase/migrations/015_harden_demo_my_work_transitions.sql "My Work transition hardening migration"
 [6]: https://github.com/simulacre-8/Yongin/blob/main/supabase/migrations/018_guard_demo_work_status_transitions.sql "My Work table-level lifecycle guard"
 [7]: https://github.com/simulacre-8/Yongin/blob/main/supabase/seed_my_work_runtime.sql "My Work post-reference runtime seed"
+[8]: https://github.com/simulacre-8/Yongin/blob/main/scripts/my-work-storage-path-smoke.ts "My Work Korean filename Storage path smoke"
