@@ -38,9 +38,24 @@ import {
 } from "@/components/ui/dialog";
 
 type Screen = "target-list" | "target-form" | "contract-list" | "contract-form";
-type TargetKind = "사업장" | "시설물" | "공중교통수단" | "도급·용역·위탁";
+type TargetKind =
+  | "사업장"
+  | "공중이용시설"
+  | "공중교통수단"
+  | "원료·제조물"
+  | "도급·용역·위탁";
 type TargetStatusFilter = "전체" | "미입력" | "입력";
 type DutyStatus = "이행완료" | "보완필요" | "미이행";
+
+function matchesTargetKind(item: ManagedTargetRow, kind: TargetKind): boolean {
+  if (kind === "공중이용시설") return item.category === "시설물";
+  if (kind === "원료·제조물") return false;
+  return item.category === kind;
+}
+
+function displayTargetCategory(item: ManagedTargetRow): string {
+  return item.category === "시설물" ? "공중이용시설" : item.category;
+}
 
 type Person = {
   id: string;
@@ -360,7 +375,7 @@ function FileRows({
 export default function Targets() {
   const { selectedTargetId, setSelectedTargetId } = useDemo();
   const [screen, setScreen] = useState<Screen>("target-list");
-  const [targetKind, setTargetKind] = useState<TargetKind>("시설물");
+  const [targetKind, setTargetKind] = useState<TargetKind>("공중이용시설");
   const [statusFilter, setStatusFilter] = useState<TargetStatusFilter>("전체");
   const [searchCondition, setSearchCondition] = useState("관리대상명");
   const [query, setQuery] = useState("");
@@ -475,7 +490,7 @@ export default function Targets() {
   const normalizedQuery = searchedQuery.trim();
   const filteredTargets = useMemo(() => {
     const base = managedTargets.filter(item => {
-      if (item.category !== targetKind) return false;
+      if (!matchesTargetKind(item, targetKind)) return false;
       const searchable =
         searchCondition === "담당자"
           ? item.manager
@@ -510,6 +525,14 @@ export default function Targets() {
     (sum, type) => sum + (headcounts[type]?.field || 0),
     0
   );
+  const searchPlaceholder =
+    searchCondition === "담당자"
+      ? "담당자명을 입력하세요"
+      : searchCondition === "부서명"
+        ? "부서명을 입력하세요"
+        : targetKind === "도급·용역·위탁"
+          ? "계약명을 입력하세요"
+          : "관리대상명을 입력하세요";
 
   const announce = (message: string) => {
     setToast(message);
@@ -831,6 +854,7 @@ export default function Targets() {
               <span style={tableCellStyle}>
                 <button
                   type="button"
+                  className="adoms-legal-basis-button"
                   aria-label={`${obligation.lawName} ${obligation.article} 원문 보기`}
                   title="조문 원문 보기"
                   onClick={() => setSelectedLegalBasis(obligation)}
@@ -839,7 +863,8 @@ export default function Targets() {
                     border: 0,
                     color: "#8b256f",
                     background: "transparent",
-                    font: "inherit",
+                    fontFamily: "inherit",
+                    fontSize: 11,
                     fontWeight: 750,
                     lineHeight: 1.55,
                     textAlign: "left",
@@ -885,16 +910,9 @@ export default function Targets() {
           >
             기본정보
           </p>
-          <h1>{targetKind}</h1>
+          <h1>관리대상</h1>
           <p>용인시 소관 관리대상과 대상별 적용 의무를 확인합니다.</p>
         </div>
-        <button
-          type="button"
-          className="adoms-business-tab secondary-btn"
-          onClick={() => setScreen("contract-list")}
-        >
-          사업 · 도급·용역·위탁 현황
-        </button>
       </div>
 
       <section
@@ -931,8 +949,9 @@ export default function Targets() {
             {(
               [
                 "사업장",
-                "시설물",
+                "공중이용시설",
                 "공중교통수단",
+                "원료·제조물",
                 "도급·용역·위탁",
               ] as TargetKind[]
             ).map(kind => (
@@ -1003,7 +1022,9 @@ export default function Targets() {
               marginLeft: 18,
             }}
           >
-            <option>관리대상명</option>
+            <option value="관리대상명">
+              {targetKind === "도급·용역·위탁" ? "계약명" : "관리대상명"}
+            </option>
             <option>부서명</option>
             <option>담당자</option>
           </select>
@@ -1018,7 +1039,7 @@ export default function Targets() {
                   announce("검색 조건을 적용했습니다.");
                 }
               }}
-              placeholder={`${targetKind} 명칭을 입력하세요`}
+              placeholder={searchPlaceholder}
               style={fieldStyle}
             />
             <Search
@@ -1194,7 +1215,13 @@ export default function Targets() {
             textAlign: "center",
           }}
         >
-          {["관리대상명", "분류", "주소", "적용의무", "데이터"].map(label => (
+          {[
+            targetKind === "도급·용역·위탁" ? "계약명" : "관리대상명",
+            "분류",
+            "주소",
+            "적용의무",
+            "데이터",
+          ].map(label => (
             <span
               className="adoms-table-head"
               key={label}
@@ -1232,7 +1259,7 @@ export default function Targets() {
               >
                 {item.name}
               </span>
-              <span style={tableCellStyle}>{item.category}</span>
+              <span style={tableCellStyle}>{displayTargetCategory(item)}</span>
               <span style={tableCellStyle}>{item.address}</span>
               <span style={{ ...tableCellStyle, textAlign: "center" }}>
                 {item.obligationCount}건
@@ -1278,7 +1305,7 @@ export default function Targets() {
               fontSize: 12,
             }}
           >
-            기본정보 / {selected.category}
+            기본정보 / {displayTargetCategory(selected)}
           </p>
           <h1>
             {selected.category === "사업장"
@@ -1288,16 +1315,9 @@ export default function Targets() {
           <p>
             {selected.category === "사업장"
               ? "기준일자별 근무인원과 담당자 정보를 하나의 양식에서 저장합니다."
-              : "선택 관리대상의 기준정보와 시설별 법령 의무 매핑을 확인합니다."}
+              : "선택 관리대상의 기준정보와 대상별 법령 의무 매핑을 확인합니다."}
           </p>
         </div>
-        <button
-          type="button"
-          className="adoms-business-tab secondary-btn"
-          onClick={() => setScreen("contract-list")}
-        >
-          사업 · 도급·용역·위탁 현황
-        </button>
       </div>
 
       <section
@@ -2678,8 +2698,6 @@ export default function Targets() {
     <div className="page adoms-targets-page">
       {screen === "target-list" && renderTargetList()}
       {screen === "target-form" && renderTargetForm()}
-      {screen === "contract-list" && renderContractList()}
-      {screen === "contract-form" && renderContractForm()}
       <Dialog
         open={Boolean(selectedLegalBasis)}
         onOpenChange={open => {

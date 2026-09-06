@@ -66,15 +66,7 @@ function menuFor(location: string): { title: string; groups: LnbGroup[] } {
         groups: [
           {
             title: "기본정보",
-            items: [
-              { label: "사업장", href: "/targets", selected: true },
-              { label: "공중이용시설" },
-              { label: "원료·제조물" },
-            ],
-          },
-          {
-            title: "사업",
-            items: [{ label: "도급·용역·위탁 현황" }],
+            items: [{ label: "관리대상", href: "/targets", selected: true }],
           },
         ],
       };
@@ -101,7 +93,7 @@ function menuFor(location: string): { title: string; groups: LnbGroup[] } {
             items: [
               { label: "사업장" },
               {
-                label: "공중이용시설·교통수단",
+                label: "공중이용시설·공중교통수단",
                 href: "/obligations",
                 selected: true,
               },

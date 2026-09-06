@@ -2793,6 +2793,10 @@ a {
   overflow-wrap: anywhere;
 }
 
+.adoms-targets-page .adoms-legal-basis-button {
+  font-size: 11px !important;
+}
+
 @media (max-width: 760px) {
   .legal-source-date-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

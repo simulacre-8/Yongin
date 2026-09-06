@@ -849,7 +849,7 @@ export default function Obligations() {
     <main className="adoms-obligations-page" style={styles.page}>
       <div className="adoms-obligations-heading" style={styles.heading}>
         <h1 className="adoms-obligations-title" style={styles.title}>
-          법 의무사항 공중이용시설·교통수단
+          공중이용시설·공중교통수단
         </h1>
         <div className="adoms-obligations-target" style={styles.target}>
           <span style={styles.targetLabel}>데이터 원천</span>
