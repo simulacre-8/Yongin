@@ -3211,3 +3211,15 @@ a {
     position: static;
   }
 }
+
+@media (min-width: 1181px) and (max-width: 1450px) {
+  .applicability-workbench.results-only .trace-panel {
+    grid-column: auto;
+    position: sticky;
+  }
+
+  .applicability-workbench.results-only .trace-panel .rule-evidence {
+    display: block;
+    width: auto;
+  }
+}
