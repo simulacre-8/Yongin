@@ -21,10 +21,11 @@ function Router() {
   return (
     <AppShell>
       <Switch>
-        <Route path="/" component={Applicability} />
+        <Route path="/" component={Home} />
         <Route path="/home" component={Home} />
         <Route path="/home/:view" component={Home} />
         <Route path="/home/:view/:detailId" component={Home} />
+        <Route path="/settings/applicability" component={Applicability} />
         <Route path="/applicability" component={Applicability} />
         <Route path="/settings" component={Settings} />
         <Route path="/dashboard" component={Dashboard} />

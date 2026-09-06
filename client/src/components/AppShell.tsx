@@ -28,8 +28,10 @@ const gnbItems = [
 ];
 
 function routeKey(location: string) {
-  if (location === "/home" || location.startsWith("/home/")) return "home";
-  if (location === "/" || location === "/applicability") return "applicability";
+  if (location === "/" || location === "/home" || location.startsWith("/home/"))
+    return "home";
+  if (location === "/applicability" || location === "/settings/applicability")
+    return "applicability";
   if (location === "/dashboard") return "dashboard";
   if (location === "/targets") return "targets";
   if (location === "/laws") return "laws";
@@ -253,7 +255,7 @@ function menuFor(
               { label: "조직도·담당자 등록" },
               {
                 label: "적용 법령 자동 추천",
-                href: "/applicability",
+                href: "/settings/applicability",
                 selected: true,
               },
               { label: "법령 예외 처리 및 사유이력" },
@@ -419,11 +421,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   const activeHref =
-    location === "/home" || location.startsWith("/home/")
+    location === "/" || location === "/home" || location.startsWith("/home/")
       ? "/home"
-      : location === "/" ||
-          location === "/applicability" ||
-          location === "/settings"
+      : location === "/applicability" || location.startsWith("/settings")
         ? "/settings"
         : location === "/laws" || location === "/obligations"
           ? "/obligations"

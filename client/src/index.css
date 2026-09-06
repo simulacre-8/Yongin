@@ -3223,3 +3223,357 @@ a {
     width: auto;
   }
 }
+
+/* Applicability — unified public-sector blue decision layout */
+.applicability-page {
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+.applicability-page .source-badge {
+  border-color: #dce3ea;
+  background: #fff;
+  color: #526174;
+}
+
+.applicability-page .source-badge svg,
+.applicability-page .workbench-title > span svg {
+  color: #1d6fa3;
+}
+
+.applicability-page .source-version {
+  color: #69778a;
+}
+
+.applicability-page .applicability-workbench.results-only {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.applicability-page .result-panel,
+.applicability-page .trace-panel {
+  position: static;
+  border: 1px solid #dce3ea;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(23, 43, 77, 0.05);
+}
+
+.applicability-page .workbench-title {
+  min-height: 50px;
+  padding: 0 16px;
+  border-bottom: 1px solid #e3e9ef;
+  background: #f7f9fb;
+  color: #172b4d;
+}
+
+.applicability-page .workbench-title > span {
+  font-size: 12px;
+}
+
+.applicability-page .workbench-title em {
+  color: #677386;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.applicability-decision-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 16px;
+  background: #f5f7fa;
+}
+
+.decision-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dce3ea;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(23, 43, 77, 0.04);
+}
+
+.decision-card > header {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid #e4eaf0;
+  background: #eef4f8;
+  color: #172b4d;
+}
+
+.decision-card > header > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.decision-card > header strong,
+.decision-card > header b {
+  font-size: 12px;
+}
+
+.decision-card > p {
+  min-height: 52px;
+  margin: 0;
+  padding: 11px 14px;
+  border-bottom: 1px solid #e8edf2;
+  color: #657287;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.matched-card {
+  border-top: 3px solid #1d6fa3;
+}
+
+.matched-card > header svg {
+  color: #1d6fa3;
+}
+
+.conditional-card {
+  border-top: 3px solid #4c7faa;
+}
+
+.conditional-card > header svg {
+  color: #4c7faa;
+}
+
+.source-review-card {
+  border-top: 3px solid #6e7f91;
+}
+
+.source-review-card > header svg {
+  color: #6e7f91;
+}
+
+.applicability-page .candidate-list {
+  max-height: 256px;
+  background: #fff;
+}
+
+.applicability-page .candidate-list button {
+  min-height: 62px;
+  padding: 10px 13px;
+  border-top: 1px solid #e8edf2;
+}
+
+.applicability-page .candidate-list button:hover,
+.applicability-page .candidate-list button.selected {
+  background: #eef4f8;
+  box-shadow: inset 3px 0 #1d6fa3;
+}
+
+.applicability-page .candidate-list button strong {
+  color: #26354a;
+  font-size: 11px;
+}
+
+.applicability-page .candidate-list button small {
+  color: #768396;
+  font-size: 9px;
+}
+
+.applicability-page .candidate-list button em {
+  color: #155985;
+  background: #e7f1f8;
+  font-size: 9px;
+}
+
+.applicability-page .conditional-card .candidate-list button em {
+  color: #466682;
+  background: #edf2f6;
+}
+
+.source-review-note {
+  display: flex;
+  min-height: 145px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  margin: 14px;
+  padding: 18px;
+  border: 1px dashed #bdc9d5;
+  border-radius: 9px;
+  background: #f7f9fb;
+}
+
+.source-review-note strong {
+  color: #172b4d;
+  font-size: 12px;
+}
+
+.source-review-note span {
+  color: #1d6fa3;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.source-review-note small {
+  color: #748195;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.trace-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  gap: 22px;
+  padding: 20px;
+}
+
+.applicability-page .trace-kicker,
+.applicability-page .trace-panel h2,
+.applicability-page .trace-detail,
+.applicability-page .trace-law {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.applicability-page .trace-kicker {
+  margin-top: 0;
+  color: #1d6fa3;
+  font-size: 10px;
+}
+
+.applicability-page .trace-panel h2 {
+  margin-top: 7px;
+  color: #172b4d;
+  font-size: 19px;
+}
+
+.applicability-page .trace-detail {
+  color: #657287;
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.applicability-page .trace-law {
+  padding: 11px 13px;
+  border-radius: 8px;
+  background: #1d6fa3;
+  font-size: 10px;
+}
+
+.applicability-page .trace-box {
+  margin-right: 0;
+  margin-left: 0;
+  border-color: #d8e4ed;
+  background: #eef4f8;
+}
+
+.trace-route-list {
+  counter-reset: decision-route;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trace-route-list li {
+  counter-increment: decision-route;
+  position: relative;
+  display: flex;
+  min-height: 64px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 12px 10px 48px;
+  border-bottom: 1px solid #e3e9ef;
+}
+
+.trace-route-list li:first-child {
+  border-top: 1px solid #e3e9ef;
+}
+
+.trace-route-list li::before {
+  content: counter(decision-route);
+  position: absolute;
+  left: 8px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 8px;
+  background: #172b4d;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.trace-route-list strong {
+  color: #314057;
+  font-size: 11px;
+}
+
+.trace-route-list span {
+  color: #6a778b;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.trace-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 20px 20px;
+}
+
+.applicability-page .rule-evidence {
+  margin: 0;
+  border-color: #dce3ea;
+  border-radius: 9px;
+}
+
+.applicability-page .rule-evidence > header {
+  padding: 9px 11px;
+  background: #eef4f8;
+}
+
+.applicability-page .rule-evidence > header code,
+.applicability-page .rule-evidence > header b {
+  color: #155985;
+  font-size: 10px;
+}
+
+.applicability-page .rule-evidence.held > header {
+  background: #f1f4f7;
+}
+
+.applicability-page .rule-evidence.held > header code,
+.applicability-page .rule-evidence.held > header b {
+  color: #526b82;
+}
+
+.applicability-page .rule-evidence dl {
+  padding: 9px 11px;
+}
+
+.applicability-page .rule-evidence dl > div {
+  grid-template-columns: 70px 1fr;
+  font-size: 9px;
+}
+
+.applicability-page .rule-evidence blockquote {
+  color: #344257;
+  background: #f8fafc;
+  border-color: #1d6fa3;
+  font-size: 10px;
+}
+
+.applicability-page .rule-evidence > p {
+  color: #687589;
+  font-size: 9px;
+}
+
+@media (max-width: 1180px) {
+  .applicability-decision-grid,
+  .trace-content-grid,
+  .trace-evidence-grid {
+    grid-template-columns: 1fr;
+  }
+}

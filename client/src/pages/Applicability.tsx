@@ -2,12 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import {
   AlertTriangle,
-  ArrowRight,
   BookOpenCheck,
   CheckCircle2,
   CircleHelp,
   DatabaseZap,
-  GitBranch,
   Settings2,
 } from "lucide-react";
 import {
@@ -83,7 +81,7 @@ export default function Applicability() {
     <div className="page applicability-page">
       <div className="page-heading applicability-heading">
         <div>
-          <span className="eyebrow">APPLICABILITY · L1 → L2 → L3</span>
+          <span className="eyebrow">진단·설정</span>
           <h1>적용범위 판정</h1>
           <p>
             설정에 저장된 대상 사실값으로 법령·관리대상·의무 후보를 확인합니다.
@@ -122,106 +120,103 @@ export default function Applicability() {
         <section className="result-panel">
           <div className="workbench-title">
             <span>
-              <GitBranch size={16} /> L1·L2·L3 적용 후보
+              <CheckCircle2 size={16} /> 승인규칙 판정 결과
             </span>
             <em>{dataset.source === "supabase" ? "DB 조회" : "내장 규칙"}</em>
           </div>
-          <div className="layer-flow">
-            <div>
-              <small>L1 · 법령 후보</small>
-              <strong>{assessment.lawCandidates.length}</strong>
-              <span>{assessment.lawCandidates.join(" · ") || "판정 보류"}</span>
-            </div>
-            <ArrowRight size={17} />
-            <div>
-              <small>L2 · 대상 후보</small>
-              <strong>{facts.targetTrack === "public_facility" ? 1 : 0}</strong>
-              <span>{facts.profile}</span>
-            </div>
-            <ArrowRight size={17} />
-            <div>
-              <small>L3 · 의무 후보</small>
-              <strong>{assessment.matchedObligationIds.length}</strong>
-              <span>추가 확인 {assessment.heldObligationIds.length}건</span>
-            </div>
-          </div>
+          <div className="applicability-decision-grid">
+            <article className="decision-card matched-card">
+              <header>
+                <span>
+                  <CheckCircle2 size={17} />
+                  <strong>조건 충족</strong>
+                </span>
+                <b>{assessment.matchedObligationIds.length}건</b>
+              </header>
+              <p>저장된 사실값으로 적용 조건이 충족된 의무입니다.</p>
+              <div className="candidate-list">
+                {assessment.obligationResults
+                  .filter(item => item.matched)
+                  .map(item => (
+                    <button
+                      key={item.id}
+                      className={
+                        selectedObligation.id === item.id ? "selected" : ""
+                      }
+                      onClick={() => setSelectedObligationId(item.id)}
+                    >
+                      <span>
+                        <strong>{item.title}</strong>
+                        <small>
+                          {item.lawName} · {item.article}
+                        </small>
+                      </span>
+                      <em>
+                        {item.logic === "all"
+                          ? "모든 조건 충족"
+                          : "조건 중 하나 충족"}
+                      </em>
+                    </button>
+                  ))}
+              </div>
+            </article>
 
-          <div className="confidence-band matched-band">
-            <header>
-              <CheckCircle2 size={16} />
-              <strong>조건 충족</strong>
-              <b>{assessment.matchedObligationIds.length}건</b>
-            </header>
-            <div className="candidate-list">
-              {assessment.obligationResults
-                .filter(item => item.matched)
-                .map(item => (
-                  <button
-                    key={item.id}
-                    className={
-                      selectedObligation.id === item.id ? "selected" : ""
-                    }
-                    onClick={() => setSelectedObligationId(item.id)}
-                  >
-                    <span>
-                      <strong>{item.title}</strong>
-                      <small>
-                        {item.lawName} · {item.article}
-                      </small>
-                    </span>
-                    <em>
-                      {item.logic === "all"
-                        ? "모든 조건 충족"
-                        : "조건 중 하나 충족"}
-                    </em>
-                  </button>
-                ))}
-            </div>
-          </div>
+            <article className="decision-card conditional-card">
+              <header>
+                <span>
+                  <CircleHelp size={17} />
+                  <strong>추가 확인</strong>
+                </span>
+                <b>{assessment.heldObligationIds.length}건</b>
+              </header>
+              <p>적용 여부를 확정하려면 대상 사실값을 추가 확인해야 합니다.</p>
+              <div className="candidate-list">
+                {assessment.obligationResults
+                  .filter(item => !item.matched)
+                  .map(item => (
+                    <button
+                      key={item.id}
+                      className={
+                        selectedObligation.id === item.id ? "selected" : ""
+                      }
+                      onClick={() => setSelectedObligationId(item.id)}
+                    >
+                      <span>
+                        <strong>{item.title}</strong>
+                        <small>
+                          {item.lawName} · {item.article}
+                        </small>
+                      </span>
+                      <em>사실값 확인</em>
+                    </button>
+                  ))}
+              </div>
+            </article>
 
-          <div className="confidence-band conditional-band">
-            <header>
-              <CircleHelp size={16} />
-              <strong>추가 확인</strong>
-              <b>{assessment.heldObligationIds.length}건</b>
-            </header>
-            <div className="candidate-list">
-              {assessment.obligationResults
-                .filter(item => !item.matched)
-                .map(item => (
-                  <button
-                    key={item.id}
-                    className={
-                      selectedObligation.id === item.id ? "selected" : ""
-                    }
-                    onClick={() => setSelectedObligationId(item.id)}
-                  >
-                    <span>
-                      <strong>{item.title}</strong>
-                      <small>
-                        {item.lawName} · {item.article}
-                      </small>
-                    </span>
-                    <em>사실값 확인</em>
-                  </button>
-                ))}
-            </div>
-          </div>
-
-          <div className="confidence-band review-band">
-            <header>
-              <AlertTriangle size={16} />
-              <strong>원천 검수 필요</strong>
-              <b>별도 큐</b>
-            </header>
-            <p>
-              검수되지 않은 규칙은 데이터베이스에 보존하되 자동 판정 결과에서
-              제외합니다.
-            </p>
+            <article className="decision-card source-review-card">
+              <header>
+                <span>
+                  <AlertTriangle size={17} />
+                  <strong>원천 검수 필요</strong>
+                </span>
+                <b>별도 큐</b>
+              </header>
+              <p>
+                승인되지 않은 규칙은 데이터베이스에 보존하되 자동 판정 결과에서
+                제외합니다.
+              </p>
+              <div className="source-review-note">
+                <strong>현재 자동 판정</strong>
+                <span>{dataset.rules.length}개 승인규칙만 실행</span>
+                <small>
+                  검수 대기 규칙은 승인 후 같은 판정 화면에 포함됩니다.
+                </small>
+              </div>
+            </article>
           </div>
         </section>
 
-        <aside className="trace-panel">
+        <section className="trace-panel">
           <div className="workbench-title">
             <span>
               <BookOpenCheck size={16} /> 근거·판정 경로
@@ -230,78 +225,78 @@ export default function Applicability() {
               {selectedMatched ? "조건 충족" : "추가 확인"}
             </em>
           </div>
-          <span className="trace-kicker">{selectedObligation.group}</span>
-          <h2>{selectedObligation.title}</h2>
-          <p className="trace-detail">{selectedObligation.detail}</p>
-          <div className="trace-law">
-            <b>{selectedObligation.lawName}</b>
-            <span>{selectedObligation.article}</span>
-          </div>
-          {selectedObligation.securingLabel ? (
-            <div className="trace-box">
-              <span>중대재해처벌법 확보의무 연결</span>
-              <p>{selectedObligation.securingLabel}</p>
+          <div className="trace-content-grid">
+            <div className="trace-overview">
+              <span className="trace-kicker">{selectedObligation.group}</span>
+              <h2>{selectedObligation.title}</h2>
+              <p className="trace-detail">{selectedObligation.detail}</p>
+              <div className="trace-law">
+                <b>{selectedObligation.lawName}</b>
+                <span>{selectedObligation.article}</span>
+              </div>
+              {selectedObligation.securingLabel ? (
+                <div className="trace-box">
+                  <span>중대재해처벌법 확보의무 연결</span>
+                  <p>{selectedObligation.securingLabel}</p>
+                </div>
+              ) : null}
             </div>
-          ) : null}
 
-          <ol className="trace-timeline">
-            <li>
-              <i>L1</i>
-              <div>
-                <strong>법령 후보 탐색</strong>
+            <ol className="trace-route-list">
+              <li>
+                <strong>적용 법령</strong>
                 <span>{selectedObligation.lawName}</span>
-              </div>
-            </li>
-            <li>
-              <i>L2</i>
-              <div>
-                <strong>대상 유형 확인</strong>
-                <span>{facts.profile}</span>
-              </div>
-            </li>
-            <li>
-              <i>L3</i>
-              <div>
-                <strong>승인 규칙 평가</strong>
+              </li>
+              <li>
+                <strong>대상 사실</strong>
+                <span>
+                  {facts.profile} · 상시근로자 {facts.workerCount}명 · 연면적{" "}
+                  {facts.grossArea.toLocaleString()}㎡
+                </span>
+              </li>
+              <li>
+                <strong>판정 규칙</strong>
                 <span>
                   {selectedRules
                     .map(rule => `${rule.id} ${ruleState(rule)}`)
-                    .join(" / ")}
+                    .join(" / ") || "연결 규칙 확인 필요"}
                 </span>
-              </div>
-            </li>
-          </ol>
+              </li>
+            </ol>
+          </div>
 
-          {selectedRules.map(rule => (
-            <article
-              className={`rule-evidence ${rule.matched ? "matched" : "held"}`}
-              key={rule.id}
-            >
-              <header>
-                <code>{rule.id}</code>
-                <b>{ruleState(rule)}</b>
-              </header>
-              <dl>
-                <div>
-                  <dt>조건</dt>
-                  <dd>{rule.conditionLabel}</dd>
-                </div>
-                <div>
-                  <dt>입력값</dt>
-                  <dd>{rule.actual}</dd>
-                </div>
-                <div>
-                  <dt>근거 ID</dt>
-                  <dd>
-                    <code>{rule.unitId}</code>
-                  </dd>
-                </div>
-              </dl>
-              <blockquote>{rule.sourceQuote}</blockquote>
-              <p>{rule.explanation}</p>
-            </article>
-          ))}
-        </aside>
+          <div className="trace-evidence-grid">
+            {selectedRules.map(rule => (
+              <article
+                className={`rule-evidence ${rule.matched ? "matched" : "held"}`}
+                key={rule.id}
+              >
+                <header>
+                  <code>{rule.id}</code>
+                  <b>{ruleState(rule)}</b>
+                </header>
+                <dl>
+                  <div>
+                    <dt>조건</dt>
+                    <dd>{rule.conditionLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>입력값</dt>
+                    <dd>{rule.actual}</dd>
+                  </div>
+                  <div>
+                    <dt>근거 ID</dt>
+                    <dd>
+                      <code>{rule.unitId}</code>
+                    </dd>
+                  </div>
+                </dl>
+                <blockquote>{rule.sourceQuote}</blockquote>
+                <p>{rule.explanation}</p>
+              </article>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );

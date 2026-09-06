@@ -231,7 +231,10 @@ export default function Settings() {
               )}
               {saveStatus === "saving" ? "저장 중" : "사실값 저장"}
             </button>
-            <Link href="/applicability" className="secondary-link-button">
+            <Link
+              href="/settings/applicability"
+              className="secondary-link-button"
+            >
               적용범위 판정 보기
             </Link>
           </div>
