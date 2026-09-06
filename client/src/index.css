@@ -5607,7 +5607,7 @@ a {
   gap: 12px;
 }
 
-.adoms-evidence-page .adoms-correction-entry > header > span {
+.adoms-evidence-page .adoms-correction-kind {
   min-width: 48px;
   padding: 4px 8px;
   border: 1px solid #b9d3e6;
@@ -5617,6 +5617,12 @@ a {
   font-size: 10px;
   font-weight: 800;
   text-align: center;
+}
+
+.adoms-evidence-page .adoms-correction-kind.is-urgent {
+  border-color: #e5a39d;
+  background: #fff0ef;
+  color: #b42318;
 }
 
 .adoms-evidence-page .adoms-log-attachments {

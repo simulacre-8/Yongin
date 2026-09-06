@@ -2251,7 +2251,13 @@ export default function Evidence() {
                           {sequence}차 시정조치 (
                           {formatActionDate(event.actionDate)})
                         </strong>
-                        <span>{actionType}</span>
+                        <span
+                          className={`adoms-correction-kind${
+                            actionType === "긴급" ? " is-urgent" : ""
+                          }`}
+                        >
+                          {actionType}
+                        </span>
                       </header>
                       <p>
                         상태{" "}
