@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { ChevronLeft, RotateCcw, Save, Search } from "lucide-react";
+import { ChevronLeft, RotateCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   loadManagedTargets,
@@ -837,8 +837,7 @@ export default function Obligations() {
             disabled={saving || obligationSource !== "supabase"}
             onClick={saveDueDates}
           >
-            <Save size={15} aria-hidden="true" />
-            {saving ? "저장 중" : "저장"}
+            저장
           </button>
         </div>
       </main>
@@ -855,10 +854,10 @@ export default function Obligations() {
           <span style={styles.targetLabel}>데이터 원천</span>
           <strong style={styles.targetName}>
             {facilitySource === "supabase"
-              ? `Supabase 시설 ${facilities.length}건`
+              ? `Supabase 시설 ${facilities.length}건 · DB 연결됨`
               : facilitySource === "loading"
                 ? "시설 DB 조회 중"
-                : "로컬 시연값"}
+                : "로컬 시연값 · DB 미연결"}
           </strong>
         </div>
       </div>

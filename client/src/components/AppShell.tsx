@@ -1,9 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { ChevronDown, Database, RefreshCcw } from "lucide-react";
+import { ChevronDown, RefreshCcw } from "lucide-react";
 import type { Role } from "@/lib/demo-data";
 import type { HomeNavigationData } from "@/lib/home-obligation-api";
-import { checkSupabaseConnection } from "@/lib/supabase";
 import { useDemo } from "@/contexts/DemoContext";
 
 type LnbItem = {
@@ -24,6 +23,7 @@ const gnbItems = [
   { href: "/targets", label: "관리대상" },
   { href: "/obligations", label: "의무 체크리스트" },
   { href: "/evidence", label: "의무이행" },
+  { href: "/dashboard", label: "내 업무" },
   { href: "/settings", label: "설정" },
 ];
 
@@ -276,7 +276,7 @@ const shellStyles = `
   }
   .adoms-shell .brand {
     padding: 0 22px; gap: 12px; background: #fff;
-    border-right: 1px solid #eee8ef;
+    border-right: 1px solid #dce3ea;
   }
   .adoms-shell .brand-logo { width: 118px; }
   .adoms-shell .brand-divider { height: 34px; background: #d9e0e8; }
@@ -285,7 +285,7 @@ const shellStyles = `
   .adoms-shell .top-nav a,
   .adoms-shell .top-nav .top-nav-label {
     height: 72px; padding: 3px 1px 0; border-bottom: 3px solid transparent;
-    display: flex; align-items: center; color: #ddd8df; font-size: 14px; font-weight: 650;
+    display: flex; align-items: center; color: #d9e4ef; font-size: 14px; font-weight: 650;
   }
   .adoms-shell .top-nav a:hover,
   .adoms-shell .top-nav a.active { color: #8dc6ed; border-bottom-color: #5aa7d6; }
@@ -293,17 +293,15 @@ const shellStyles = `
     flex-direction: row; align-items: center; gap: 7px; padding: 0 16px; border-left: 1px solid #2b456c;
     background: #10213c;
   }
-  .adoms-shell .connection-pill { padding: 5px 8px; color: #f1c779; background: #33291a; font-size: 10px; white-space: nowrap; }
-  .adoms-shell .connection-pill[data-connected="true"] { color: #8fe6d7; background: #173b36; }
   .adoms-shell .user-copy span { color: #aaa3ad; font-size: 12px; }
   .adoms-shell .user-copy strong { font-size: 14px; }
   .adoms-shell .role-select-wrap select {
-    border-color: #594c60; border-radius: 8px; background: #2c2730; color: #fff;
+    border-color: #4d6686; border-radius: 8px; background: #142a49; color: #fff;
     font-size: 11px; padding: 6px 26px 6px 9px;
   }
   .adoms-shell .role-select-wrap svg { top: 7px; color: #d8d1da; }
   .adoms-shell .header-actions button {
-    border-color: #554b58; border-radius: 8px; color: #ddd6df; padding: 5px 9px;
+    border-color: #4d6686; border-radius: 8px; color: #d9e4ef; padding: 5px 9px;
     font-size: 11px; white-space: nowrap;
   }
   .adoms-shell .header-actions button:hover { background: #1d4f78; border-color: #5aa7d6; color: #fff; }
@@ -410,15 +408,7 @@ const shellStyles = `
 export default function AppShell({ children }: { children: ReactNode }) {
   const [location, navigate] = useLocation();
   const { role, setRole, resetDemo } = useDemo();
-  const [connection, setConnection] = useState({
-    connected: false,
-    reason: "연결 확인 중",
-  });
   const homeHref = "/home";
-
-  useEffect(() => {
-    checkSupabaseConnection().then(setConnection);
-  }, []);
 
   const activeHref =
     location === "/" || location === "/home" || location.startsWith("/home/")
@@ -466,12 +456,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="user-tools">
-          <div
-            className="connection-pill"
-            data-connected={connection.connected}
-          >
-            <Database size={12} /> {connection.reason}
-          </div>
           <div className="role-select-wrap">
             <select
               value={role}

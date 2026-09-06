@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import {
-  Building2,
-  CheckCircle2,
-  Database,
-  Save,
-  ShieldCheck,
-  Users,
-} from "lucide-react";
+import { Building2, Database, ShieldCheck, Users } from "lucide-react";
 import {
   loadApplicabilityDataset,
   loadStoredFacts,
@@ -109,10 +102,10 @@ export default function Settings() {
         >
           <Database size={15} />
           {dataStatus === "loading"
-            ? "Supabase 확인 중"
+            ? "데이터 원천 확인 중"
             : dataStatus === "remote"
-              ? "Supabase 승인규칙 연결"
-              : "내장 승인규칙 사용"}
+              ? "데이터 원천 Supabase · DB 연결됨"
+              : "내장 승인규칙 · DB 미연결"}
         </div>
       </div>
 
@@ -224,12 +217,7 @@ export default function Settings() {
               disabled={saveStatus === "saving"}
               onClick={handleSave}
             >
-              {saveStatus === "saved" ? (
-                <CheckCircle2 size={15} />
-              ) : (
-                <Save size={15} />
-              )}
-              {saveStatus === "saving" ? "저장 중" : "사실값 저장"}
+              저장
             </button>
             <Link
               href="/settings/applicability"

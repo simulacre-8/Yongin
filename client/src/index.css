@@ -3577,3 +3577,173 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* Final public-sector blue alignment: targets, checklist, evidence and settings */
+:is(.adoms-targets-page, .adoms-obligations-page, .adoms-evidence-page) {
+  color: #1b2330 !important;
+}
+
+.adoms-evidence-page .adoms-evidence-layout {
+  grid-template-columns: 220px minmax(0, 1fr) !important;
+}
+
+.adoms-evidence-page .adoms-duty-sidebar {
+  overflow: hidden;
+  border-color: #dce3ea !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 8px 22px rgba(22, 43, 77, 0.05) !important;
+}
+
+.adoms-evidence-page .adoms-duty-sidebar-title {
+  background: #172b4d !important;
+  color: #fff !important;
+}
+
+.adoms-evidence-page .adoms-track-label {
+  color: #6c7789 !important;
+}
+
+.adoms-evidence-page .adoms-group-label {
+  border-color: #dce3ea !important;
+  border-radius: 7px !important;
+  background: #f7f9fb !important;
+  color: #435064 !important;
+}
+
+.adoms-evidence-page .adoms-step-button {
+  border-radius: 7px !important;
+  color: #495468 !important;
+}
+
+.adoms-evidence-page .adoms-step-button:hover {
+  border-color: #cbdce9 !important;
+  background: #f4f8fb !important;
+  color: #1d6fa3 !important;
+}
+
+.adoms-evidence-page
+  .adoms-step-button[style*="background: rgb(231, 241, 248)"],
+.adoms-evidence-page .adoms-step-button[style*="background: #e7f1f8"] {
+  border-color: #b9d3e6 !important;
+  background: #e7f1f8 !important;
+  color: #155985 !important;
+}
+
+.adoms-evidence-page :is(.adoms-file-select, .adoms-roster-select) {
+  width: 30px !important;
+  min-width: 30px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 !important;
+  border: 1px solid #cfd8e1 !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  color: #1d6fa3 !important;
+}
+
+.adoms-evidence-page :is(.adoms-file-select, .adoms-roster-select):hover {
+  border-color: #1d6fa3 !important;
+  background: #eef4f8 !important;
+}
+
+:is(.adoms-targets-page, .adoms-obligations-page)
+  :is(.adoms-target-search, .adoms-obligations-filter-panel) {
+  border-color: #dce3ea !important;
+  background: #f4f6f8 !important;
+}
+
+:is(.adoms-targets-page, .adoms-obligations-page)
+  :is(.adoms-target-progress, .adoms-obligations-progress-card) {
+  border-color: #dce3ea !important;
+  background: #fff !important;
+}
+
+.adoms-targets-page :is(.adoms-target-kind, .adoms-status-filter),
+.adoms-obligations-page .adoms-obligations-target {
+  border-color: #dce3ea !important;
+  background: #fff !important;
+}
+
+.adoms-obligations-page .adoms-obligations-target {
+  border-radius: 9px !important;
+  background: #eef4f8 !important;
+}
+
+.adoms-obligations-page .adoms-obligations-target-name,
+.adoms-obligations-page .adoms-obligations-total strong {
+  color: #155985 !important;
+}
+
+.settings-data-state {
+  border-color: #b9d3e6;
+  background: #eef4f8;
+  color: #526174;
+}
+
+:is(.adoms-targets-page, .adoms-obligations-page)
+  :is(
+    .adoms-target-table,
+    .adoms-obligations-list-table,
+    .adoms-obligations-detail-table
+  )
+  th {
+  border-color: #d8e0e8 !important;
+  background: #eef2f5 !important;
+  color: #435064 !important;
+}
+
+:is(.adoms-targets-page, .adoms-obligations-page)
+  :is(
+    .adoms-target-table,
+    .adoms-obligations-list-table,
+    .adoms-obligations-detail-table
+  )
+  td {
+  border-color: #e5eaf0 !important;
+  color: #495468 !important;
+}
+
+:is(.adoms-targets-page, .adoms-obligations-page)
+  :is(.adoms-target-row, .adoms-obligations-list-row):hover {
+  background: #eef4f8 !important;
+}
+
+:is(.adoms-targets-page, .adoms-obligations-page)
+  :is(input, select, textarea):focus {
+  border-color: #1d6fa3 !important;
+  box-shadow: 0 0 0 3px rgba(29, 111, 163, 0.12) !important;
+}
+
+/* My Work dashboard — remove legacy pink/yellow surfaces */
+.adoms-dashboard .adoms-target-panel {
+  background: linear-gradient(155deg, #eef4f8, #fff 72%) !important;
+}
+
+.adoms-dashboard .adoms-overdue-card {
+  border-color: #dce3ea !important;
+  box-shadow:
+    inset 3px 0 #b03b45,
+    var(--shadow) !important;
+}
+
+.adoms-dashboard .adoms-grade {
+  border-color: #dce3ea !important;
+  background: #f7f9fb !important;
+}
+
+.adoms-dashboard .adoms-grade-active {
+  border-color: #b9d3e6 !important;
+  background: #e7f1f8 !important;
+  color: #155985 !important;
+}
+
+.adoms-dashboard .adoms-summary-table thead th {
+  background: #eef2f5 !important;
+  color: #435064 !important;
+}
+
+.adoms-dashboard .adoms-duty-item {
+  border-color: #dce3ea !important;
+  background: linear-gradient(135deg, #eef4f8, #f7f9fb) !important;
+}

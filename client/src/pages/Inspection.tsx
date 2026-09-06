@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { ChevronDown, Save, Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useDemo } from "@/contexts/DemoContext";
 import type { ComplianceStatus } from "@/lib/demo-data";
@@ -337,7 +337,7 @@ export default function Inspection() {
                     padding: "8px 16px",
                     border: 0,
                     borderBottom: "1px solid #e1e4e8",
-                    background: selected ? "#fbf0f8" : "#fff",
+                    background: selected ? "#e7f1f8" : "#fff",
                     textAlign: "left",
                   }}
                 >
@@ -425,7 +425,7 @@ export default function Inspection() {
                       gap: 10,
                       padding: "7px 14px",
                       borderBottom: "1px solid #e1e4e8",
-                      background: selected ? "#fbf0f8" : "#fff",
+                      background: selected ? "#e7f1f8" : "#fff",
                     }}
                   >
                     <SelectionButton
@@ -667,8 +667,7 @@ export default function Inspection() {
                           disabled={savingId === item.obligationId}
                           onClick={() => void saveInspection(item)}
                         >
-                          <Save size={14} />
-                          {savingId === item.obligationId ? "저장 중" : "저장"}
+                          저장
                         </button>
                       </span>
                     </div>

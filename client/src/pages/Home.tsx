@@ -92,8 +92,9 @@ const homeStyles = `
   .obligation-home-eyebrow { margin: 0 0 7px; color: #1d6fa3; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
   .obligation-home h1 { margin: 0; color: #1b2330; font-size: 28px; font-weight: 850; letter-spacing: -.045em; }
   .obligation-home-header p:last-child { margin: 8px 0 0; color: #6c7789; font-size: 13px; }
-  .obligation-home-source { display: flex; align-items: center; gap: 7px; padding: 10px 13px; border: 1px solid #dce3ea; border-radius: 9px; background: #fff; color: #6c7789; font-size: 11px; white-space: nowrap; }
+  .obligation-home-source { display: flex; align-items: center; gap: 7px; padding: 10px 13px; border: 1px solid #b9d3e6; border-radius: 9px; background: #eef4f8; color: #526174; font-size: 11px; white-space: nowrap; }
   .obligation-home-source strong { color: #1d6fa3; }
+  .obligation-home-source-status { padding-left: 8px; border-left: 1px solid #c8d7e2; color: #155985; font-weight: 800; }
   .obligation-home-kpis { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin-bottom: 14px; }
   .obligation-home-kpi { min-height: 88px; padding: 16px 17px; border: 1px solid #dce3ea; border-radius: 10px; background: #fff; box-shadow: 0 6px 18px rgba(22,43,77,.045); }
   .obligation-home-kpi span { display: block; color: #6c7789; font-size: 11px; font-weight: 700; }
@@ -512,6 +513,9 @@ export default function Home() {
                   <strong>
                     {source === "supabase" ? "Supabase" : "대체값"}
                   </strong>
+                  <span className="obligation-home-source-status">
+                    {source === "supabase" ? "DB 연결됨" : "DB 미연결"}
+                  </span>
                 </div>
               </header>
 

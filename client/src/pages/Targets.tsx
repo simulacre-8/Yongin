@@ -1910,7 +1910,7 @@ export default function Targets() {
             className="adoms-save-target primary-btn"
             onClick={saveTarget}
           >
-            <Check size={15} /> 저장하기
+            저장
           </button>
         )}
       </div>
@@ -2481,7 +2481,7 @@ export default function Targets() {
                         border: 0,
                         borderRight: "1px solid #dfe4de",
                         borderBottom: "1px solid #dfe4de",
-                        background: active ? "#fbf0f8" : "#fff",
+                        background: active ? "#e7f1f8" : "#fff",
                         color: "#435047",
                         textAlign: "left",
                         fontSize: 11,
@@ -2688,7 +2688,7 @@ export default function Targets() {
           className="adoms-save-contract primary-btn"
           onClick={saveContract}
         >
-          <Check size={15} /> 저장하기
+          저장
         </button>
       </div>
     </>
@@ -2706,7 +2706,7 @@ export default function Targets() {
       >
         <DialogContent
           aria-describedby="legal-basis-description"
-          className="legal-source-dialog max-h-[88vh] overflow-hidden border-[#d7d0d8] bg-[#fbfbfc] p-0 sm:max-w-[820px]"
+          className="legal-source-dialog max-h-[88vh] overflow-hidden border-[#dce3ea] bg-[#f8fafc] p-0 sm:max-w-[820px]"
         >
           {selectedLegalBasis && (
             <>
@@ -2715,10 +2715,10 @@ export default function Targets() {
                   style={{
                     width: "fit-content",
                     padding: "4px 9px",
-                    border: "1px solid #dfb8d6",
+                    border: "1px solid #b9d3e6",
                     borderRadius: 999,
                     color: "#1d6fa3",
-                    background: "#fff4fb",
+                    background: "#eef4f8",
                     fontSize: 10,
                     fontWeight: 800,
                     letterSpacing: ".05em",
@@ -2796,14 +2796,14 @@ export default function Targets() {
                           gap: 16,
                           padding: "14px 18px",
                           borderBottom: "1px solid #e7e8e8",
-                          background: "#faf7fa",
+                          background: "#f7f9fb",
                         }}
                       >
                         <div>
                           <strong
                             style={{
                               display: "block",
-                              color: "#9a267c",
+                              color: "#1d6fa3",
                               fontSize: 10,
                               marginBottom: 5,
                             }}
@@ -2841,7 +2841,7 @@ export default function Targets() {
                             rel="noreferrer"
                             style={{
                               flex: "0 0 auto",
-                              color: "#7d286b",
+                              color: "#155985",
                               fontSize: 10,
                               fontWeight: 750,
                               textDecoration: "underline",

@@ -6,7 +6,7 @@ import {
   type CSSProperties,
   type ReactElement,
 } from "react";
-import { Download, FilePlus2, Plus, Save, Trash2 } from "lucide-react";
+import { Download, FilePlus2, Paperclip, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ComplianceStatus } from "@/lib/demo-data";
 import { useDemo } from "@/contexts/DemoContext";
@@ -433,15 +433,20 @@ function AttachmentCell({
         <label
           htmlFor={inputId}
           className="adoms-file-select"
+          aria-label="파일 첨부"
+          title="파일 첨부"
           style={{
             ...smallButtonStyle,
             cursor: "pointer",
             display: "inline-flex",
             alignItems: "center",
-            gap: 4,
+            justifyContent: "center",
+            width: 30,
+            minHeight: 30,
+            padding: 0,
           }}
         >
-          <Plus size={13} /> 첨부
+          <Paperclip size={14} aria-hidden="true" />
         </label>
       </div>
     </div>
@@ -453,7 +458,7 @@ const iconButtonStyle: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   border: "1px solid #aeb8b2",
-  borderRadius: 1,
+  borderRadius: 8,
   background: "#fff",
   color: "#38463d",
   padding: 0,
@@ -461,10 +466,10 @@ const iconButtonStyle: CSSProperties = {
 
 const smallButtonStyle: CSSProperties = {
   minHeight: 27,
-  border: "1px solid #78877d",
-  borderRadius: 1,
+  border: "1px solid #cfd8e1",
+  borderRadius: 8,
   background: "#fff",
-  color: "#2f4135",
+  color: "#1d6fa3",
   padding: "4px 8px",
   fontSize: 11,
   fontWeight: 600,
@@ -1582,13 +1587,20 @@ export default function Evidence() {
                       <label
                         htmlFor={`roster-${row.id}`}
                         className="adoms-roster-select"
+                        aria-label="교육명부 첨부"
+                        title="교육명부 첨부"
                         style={{
                           ...smallButtonStyle,
                           cursor: "pointer",
-                          whiteSpace: "nowrap",
+                          display: "inline-flex",
+                          width: 30,
+                          minHeight: 30,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: 0,
                         }}
                       >
-                        명부선택
+                        <Paperclip size={14} aria-hidden="true" />
                       </label>
                       <button
                         className="adoms-roster-sample"
@@ -1661,7 +1673,7 @@ export default function Evidence() {
           }
           style={{ ...saveButtonStyle }}
         >
-          <Save size={14} /> 저장
+          저장
         </button>
       </div>
     </section>
@@ -1693,13 +1705,13 @@ export default function Evidence() {
         <aside
           className="adoms-duty-sidebar"
           aria-label="의무이행 단계"
-          style={{ border: "1px solid #d6d6dc", background: "#f2f2f4" }}
+          style={{ border: "1px solid #dce3ea", background: "#fff" }}
         >
           <div
             className="adoms-duty-sidebar-title"
             style={{
               padding: "14px 15px",
-              background: "#1d6fa3",
+              background: "#172b4d",
               color: "#fff",
               fontWeight: 700,
               fontSize: 14,
@@ -1711,7 +1723,7 @@ export default function Evidence() {
             className="adoms-track-label"
             style={{
               padding: "13px 15px 9px",
-              color: "#1d6fa3",
+              color: "#6c7789",
               fontWeight: 700,
               fontSize: 13,
             }}
@@ -1723,9 +1735,10 @@ export default function Evidence() {
             style={{
               margin: "5px 10px 4px",
               padding: "9px 10px",
-              border: "1px solid #d9b4d1",
-              background: "#f2f2f4",
-              color: "#4f4f55",
+              border: "1px solid #dce3ea",
+              borderRadius: 7,
+              background: "#f7f9fb",
+              color: "#435064",
               fontWeight: 700,
               fontSize: 12,
             }}
@@ -1972,7 +1985,7 @@ export default function Evidence() {
                 onClick={() => void saveCurrent()}
                 style={saveButtonStyle}
               >
-                <Save size={14} /> {saving ? "저장 중" : "저장"}
+                저장
               </button>
             </div>
           </section>
@@ -2061,9 +2074,9 @@ const stepButtonStyle: CSSProperties = {
 };
 
 const activeStepButtonStyle: CSSProperties = {
-  borderColor: "#d890ca",
-  background: "#f7e7f3",
-  color: "#1d6fa3",
+  borderColor: "#b9d3e6",
+  background: "#e7f1f8",
+  color: "#155985",
   fontWeight: 700,
 };
 
@@ -2073,7 +2086,7 @@ const saveButtonStyle: CSSProperties = {
   alignItems: "center",
   gap: 5,
   border: "1px solid #1d6fa3",
-  borderRadius: 1,
+  borderRadius: 8,
   background: "#1d6fa3",
   color: "#fff",
   padding: "6px 14px",
