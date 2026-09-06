@@ -96,6 +96,7 @@ export type LegalSource = {
 
 export type MappedObligation = DemoObligation & {
   layer: string;
+  frequency: string;
   evidence: string;
   mapReason: string;
   mapConfidence: string;
@@ -129,6 +130,59 @@ export function cycleToSchedule(cycle?: string | null): {
     ? { scheduleType: "half", defaultDue: "하반기" }
     : { scheduleType: "month", defaultDue: "2026-09" };
 }
+
+const NON_FREQUENCY_VALUES = new Set(["", "-", "미확정", "명문", "없음"]);
+
+export function formatObligationFrequency(
+  ...candidates: Array<string | null | undefined>
+): string {
+  const source = candidates
+    .map(value => String(value ?? "").trim())
+    .find(value => !NON_FREQUENCY_VALUES.has(value.replace(/\s+/g, "")));
+
+  if (!source) return "확인 필요";
+
+  const normalized = source.replace(/\s+/g, "");
+  if (normalized === "관계법령주기") return "관계 법령에 따름";
+  if (normalized === "대통령령") return "하위법령 기준";
+  if (normalized === "매년" || normalized === "연간") return "연 1회";
+  if (normalized === "정기적") return "정기";
+
+  return source
+    .replace(/^연\s*(\d+)회$/, "연 $1회")
+    .replace(/^반기\s*(\d+)회$/, "반기 $1회")
+    .replace(/^분기\s*(\d+)회$/, "분기 $1회")
+    .replace(/^월\s*(\d+)회$/, "월 $1회")
+    .replace(/^발생시$/, "발생 시")
+    .replace(/^작업전$/, "작업 전")
+    .replace(/^착공전$/, "착공 전")
+    .replace(/^준공시$/, "준공 시");
+}
+
+function formatEvidence(
+  mappingEvidence?: string | null,
+  evidenceRequired?: boolean
+): string {
+  const value = String(mappingEvidence ?? "").trim();
+  if (value && value !== "-" && value !== "미확정") return value;
+  return evidenceRequired ? "증빙 종류 확인 필요" : "미지정";
+}
+
+const CITYHALL_DUTY_PRESENTATION: Record<
+  string,
+  { frequency: string; evidence: string }
+> = {
+  "OBL-01": { frequency: "연 1회", evidence: "안전인력 배치·업무분장표" },
+  "OBL-02": { frequency: "연 1회", evidence: "예산 편성·집행 내역" },
+  "OBL-03": { frequency: "정기", evidence: "안전점검 결과서" },
+  "OBL-04": { frequency: "정기", evidence: "정밀안전진단 결과서" },
+  "OBL-05": { frequency: "연 1회", evidence: "시설물관리계획" },
+  "OBL-06": { frequency: "정기", evidence: "위험성평가표·개선조치 기록" },
+  "OBL-07": { frequency: "연 1회", evidence: "훈련계획·결과·참석부" },
+  "OBL-08": { frequency: "발생 시", evidence: "원인분석·재발방지대책서" },
+  "OBL-09": { frequency: "발생 시", evidence: "시정조치 지시·완료 기록" },
+  "OBL-10": { frequency: "상시", evidence: "관계 법령 이행점검표" },
+};
 
 export function formatLegalArticlePath(
   unitPath?: string | null,
@@ -247,7 +301,8 @@ export function joinMappedObligations(
   return mappings
     .map(mapping => {
       const master = masterById.get(mapping.obl_id);
-      const schedule = cycleToSchedule(mapping.cycle ?? master?.cycle);
+      const cycle = mapping.cycle?.trim() || master?.cycle?.trim();
+      const schedule = cycleToSchedule(cycle);
       const lawName = mapping.law_name || master?.law_name || "관계 법령";
       const article = formatLegalArticlePath(
         master?.unit_path || mapping.unit_path,
@@ -278,7 +333,8 @@ export function joinMappedObligations(
         scheduleType: schedule.scheduleType,
         defaultDue: schedule.defaultDue,
         layer: mapping.layer,
-        evidence: mapping.evidence || "",
+        frequency: formatObligationFrequency(cycle),
+        evidence: formatEvidence(mapping.evidence, master?.evidence_required),
         mapReason: mapping.map_reason || "",
         mapConfidence: mapping.map_confidence,
         applicability: mapping.l2_result,
@@ -316,10 +372,15 @@ function fallbackItems(
   return fallbackObligations.map(item => {
     const legalSources = sourceByKey.get(item.id) || [];
     const primarySource = legalSources[0];
+    const presentation = CITYHALL_DUTY_PRESENTATION[item.id] || {
+      frequency: "확인 필요",
+      evidence: "미지정",
+    };
     return {
       ...item,
       layer: "시연 기본값",
-      evidence: "",
+      frequency: presentation.frequency,
+      evidence: presentation.evidence,
       mapReason: legalSources.length
         ? "용인시청 기본 의무와 ADOMS 정식 조문 연결"
         : "Supabase 시설 매핑 조회 전 기본 시연 의무",

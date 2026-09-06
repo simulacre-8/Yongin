@@ -770,10 +770,10 @@ export default function Targets() {
         <div style={{ maxHeight: 440, overflow: "auto" }}>
           <div
             style={{
-              minWidth: 1000,
+              minWidth: 1180,
               display: "grid",
               gridTemplateColumns:
-                "50px 130px 150px minmax(240px,1.2fr) minmax(210px,1fr) minmax(150px,.7fr)",
+                "50px 125px 145px minmax(220px,1.1fr) minmax(220px,1fr) 110px minmax(190px,.9fr)",
               background: "#e9edf1",
               color: "#41484e",
               fontSize: 11,
@@ -786,7 +786,8 @@ export default function Targets() {
               "법령",
               "의무",
               "근거(법령·조문)",
-              "주기·증빙",
+              "주기",
+              "증빙",
             ].map(label => (
               <span
                 key={label}
@@ -804,10 +805,10 @@ export default function Targets() {
             <div
               key={obligation.id}
               style={{
-                minWidth: 1000,
+                minWidth: 1180,
                 display: "grid",
                 gridTemplateColumns:
-                  "50px 130px 150px minmax(240px,1.2fr) minmax(210px,1fr) minmax(150px,.7fr)",
+                  "50px 125px 145px minmax(220px,1.1fr) minmax(220px,1fr) 110px minmax(190px,.9fr)",
                 background: index % 2 === 0 ? "#fff" : "#fbfbfc",
               }}
             >
@@ -851,12 +852,10 @@ export default function Targets() {
                   {obligation.lawName} {obligation.article}
                 </button>
               </span>
-              <span style={tableCellStyle}>
-                {obligation.scheduleType === "half"
-                  ? "반기"
-                  : obligation.defaultDue}
-                {obligation.evidence ? ` · ${obligation.evidence}` : ""}
+              <span style={{ ...tableCellStyle, textAlign: "center" }}>
+                {obligation.frequency}
               </span>
+              <span style={tableCellStyle}>{obligation.evidence}</span>
             </div>
           ))}
         </div>

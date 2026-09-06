@@ -3,6 +3,7 @@ import {
   buildLegalSourceMap,
   cycleToSchedule,
   formatLegalArticlePath,
+  formatObligationFrequency,
   joinMappedObligations,
 } from "./facility-obligation-api";
 
@@ -16,6 +17,18 @@ describe("facility obligation adapter", () => {
       scheduleType: "month",
       defaultDue: "2026-09",
     });
+  });
+
+  it("keeps legal frequency separate from workflow due dates", () => {
+    expect(formatObligationFrequency("연1회")).toBe("연 1회");
+    expect(formatObligationFrequency("반기 1회")).toBe("반기 1회");
+    expect(formatObligationFrequency("발생시")).toBe("발생 시");
+    expect(formatObligationFrequency("", "정기")).toBe("정기");
+    expect(formatObligationFrequency("관계법령주기")).toBe("관계 법령에 따름");
+    expect(formatObligationFrequency("대통령령")).toBe("하위법령 기준");
+    expect(formatObligationFrequency("매년")).toBe("연 1회");
+    expect(formatObligationFrequency("미확정")).toBe("확인 필요");
+    expect(formatObligationFrequency(null)).not.toBe("2026-09");
   });
 
   it("joins the facility mapping with the obligation master without repeated detail", () => {
@@ -63,6 +76,8 @@ describe("facility obligation adapter", () => {
     expect(item.articleTitle).toBe("수도시설의 관리");
     expect(item.sourceText).toContain("급수설비의 상태");
     expect(item.lawId).toBe("LAW-KR-WATER");
+    expect(item.frequency).toBe("확인 필요");
+    expect(item.evidence).toBe("급수설비 검사");
     expect(item.detail).toBe("관계 법령에 따른 의무이행 · 증빙: 급수설비 검사");
   });
 
@@ -79,7 +94,7 @@ describe("facility obligation adapter", () => {
         law_name: "산업안전보건법",
         unit_path: "시나리오 명시",
         layer: "도급·용역·위탁",
-        cycle: null,
+        cycle: "계약 전",
         evidence: null,
         map_basis: "클라이언트 시연 시나리오 v1",
         map_reason: "시연 흐름",
@@ -113,6 +128,8 @@ describe("facility obligation adapter", () => {
     const [item] = joinMappedObligations(mappings, masters);
     expect(item.lawName).toBe("산업안전보건법");
     expect(item.article).toBe("제61조");
+    expect(item.frequency).toBe("계약 전");
+    expect(item.evidence).toBe("증빙 종류 확인 필요");
   });
 
   it("joins official amendment and effective dates to ordered ADOMS provisions", () => {
