@@ -566,7 +566,7 @@ export default function Evidence() {
             {
               ...seed,
               date: activeWorkflow.actionDate || DEFAULT_DATE,
-              category: activeWorkflow.group,
+              category: activeWorkflow.documentType,
               lawName: activeWorkflow.lawName,
               article: activeWorkflow.article,
               content: activeWorkflow.actionDetail || "",
@@ -1357,8 +1357,9 @@ export default function Evidence() {
       <thead>
         <tr>
           <th style={tableHeaderStyle}>구분</th>
-          <th style={tableHeaderStyle}>법령명</th>
-          <th style={tableHeaderStyle}>법령내용</th>
+          <th style={tableHeaderStyle}>법률명</th>
+          <th style={tableHeaderStyle}>조항·호·목</th>
+          <th style={tableHeaderStyle}>조치내용</th>
           <th style={tableHeaderStyle}>조치 일자</th>
           <th style={tableHeaderStyle}>
             증빙자료
@@ -1373,42 +1374,37 @@ export default function Evidence() {
         {activeRows.map(row => (
           <tr key={row.id}>
             <td style={tableCellStyle}>
-              <div style={{ display: "grid", gap: 4 }}>
-                <input
-                  style={{ ...inputStyle, background: "#f1f3f2" }}
-                  value={row.category}
-                  aria-label="법령 구분"
-                  onChange={event =>
-                    updateRow(activeId, row.id, {
-                      category: event.target.value,
-                    })
-                  }
-                />
-                <input
-                  style={{ ...inputStyle, background: "#f1f3f2" }}
-                  value={row.article || ""}
-                  aria-label="조항"
-                  onChange={event =>
-                    updateRow(activeId, row.id, { article: event.target.value })
-                  }
-                />
-              </div>
+              <input
+                className="adoms-legal-reference-input"
+                style={inputStyle}
+                value={row.category}
+                aria-label="법령 구분"
+                readOnly
+              />
             </td>
             <td style={tableCellStyle}>
               <input
-                style={{ ...inputStyle, background: "#f1f3f2" }}
+                className="adoms-legal-reference-input"
+                style={inputStyle}
                 value={row.lawName || ""}
-                aria-label="법령명"
-                onChange={event =>
-                  updateRow(activeId, row.id, { lawName: event.target.value })
-                }
+                aria-label="법률명"
+                readOnly
+              />
+            </td>
+            <td style={tableCellStyle}>
+              <input
+                className="adoms-legal-reference-input"
+                style={inputStyle}
+                value={row.article || ""}
+                aria-label="조항·호·목"
+                readOnly
               />
             </td>
             <td style={tableCellStyle}>
               <input
                 style={inputStyle}
                 value={row.content}
-                aria-label="법령내용"
+                aria-label="조치내용"
                 onChange={event =>
                   updateRow(activeId, row.id, { content: event.target.value })
                 }
@@ -1464,8 +1460,8 @@ export default function Evidence() {
           <thead>
             <tr>
               <th style={tableHeaderStyle}>법정교육명</th>
-              <th style={tableHeaderStyle}>법령명</th>
-              <th style={tableHeaderStyle}>조항</th>
+              <th style={tableHeaderStyle}>법률명</th>
+              <th style={tableHeaderStyle}>조항·호·목</th>
               <th style={tableHeaderStyle}>교육대상</th>
               <th style={tableHeaderStyle}>교육기관</th>
               <th style={tableHeaderStyle}>교육 일자</th>
@@ -1497,7 +1493,7 @@ export default function Evidence() {
                   <input
                     style={{ ...inputStyle, background: "#f1f3f2" }}
                     value={row.lawName || ""}
-                    aria-label="법령명"
+                    aria-label="법률명"
                     onChange={event =>
                       updateEducationRow(row.id, {
                         lawName: event.target.value,
@@ -1509,7 +1505,7 @@ export default function Evidence() {
                   <input
                     style={{ ...inputStyle, background: "#f1f3f2" }}
                     value={row.article || ""}
-                    aria-label="조항"
+                    aria-label="조항·호·목"
                     onChange={event =>
                       updateEducationRow(row.id, {
                         article: event.target.value,

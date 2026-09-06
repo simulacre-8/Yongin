@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   dueInputToValue,
   dueValueToInput,
+  formatLegalDocumentType,
   toDbStatus,
   toKoreanStatus,
 } from "./facility-workflow-api";
@@ -30,5 +31,15 @@ describe("facility workflow conversions", () => {
     expect(dueInputToValue("month", "2026-10")).toBe("2026-10");
     expect(dueValueToInput("event", "EVENT")).toBe("발생 시");
     expect(dueInputToValue("event", "발생 시")).toBe("EVENT");
+  });
+
+  it("labels legal instruments without exposing internal document codes", () => {
+    expect(formatLegalDocumentType("act", "시설물안전법")).toBe("법률");
+    expect(formatLegalDocumentType("decree", "시설물안전법 시행령")).toBe(
+      "시행령"
+    );
+    expect(formatLegalDocumentType("rule", "시설물안전법 시행규칙")).toBe(
+      "시행규칙"
+    );
   });
 });

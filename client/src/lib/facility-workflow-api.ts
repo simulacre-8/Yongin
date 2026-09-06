@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import type { ComplianceStatus } from "@/lib/demo-data";
+import { formatLegalArticlePath } from "@/lib/facility-obligation-api";
 
 export const CURRENT_PERIOD = "2026-H2";
 export const CURRENT_INSPECTION_RUN_ID = "60000000-0000-0000-0000-000000000001";
@@ -19,6 +20,8 @@ export type FacilityWorkflowItem = {
   title: string;
   detail: string;
   group: string;
+  documentType: string;
+  documentTitle: string;
   lawName: string;
   article: string;
   cycle: string;
@@ -69,6 +72,20 @@ type WorkflowRow = {
   inspection_status: DbComplianceStatus | null;
   inspection_note: string | null;
   inspected_at: string | null;
+};
+
+type ObligationLegalMetaRow = {
+  obl_id: string;
+  doc_id: string | null;
+  law_name: string | null;
+  article_no: string | null;
+  unit_path: string | null;
+};
+
+type LegalDocumentMetaRow = {
+  doc_id: string;
+  document_title: string;
+  norm_form: string | null;
 };
 
 export type EvidenceMetadata = {
@@ -124,8 +141,30 @@ export function dueInputToValue(
   return dueType === "event" ? "EVENT" : value;
 }
 
-function mapWorkflowRow(row: WorkflowRow): FacilityWorkflowItem | null {
+export function formatLegalDocumentType(
+  normForm?: string | null,
+  documentTitle?: string | null
+) {
+  const title = String(documentTitle ?? "").replace(/\s+/g, "");
+  if (title.includes("시행규칙")) return "시행규칙";
+  if (title.includes("시행령")) return "시행령";
+
+  const normalized = String(normForm ?? "").toLowerCase();
+  if (["decree", "presidential_decree"].includes(normalized)) return "시행령";
+  if (["rule", "ordinance", "ministerial_rule"].includes(normalized)) {
+    return "시행규칙";
+  }
+  return "법률";
+}
+
+function mapWorkflowRow(
+  row: WorkflowRow,
+  obligationMeta?: ObligationLegalMetaRow,
+  documentMeta?: LegalDocumentMetaRow
+): FacilityWorkflowItem | null {
   if (!row.target_id || !row.target_obligation_id) return null;
+  const documentTitle =
+    documentMeta?.document_title || obligationMeta?.law_name || row.law_name;
   return {
     targetRef: row.target_ref,
     targetId: row.target_id,
@@ -138,8 +177,16 @@ function mapWorkflowRow(row: WorkflowRow): FacilityWorkflowItem | null {
     title: row.obligation_title,
     detail: row.obligation_detail || "시설별 적용 의무",
     group: row.layer || row.obligation_group || "관계 법령상 의무",
-    lawName: row.law_name,
-    article: row.unit_path || "근거 경로 확인",
+    documentType: formatLegalDocumentType(
+      documentMeta?.norm_form,
+      documentTitle
+    ),
+    documentTitle,
+    lawName: documentTitle,
+    article: formatLegalArticlePath(
+      obligationMeta?.unit_path || row.unit_path,
+      obligationMeta?.article_no
+    ),
     cycle: row.cycle || "수시",
     evidenceRequirement: row.evidence_requirement || "이행 근거자료",
     dueType: row.due_type || "month",
@@ -192,9 +239,51 @@ export async function loadFacilityWorkflow(targetRef: string): Promise<{
   }
 
   const rows = data as WorkflowRow[];
+  const obligationIds = Array.from(new Set(rows.map(row => row.obl_id)));
+  const obligationMetaById = new Map<string, ObligationLegalMetaRow>();
+  const documentMetaById = new Map<string, LegalDocumentMetaRow>();
+
+  if (obligationIds.length > 0) {
+    const obligationMetaResult = await supabase
+      .from("ref_obligation")
+      .select("obl_id,doc_id,law_name,article_no,unit_path")
+      .in("obl_id", obligationIds)
+      .limit(500);
+
+    if (!obligationMetaResult.error && obligationMetaResult.data) {
+      for (const item of obligationMetaResult.data as ObligationLegalMetaRow[]) {
+        obligationMetaById.set(item.obl_id, item);
+      }
+
+      const documentIds = Array.from(
+        new Set(
+          (obligationMetaResult.data as ObligationLegalMetaRow[])
+            .map(item => item.doc_id)
+            .filter((value): value is string => Boolean(value))
+        )
+      );
+      if (documentIds.length > 0) {
+        const documentMetaResult = await supabase
+          .from("ref_legal_document")
+          .select("doc_id,document_title,norm_form")
+          .in("doc_id", documentIds)
+          .limit(500);
+        if (!documentMetaResult.error && documentMetaResult.data) {
+          for (const item of documentMetaResult.data as LegalDocumentMetaRow[]) {
+            documentMetaById.set(item.doc_id, item);
+          }
+        }
+      }
+    }
+  }
+
   const byObligation = new Map<string, FacilityWorkflowItem>();
   for (const row of rows) {
-    const mapped = mapWorkflowRow(row);
+    const obligationMeta = obligationMetaById.get(row.obl_id);
+    const documentMeta = obligationMeta?.doc_id
+      ? documentMetaById.get(obligationMeta.doc_id)
+      : undefined;
+    const mapped = mapWorkflowRow(row, obligationMeta, documentMeta);
     if (!mapped) continue;
     const existing = byObligation.get(mapped.obligationId);
     if (!existing || mapped.complianceId) {

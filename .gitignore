@@ -118,4 +118,5 @@ exports/
 
 # Manus version file (auto-generated, not part of source)
 client/public/__manus__/version.json
+client/public/build-info.json
 .project-config.json

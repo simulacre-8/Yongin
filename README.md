@@ -39,6 +39,8 @@ pnpm dev
 
 저장소 루트의 `netlify.toml`이 빌드 명령, `dist/public` 배포 경로, SPA fallback을 제공합니다. Netlify 환경변수에는 `VITE_SUPABASE_URL`과 `VITE_SUPABASE_PUBLISHABLE_KEY`만 등록합니다. GitHub `main`에 push하면 연결된 Netlify 사이트가 자동 배포됩니다.
 
+`pnpm build`는 두 Supabase 변수가 없으면 즉시 실패합니다. 따라서 DB 설정이 빠진 정적 번들이 성공 배포되는 일을 막습니다. 성공한 배포에서는 `/build-info.json`으로 커밋 SHA·배포 컨텍스트·Supabase 프로젝트 ref를 비밀값 없이 확인하고, `/manifest.json`으로 실제 JS/CSS 해시를 확인할 수 있습니다.
+
 ## 화면
 
 | Route                     | Function                                                |

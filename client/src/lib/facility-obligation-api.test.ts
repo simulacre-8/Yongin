@@ -83,6 +83,9 @@ describe("facility obligation adapter", () => {
 
   it("converts internal provision paths and hides their codes", () => {
     expect(formatLegalArticlePath("a9/p1/n3", "9")).toBe("제9조 제1항 제3호");
+    expect(formatLegalArticlePath("a9/p1/n3/mga", "9")).toBe(
+      "제9조 제1항 제3호 가목"
+    );
     expect(formatLegalArticlePath("a6g2/p1", "6")).toBe("제6조의2 제1항");
     expect(formatLegalArticlePath("시나리오 명시", "61")).toBe("제61조");
   });

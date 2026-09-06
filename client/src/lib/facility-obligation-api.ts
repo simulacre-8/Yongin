@@ -202,6 +202,17 @@ export function formatLegalArticlePath(
       if (paragraph) return `제${paragraph[1]}항`;
       const item = segment.match(/^n(\d+)$/i);
       if (item) return `제${item[1]}호`;
+      const subitem = segment.match(/^m(ga|na|da|ra|ma)$/i);
+      if (subitem) {
+        const label = {
+          ga: "가",
+          na: "나",
+          da: "다",
+          ra: "라",
+          ma: "마",
+        }[subitem[1].toLowerCase()];
+        return `${label}목`;
+      }
       return "";
     })
     .filter(Boolean);

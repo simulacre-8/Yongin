@@ -68,6 +68,10 @@
 
 ## 법령 원문 팝업
 
+의무이행 표의 법령 참조 필드는 `ref_obligation.doc_id/unit_path/article_no`와 `ref_legal_document.document_title/norm_form`에서 조회한다. 화면에는 내부 경로 `a13/p1` 대신 `제13조 제1항`을, 구분에는 `법률/시행령/시행규칙`을 표시한다. 고기상수도 31개 의무는 문서 ID·조문 경로·조문 번호가 모두 31/31건 존재한다.
+
+Netlify 빌드는 `VITE_SUPABASE_URL`과 `VITE_SUPABASE_PUBLISHABLE_KEY`가 없으면 실패하도록 보호했다. 성공한 산출물은 `/build-info.json`과 `/manifest.json`을 생성한다. F12 Network에 Supabase 요청 자체가 없으면 RLS 거부가 아니라 배포 번들 환경변수 누락으로 판정하며, RLS 거부는 Supabase 요청의 401/403 응답으로 구분한다.
+
 `009_legal_source_popup.sql`은 `ref_legal_document`와 `ref_obligation_legal_source`를 추가한다. 용인시청 로컬 의무 `OBL-01`~`OBL-10` 모두 ADOMS 정식 `unit_id`에 연결했다. 의무 마스터가 없던 비상대피훈련 `OBL-07`은 `UNIT-0011597`(재난 및 안전관리 기본법 제35조 제1항)에 직접 연결했고, 관계 법령상 의무이행 `OBL-10`은 시설물안전법 제6조 제1항과 제11조 제1항 두 원문을 순서대로 연결했다.
 
 팝업은 법령명·한글 조문·원문을 표시하고 내부 코드 경로는 숨긴다. 날짜는 **법령 최근 개정일**, **현행법령 시행일**, **해당 조문 효력일**을 분리 표시한다. 앞의 두 값은 2026-09-06 국가법령정보센터 현행법령 조회 스냅숏이며, 원문과 조문 효력일은 ADOMS 사실층 기준이다.

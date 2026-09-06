@@ -22,14 +22,14 @@
   --green-200: #d9e8f2;
   --green-100: #f3f7fa;
   --blue-700: #003675;
-  --line: #e4dde5;
+  --line: #dce3ea;
   --muted: #66666b;
   --surface: #ffffff;
   --surface-soft: #f7f7fa;
   --surface-blush: #f3f7fa;
   --surface-ivory: #fbfbdc;
   --surface-teal: #eefaf7;
-  --border-soft: #e4dde5;
+  --border-soft: #dce3ea;
   --radius-card: 12px;
   --radius-control: 8px;
   --shadow: 0 12px 34px rgba(23, 43, 77, 0.08);
@@ -55,7 +55,7 @@ body {
   background:
     radial-gradient(
       circle at 74% 0%,
-      rgba(247, 223, 241, 0.72),
+      rgba(219, 233, 244, 0.72),
       transparent 30%
     ),
     radial-gradient(
@@ -3746,4 +3746,24 @@ a {
 .adoms-dashboard .adoms-duty-item {
   border-color: #dce3ea !important;
   background: linear-gradient(135deg, #eef4f8, #f7f9fb) !important;
+}
+
+/* Evidence legal-duty table — neutral public-sector blue */
+.adoms-evidence-page .adoms-grid-table th {
+  border-color: #d8e1e9 !important;
+  background: #eef3f7 !important;
+  color: #26364c !important;
+}
+
+.adoms-evidence-page .adoms-grid-table td {
+  border-color: #e2e8ef !important;
+  background: #fff !important;
+  color: #354359 !important;
+}
+
+.adoms-evidence-page .adoms-legal-reference-input {
+  border-color: #d5dee7 !important;
+  background: #f3f6f9 !important;
+  color: #25334a !important;
+  font-weight: 650 !important;
 }
