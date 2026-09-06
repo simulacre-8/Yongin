@@ -21,11 +21,9 @@ type LnbGroup = {
 
 const gnbItems = [
   { href: "/home", label: "홈" },
-  { href: "/dashboard", label: "이행현황" },
-  { href: "/targets", label: "관리대상 현황" },
-  { href: "/obligations", label: "의무사항" },
+  { href: "/targets", label: "관리대상" },
+  { href: "/obligations", label: "의무 체크리스트" },
   { href: "/evidence", label: "의무이행" },
-  { href: "/inspection", label: "이행점검" },
   { href: "/settings", label: "설정" },
 ];
 

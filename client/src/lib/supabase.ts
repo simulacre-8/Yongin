@@ -15,7 +15,7 @@ export const supabase = isSupabaseConfigured
 
 export async function checkSupabaseConnection() {
   if (!supabaseUrl || !publishableKey)
-    return { connected: false, reason: "환경변수 미설정" };
+    return { connected: false, reason: "이 배포본 DB 설정 없음" };
 
   try {
     const authResponse = await fetch(`${supabaseUrl}/auth/v1/settings`, {
@@ -37,7 +37,7 @@ export async function checkSupabaseConnection() {
       }
     );
     return databaseResponse.ok
-      ? { connected: true, reason: "Supabase 기준정보 연결" }
+      ? { connected: true, reason: "DB 연결됨" }
       : { connected: false, reason: "DB 마이그레이션 대기" };
   } catch {
     return { connected: false, reason: "네트워크 연결 실패" };
