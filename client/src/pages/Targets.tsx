@@ -9,6 +9,7 @@ import {
   Check,
   ChevronDown,
   Copy,
+  Download,
   FileText,
   Plus,
   Printer,
@@ -36,6 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { csvDateStamp, downloadCsv, serializeCsv } from "@/lib/csv";
 
 type Screen = "target-list" | "target-form" | "contract-list" | "contract-form";
 type TargetKind =
@@ -539,6 +541,36 @@ export default function Targets() {
     window.setTimeout(
       () => setToast(current => (current === message ? "" : current)),
       2600
+    );
+  };
+  const downloadTargetCsv = () => {
+    if (filteredTargets.length === 0) {
+      announce("내려받을 관리대상이 없습니다.");
+      return;
+    }
+    const csv = serializeCsv(filteredTargets, [
+      { header: "번호", value: (_, index) => index + 1 },
+      { header: "관리대상 ID", value: item => item.id },
+      {
+        header: targetKind === "도급·용역·위탁" ? "계약명" : "관리대상명",
+        value: item => item.name,
+      },
+      { header: "대상구분", value: item => displayTargetCategory(item) },
+      { header: "세부분류", value: item => item.detailKind },
+      { header: "주소", value: item => item.address },
+      { header: "관리부서", value: item => item.department },
+      { header: "담당자", value: item => item.manager },
+      { header: "적용의무수", value: item => item.obligationCount },
+      { header: "적용판정", value: item => item.applicability },
+      { header: "데이터원천", value: item => item.sourceKind },
+      {
+        header: "시연가상값",
+        value: item => (item.isDemoVirtual ? "Y" : "N"),
+      },
+    ]);
+    downloadCsv(csv, `용인시_${targetKind}_관리대상_${csvDateStamp()}.csv`);
+    announce(
+      `${targetKind} 관리대상 ${filteredTargets.length}건을 내려받았습니다.`
     );
   };
   const copyLegalBasis = async () => {
@@ -1197,13 +1229,23 @@ export default function Targets() {
             </b>
             개소
           </strong>
-          <span style={{ color: "#7a837d", fontSize: 10 }}>
-            {facilitySource === "supabase"
-              ? "Supabase 시설·의무 매핑 DB 조회"
-              : facilitySource === "loading"
-                ? "시설 DB 조회 중"
-                : "로컬 시연 데이터"}
-          </span>
+          <div className="adoms-list-actions">
+            <span style={{ color: "#7a837d", fontSize: 10 }}>
+              {facilitySource === "supabase"
+                ? "Supabase 시설·의무 매핑 DB 조회"
+                : facilitySource === "loading"
+                  ? "시설 DB 조회 중"
+                  : "로컬 시연 데이터"}
+            </span>
+            <button
+              type="button"
+              className="adoms-csv-button"
+              onClick={downloadTargetCsv}
+              disabled={filteredTargets.length === 0}
+            >
+              <Download size={14} aria-hidden="true" /> CSV 내려받기
+            </button>
+          </div>
         </div>
         <div
           style={{

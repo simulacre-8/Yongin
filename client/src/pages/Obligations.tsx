@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { ChevronLeft, RotateCcw, Search } from "lucide-react";
+import { ChevronLeft, Download, RotateCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   loadManagedTargets,
@@ -17,6 +17,7 @@ import {
   type FacilityWorkflowItem,
 } from "@/lib/facility-workflow-api";
 import { useDemo } from "@/contexts/DemoContext";
+import { csvDateStamp, downloadCsv, serializeCsv } from "@/lib/csv";
 
 const facilityTypes = [
   "전체",
@@ -158,7 +159,7 @@ const styles: Record<string, CSSProperties> = {
   },
   searchBox: {
     display: "grid",
-    gridTemplateColumns: "136px minmax(200px, 1fr) 129px",
+    gridTemplateColumns: "minmax(200px, 1fr) 129px",
     gap: 0,
     minHeight: 43,
     border: "1px solid #d1d7d3",
@@ -524,7 +525,9 @@ export default function Obligations() {
         const query = appliedTerm.trim();
         const matchesQuery =
           !query ||
-          `${facility.target.name} ${facility.target.address}`.includes(query);
+          `${facility.target.name} ${facility.target.address} ${facility.target.department}`.includes(
+            query
+          );
         return matchesType && matchesQuery;
       }),
     [appliedTerm, facilities, facilityType]
@@ -579,6 +582,27 @@ export default function Obligations() {
   const openDetail = (targetId: string) => {
     setSelectedTargetId(targetId);
     setScreen("detail");
+  };
+
+  const downloadFacilityCsv = () => {
+    if (filteredFacilities.length === 0) {
+      toast.info("내려받을 공중이용시설·공중교통수단이 없습니다.");
+      return;
+    }
+    const csv = serializeCsv(filteredFacilities, [
+      { header: "번호", value: (_, index) => index + 1 },
+      { header: "관리대상 ID", value: row => row.target.id },
+      { header: "관리대상명", value: row => row.target.name },
+      { header: "주소", value: row => row.target.address },
+      { header: "시설구분", value: row => row.facilityType },
+      { header: "세부분류", value: row => row.target.detailKind },
+      { header: "적용의무수", value: row => row.target.obligationCount },
+      { header: "소속", value: row => row.target.department },
+      { header: "진행현황", value: row => row.progress },
+      { header: "데이터원천", value: row => row.target.sourceKind },
+    ]);
+    downloadCsv(csv, `용인시_공중이용시설_공중교통수단_${csvDateStamp()}.csv`);
+    toast.success(`${filteredFacilities.length}개소 목록을 내려받았습니다.`);
   };
 
   const resetDueDates = () => {
@@ -903,7 +927,7 @@ export default function Obligations() {
           <label
             className="adoms-obligations-filter-label"
             style={styles.filterLabel}
-            htmlFor="adoms-obligations-search-condition"
+            htmlFor="adoms-obligations-search-input"
           >
             검색조건
           </label>
@@ -911,23 +935,14 @@ export default function Obligations() {
             className="adoms-obligations-search-box"
             style={styles.searchBox}
           >
-            <select
-              id="adoms-obligations-search-condition"
-              className="adoms-obligations-search-select"
-              style={styles.searchSelect}
-              aria-label="검색조건"
-              value="시설물명"
-              onChange={() => undefined}
-            >
-              <option>시설물명</option>
-            </select>
             <input
+              id="adoms-obligations-search-input"
               className="adoms-obligations-search-input"
               style={styles.searchInput}
               value={searchTerm}
               onChange={event => setSearchTerm(event.target.value)}
-              placeholder="시설물명을 입력하세요"
-              aria-label="시설물명 검색어"
+              placeholder="시설물명, 주소, 소속의 키워드를 입력해 주세요."
+              aria-label="시설물명, 주소, 소속 검색어"
             />
             <button
               type="submit"
@@ -1003,11 +1018,23 @@ export default function Obligations() {
         </div>
       </form>
 
-      <p className="adoms-obligations-total" style={styles.total}>
-        총{" "}
-        <strong style={styles.totalNumber}>{filteredFacilities.length}</strong>
-        개소
-      </p>
+      <div className="adoms-obligations-list-actions">
+        <p className="adoms-obligations-total" style={styles.total}>
+          총{" "}
+          <strong style={styles.totalNumber}>
+            {filteredFacilities.length}
+          </strong>
+          개소
+        </p>
+        <button
+          type="button"
+          className="adoms-csv-button"
+          onClick={downloadFacilityCsv}
+          disabled={filteredFacilities.length === 0}
+        >
+          <Download size={14} aria-hidden="true" /> CSV 내려받기
+        </button>
+      </div>
       <div
         className="adoms-obligations-list-table-wrap"
         style={styles.tableWrap}

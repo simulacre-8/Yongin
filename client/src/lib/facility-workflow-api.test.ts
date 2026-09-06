@@ -3,6 +3,7 @@ import {
   dueInputToValue,
   dueValueToInput,
   formatLegalDocumentType,
+  resolveEvidenceSaveStatus,
   toDbStatus,
   toKoreanStatus,
 } from "./facility-workflow-api";
@@ -17,6 +18,13 @@ describe("facility workflow conversions", () => {
     expect(toKoreanStatus("SUPP")).toBe("보완필요");
     expect(toKoreanStatus("NONE")).toBe("미이행");
     expect(toKoreanStatus("NA")).toBe("해당없음");
+  });
+
+  it("moves missing work to done after evidence is saved", () => {
+    expect(resolveEvidenceSaveStatus("미이행", 1)).toBe("이행완료");
+    expect(resolveEvidenceSaveStatus("미이행", 0)).toBe("미이행");
+    expect(resolveEvidenceSaveStatus("보완필요", 1)).toBe("보완필요");
+    expect(resolveEvidenceSaveStatus("해당없음", 1)).toBe("해당없음");
   });
 
   it("converts half-year display values without losing the year", () => {

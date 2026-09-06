@@ -18,6 +18,8 @@
 | 용인시 조직            | 공식 조직 구조 202건 + 공개 팀 590건, 총 활성 792건              |
 | 내 업무 런타임         | 2,891건 = 자동배정 2,235 + 수동 선택 대기 656                    |
 | 업무 사건 시각         | 배정·수락·위임·재배정·완료·완료 확인과 기록 시각 분리            |
+| 의무이행 CSV           | 시설 전체 의무·상태·증빙·점검 열 내보내기와 다운로드 사건 기록   |
+| 증빙 상태 전환         | 미이행 의무의 증빙 저장 시 이행완료 전환, 명시 상태는 유지       |
 | 감사                   | 대상·의무·이행·증빙·점검 변경 이벤트 기록                        |
 | RLS                    | 익명 시연 역할별 읽기·쓰기 정책 적용                             |
 | 비밀정보               | 서비스 역할 키·PAT·DB 비밀번호를 프런트와 Git에 포함하지 않음    |
@@ -41,14 +43,15 @@
 15. `supabase/migrations/016_index_demo_my_work_foreign_keys.sql`
 16. `supabase/migrations/017_harden_demo_my_work_delegation.sql`
 17. `supabase/migrations/018_guard_demo_work_status_transitions.sql`
-18. `supabase/seed.sql`
-19. `supabase/seed_adoms.sql`
-20. `supabase/seed_facility_catalog.sql`
-21. `supabase/seed_yongin_obligation_pool.sql`
-22. `supabase/seed_facility_workflow.sql`
-23. `supabase/seed_legal_source_popup.sql`
-24. `supabase/seed_yongin_org.sql`
-25. `supabase/seed_my_work_runtime.sql`
+18. `supabase/migrations/019_compliance_export_log.sql`
+19. `supabase/seed.sql`
+20. `supabase/seed_adoms.sql`
+21. `supabase/seed_facility_catalog.sql`
+22. `supabase/seed_yongin_obligation_pool.sql`
+23. `supabase/seed_facility_workflow.sql`
+24. `supabase/seed_legal_source_popup.sql`
+25. `supabase/seed_yongin_org.sql`
+26. `supabase/seed_my_work_runtime.sql`
 
 `seed_yongin_obligation_pool.sql`은 클라이언트가 제공한 전체 용인 의무 3,688건을 적재한다. 원천 파일에는 인용문 내부 줄바꿈이 있어 5,057개 물리 줄이 있지만, 헤더를 제외한 CSV 논리 레코드는 3,688건이다. `008_yongin_obligation_pool.sql`은 `law_id`, `doc_id`, `unit_path`, 조문 정보와 원문 인용을 `ref_obligation`의 정식 열로 추가한다.
 
@@ -60,31 +63,38 @@
 
 `012_demo_my_work.sql`은 `public.demo_work_*` 테이블을 추가한다. 물리 위치는 브라우저 PostgREST 호환을 위한 것이며 논리적으로는 초기화 가능한 `demo_runtime` 도메인이다. `013`은 Supabase 안전 삭제 규칙과 호환되도록 초기화 RPC를 보정한다. `014`는 완료와 최종 확인을 분리해 `completed_at`, `confirmed_at`, `confirmed_by_profile_id`, `CONFIRMED` 이력을 각각 저장한다. `015`는 최초 `assigned_at`을 재배정 때 보존하고 `reassigned_at`을 별도 기록하며 수락 전 상태 변경과 완료 후 재배정·상태 변경을 거부한다. `016`은 내 업무 FK 조인과 초기화 cascade를 위한 보조 인덱스를 추가한다. `017`은 위임을 수락된 실행 업무에만 허용하고 `018`은 같은 상태 전이를 테이블 trigger로 재검증한다. `seed_my_work_runtime.sql`은 조직과 시설 workflow 시드 이후 규칙 7건과 기준 업무 2,891건을 생성한다.
 
+`019_compliance_export_log.sql`은 의무이행 CSV 다운로드 사건을 저장하는 `demo_compliance_export_event`와 익명 시연용 기록 RPC를 추가한다. 한 행은 관리대상, 기간, 파일명, 내려받은 행 수, 시연 역할, 필터 스냅숏, 브라우저 발생시각 `occurred_at`, DB 기록시각 `created_at`을 분리해 보존한다. 이는 공유 시연 감사 로그이며 실사용 사용자 인증을 의미하지 않는다.
+
+증빙 저장은 Storage 객체 업로드 → 이행기록 upsert → 증빙 메타데이터 insert 순서로 처리한다. 업로드 이후 후속 단계가 실패하면 새 객체와 메타데이터를 제거하고 기존 `compliance_record` 스냅숏을 복원한다. 이는 브라우저 기반 보상 처리이며 DB와 Storage를 포괄하는 원자적 트랜잭션이라고 설명하지 않는다.
+
+한 의무 저장 동작에서 새 증빙은 한 번에 한 개만 선택한다. 저장 성공 후에는 서버의 증빙 메타데이터를 즉시 다시 조회해 브라우저의 미저장 파일 객체를 치환하므로, 같은 선택을 곧바로 다시 저장해 중복 버전을 만드는 경로를 차단한다.
+
 ## 원격 수량
 
-| 리소스                          |  수량 | 비고                                    |
-| ------------------------------- | ----: | --------------------------------------- |
-| `ref_law`                       |   115 | 기존 ADOMS·시설 관계법령                |
-| `ref_unit`                      |   393 | 조문 투영                               |
-| `ref_rule`                      |   132 | 판정 규칙                               |
-| `ref_obligation`                | 3,877 | 용인 의무풀 3,688 + 기존 고유 의무 보존 |
-| `ref_rule_obligation`           |   138 | 판정 규칙–의무 연결                     |
-| `ref_managed_target`            |   153 | FMS 150 + 시연값 3                      |
-| `ref_managed_target_obligation` | 2,929 | CSV 2,906 + 시나리오 23                 |
-| `ref_legal_document`            |    13 | 사용 법령 문서·공식 날짜 스냅숏         |
-| `ref_obligation_legal_source`   |   100 | 정식 원문 89 + 용인시청 별칭 원문 11    |
-| `target`                        |   152 | 시설 workflow 151 + 기존 용인시청 1     |
-| `target_obligation`             | 2,901 | 시설 workflow 2,891 + 기존 10           |
-| `v_facility_workflow`           | 2,891 | 시설 폐쇄루프 읽기 행                   |
-| `ref_yongin_org_snapshot`       |     1 | 공식 조직도 2026-09-06 스냅숏           |
-| `ref_yongin_org_unit` 활성      |   792 | 구조 202 + 공개 팀 590                  |
-| `v_yongin_org_tree`             |   792 | 부모명·자식 수 포함 현재 조직 계층      |
-| `demo_work_assignment_rule`     |     7 | 시연 내부 자동배정 규칙                 |
-| `demo_work_item`                | 2,891 | 초기화 가능한 내 업무                   |
-| `demo_work_assignment_event`    | 2,891 | 기준상태 자동배정·생성 이력             |
-| `v_demo_my_work`                | 2,891 | 조직·담당·첨부·완료 확인 통합 조회      |
+| 리소스                          |   수량 | 비고                                    |
+| ------------------------------- | -----: | --------------------------------------- |
+| `ref_law`                       |    115 | 기존 ADOMS·시설 관계법령                |
+| `ref_unit`                      |    393 | 조문 투영                               |
+| `ref_rule`                      |    132 | 판정 규칙                               |
+| `ref_obligation`                |  3,877 | 용인 의무풀 3,688 + 기존 고유 의무 보존 |
+| `ref_rule_obligation`           |    138 | 판정 규칙–의무 연결                     |
+| `ref_managed_target`            |    153 | FMS 150 + 시연값 3                      |
+| `ref_managed_target_obligation` |  2,929 | CSV 2,906 + 시나리오 23                 |
+| `ref_legal_document`            |     13 | 사용 법령 문서·공식 날짜 스냅숏         |
+| `ref_obligation_legal_source`   |    100 | 정식 원문 89 + 용인시청 별칭 원문 11    |
+| `target`                        |    152 | 시설 workflow 151 + 기존 용인시청 1     |
+| `target_obligation`             |  2,901 | 시설 workflow 2,891 + 기존 10           |
+| `v_facility_workflow`           |  2,891 | 시설 폐쇄루프 읽기 행                   |
+| `ref_yongin_org_snapshot`       |      1 | 공식 조직도 2026-09-06 스냅숏           |
+| `ref_yongin_org_unit` 활성      |    792 | 구조 202 + 공개 팀 590                  |
+| `v_yongin_org_tree`             |    792 | 부모명·자식 수 포함 현재 조직 계층      |
+| `demo_work_assignment_rule`     |      7 | 시연 내부 자동배정 규칙                 |
+| `demo_work_item`                |  2,891 | 초기화 가능한 내 업무                   |
+| `demo_work_assignment_event`    | 2,891+ | 기준상태 이후 사용자 사건 누적          |
+| `v_demo_my_work`                |  2,891 | 조직·담당·첨부·완료 확인 통합 조회      |
+| `demo_compliance_export_event`  |      1 | 고기상수도 31건 CSV 브라우저 검증 로그  |
 
-`compliance_record`, `evidence`, `inspection_scope`, `inspection_result`는 사용자가 저장할 때 증가하는 업무 데이터다. 2026-09-06 브라우저 검증 후 `고기상수도 + OBL-0002590 + 2026-H2`의 이행기록 한 건을 시연 레코드로 남겼다. 자동 스모크 테스트가 생성하는 임시 데이터와 `demo/smoke/` 파일은 종료 시 삭제한다.
+`compliance_record`, `evidence`, `inspection_scope`, `inspection_result`는 사용자가 저장할 때 증가하는 업무 데이터다. 2026-09-07 브라우저에서 고기상수도 의무 31건 CSV를 내려받아 발생시각과 DB 기록시각이 분리된 로그 한 건을 남겼다. 증빙 저장으로 미이행 31건이 이행완료 1건·미이행 30건으로 즉시 바뀌는 것도 확인한 뒤, 검증용 증빙과 상태는 원래 기준값으로 복원했다. 자동 스모크 테스트가 생성하는 임시 데이터와 `demo/smoke/` 파일은 종료 시 삭제한다.
 
 ## 식별자 폐쇄루프
 

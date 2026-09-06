@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import type { ComplianceStatus } from "@/lib/demo-data";
 import { formatLegalArticlePath } from "@/lib/facility-obligation-api";
+import { validateMyWorkFile } from "@/lib/my-work-files";
 
 export const CURRENT_PERIOD = "2026-H2";
 export const CURRENT_INSPECTION_RUN_ID = "60000000-0000-0000-0000-000000000001";
@@ -100,6 +101,30 @@ export type EvidenceMetadata = {
   isCurrent: boolean;
 };
 
+export type ComplianceActionLogEntry = {
+  auditEventId: number;
+  action: string;
+  occurredAt: string;
+  beforeStatus?: DbComplianceStatus;
+  afterStatus?: DbComplianceStatus;
+  actionDate?: string;
+  actionDetail?: string;
+  note?: string;
+  submittedAt?: string;
+  updatedAt?: string;
+};
+
+export type ComplianceExportEvent = {
+  exportEventId: string;
+  targetRef: string;
+  periodKey: string;
+  rowCount: number;
+  fileName: string;
+  actorRole?: string;
+  occurredAt: string;
+  createdAt: string;
+};
+
 export function toDbStatus(status: ComplianceStatus): DbComplianceStatus {
   return {
     이행완료: "DONE",
@@ -118,6 +143,15 @@ export function toKoreanStatus(
     NONE: "미이행",
     NA: "해당없음",
   }[status ?? "NA"] as ComplianceStatus;
+}
+
+export function resolveEvidenceSaveStatus(
+  selectedStatus: ComplianceStatus,
+  newFileCount: number
+): ComplianceStatus {
+  return newFileCount > 0 && selectedStatus === "미이행"
+    ? "이행완료"
+    : selectedStatus;
 }
 
 export function dueValueToInput(
@@ -364,7 +398,7 @@ async function upsertCompliance(
 }
 
 function safeSegment(value: string) {
-  return value.normalize("NFKC").replace(/[^0-9A-Za-z가-힣._-]+/g, "-");
+  return value.normalize("NFKC").replace(/[^0-9A-Za-z._-]+/g, "-");
 }
 
 export async function saveEvidenceRecord(
@@ -378,21 +412,39 @@ export async function saveEvidenceRecord(
   }
 ) {
   if (!supabase) throw new Error("Supabase 연결이 없습니다.");
-  const compliance = await upsertCompliance(item, {
+  const complianceInput = {
     status: toDbStatus(input.status),
     actionDate: input.actionDate,
     actionDetail: input.actionDetail,
     note: input.note,
     submitted: true,
-  });
+  } as const;
 
-  let evidence: EvidenceMetadata | undefined;
-  if (input.file) {
-    if (input.file.size < 1 || input.file.size > 10 * 1024 * 1024) {
-      throw new Error(
-        "증빙파일은 1바이트 이상 10MB 이하만 저장할 수 있습니다."
-      );
-    }
+  if (!input.file) {
+    const compliance = await upsertCompliance(item, complianceInput);
+    return { compliance, evidence: undefined };
+  }
+
+  const extension = validateMyWorkFile(input.file);
+  const storagePath = [
+    "demo",
+    safeSegment(item.targetRef),
+    safeSegment(item.obligationId),
+    CURRENT_PERIOD,
+    `${crypto.randomUUID()}.${extension}`,
+  ].join("/");
+  const { error: uploadError } = await supabase.storage
+    .from(EVIDENCE_BUCKET)
+    .upload(storagePath, input.file, {
+      contentType: input.file.type || "application/octet-stream",
+      upsert: false,
+    });
+  if (uploadError) throw new Error(uploadError.message);
+
+  let compliance: Awaited<ReturnType<typeof upsertCompliance>> | undefined;
+  let insertedEvidenceId = "";
+  try {
+    compliance = await upsertCompliance(item, complianceInput);
     const versionQuery = await supabase
       .from("evidence")
       .select("evidence_id,version_no")
@@ -403,28 +455,6 @@ export async function saveEvidenceRecord(
       .maybeSingle();
     if (versionQuery.error) throw new Error(versionQuery.error.message);
     const versionNo = Number(versionQuery.data?.version_no ?? 0) + 1;
-    const storagePath = [
-      "demo",
-      safeSegment(item.targetRef),
-      safeSegment(item.obligationId),
-      CURRENT_PERIOD,
-      `${crypto.randomUUID()}-${safeSegment(input.file.name)}`,
-    ].join("/");
-
-    const { error: uploadError } = await supabase.storage
-      .from(EVIDENCE_BUCKET)
-      .upload(storagePath, input.file, {
-        contentType: input.file.type || "application/octet-stream",
-        upsert: false,
-      });
-    if (uploadError) throw new Error(uploadError.message);
-
-    if (versionQuery.data?.evidence_id) {
-      await supabase
-        .from("evidence")
-        .update({ is_current: false })
-        .eq("evidence_id", versionQuery.data.evidence_id);
-    }
 
     const { data: metadata, error: metadataError } = await supabase
       .from("evidence")
@@ -443,10 +473,19 @@ export async function saveEvidenceRecord(
       )
       .single();
     if (metadataError || !metadata) {
-      await supabase.storage.from(EVIDENCE_BUCKET).remove([storagePath]);
       throw new Error(metadataError?.message || "증빙 메타데이터 저장 실패");
     }
-    evidence = {
+    insertedEvidenceId = metadata.evidence_id;
+
+    if (versionQuery.data?.evidence_id) {
+      const { error: versionError } = await supabase
+        .from("evidence")
+        .update({ is_current: false })
+        .eq("evidence_id", versionQuery.data.evidence_id);
+      if (versionError) throw new Error(versionError.message);
+    }
+
+    const evidence: EvidenceMetadata = {
       evidenceId: metadata.evidence_id,
       complianceId: metadata.compliance_id,
       storagePath: metadata.storage_path,
@@ -457,9 +496,53 @@ export async function saveEvidenceRecord(
       uploadedAt: metadata.uploaded_at,
       isCurrent: metadata.is_current,
     };
-  }
+    return { compliance, evidence };
+  } catch (error) {
+    const recoveryErrors: string[] = [];
+    if (insertedEvidenceId) {
+      const { error: metadataDeleteError } = await supabase
+        .from("evidence")
+        .delete()
+        .eq("evidence_id", insertedEvidenceId);
+      if (metadataDeleteError) recoveryErrors.push(metadataDeleteError.message);
+    }
+    const { error: storageDeleteError } = await supabase.storage
+      .from(EVIDENCE_BUCKET)
+      .remove([storagePath]);
+    if (storageDeleteError) recoveryErrors.push(storageDeleteError.message);
 
-  return { compliance, evidence };
+    if (compliance) {
+      if (item.complianceId) {
+        const { error: restoreError } = await supabase
+          .from("compliance_record")
+          .update({
+            status: item.complianceStatus || "NONE",
+            action_date: item.actionDate || null,
+            action_detail: item.actionDetail || null,
+            note: item.note || null,
+            submitted_at: item.submittedAt || null,
+            updated_at: item.updatedAt || new Date().toISOString(),
+          })
+          .eq("compliance_id", item.complianceId);
+        if (restoreError) recoveryErrors.push(restoreError.message);
+      } else {
+        const { error: removeComplianceError } = await supabase
+          .from("compliance_record")
+          .delete()
+          .eq("compliance_id", compliance.compliance_id);
+        if (removeComplianceError)
+          recoveryErrors.push(removeComplianceError.message);
+      }
+    }
+
+    const message = error instanceof Error ? error.message : "증빙 저장 실패";
+    if (recoveryErrors.length > 0) {
+      throw new Error(
+        `${message} · 자동 복구도 완료되지 않았습니다. 다시 시도하거나 초기화가 필요합니다.`
+      );
+    }
+    throw new Error(`${message} · 기존 이행상태는 복원되었습니다.`);
+  }
 }
 
 export async function loadEvidenceMetadata(complianceId?: string) {
@@ -483,6 +566,126 @@ export async function loadEvidenceMetadata(complianceId?: string) {
     versionNo: row.version_no,
     uploadedAt: row.uploaded_at,
     isCurrent: row.is_current,
+  }));
+}
+
+export async function loadEvidenceMetadataByComplianceIds(
+  complianceIds: string[]
+) {
+  const result = new Map<string, EvidenceMetadata[]>();
+  if (!supabase || complianceIds.length === 0) return result;
+  const { data, error } = await supabase
+    .from("evidence")
+    .select(
+      "evidence_id,compliance_id,storage_path,original_name,mime_type,size_bytes,version_no,uploaded_at,is_current"
+    )
+    .in("compliance_id", complianceIds)
+    .order("uploaded_at", { ascending: false })
+    .limit(1000);
+  if (error) throw new Error(error.message);
+  for (const row of data || []) {
+    const metadata: EvidenceMetadata = {
+      evidenceId: row.evidence_id,
+      complianceId: row.compliance_id,
+      storagePath: row.storage_path,
+      originalName: row.original_name,
+      mimeType: row.mime_type || "application/octet-stream",
+      sizeBytes: Number(row.size_bytes),
+      versionNo: row.version_no,
+      uploadedAt: row.uploaded_at,
+      isCurrent: row.is_current,
+    };
+    result.set(metadata.complianceId, [
+      ...(result.get(metadata.complianceId) || []),
+      metadata,
+    ]);
+  }
+  return result;
+}
+
+function auditData(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+export async function loadComplianceActionLog(targetObligationId?: string) {
+  if (!supabase || !targetObligationId) return [] as ComplianceActionLogEntry[];
+  const { data, error } = await supabase
+    .from("audit_event")
+    .select("audit_event_id,action,before_data,after_data,occurred_at")
+    .eq("entity_type", "compliance_record")
+    .eq("entity_id", targetObligationId)
+    .order("occurred_at", { ascending: false })
+    .limit(30);
+  if (error) throw new Error(error.message);
+  return (data || []).map(row => {
+    const before = auditData(row.before_data);
+    const after = auditData(row.after_data);
+    return {
+      auditEventId: Number(row.audit_event_id),
+      action: row.action,
+      occurredAt: row.occurred_at,
+      beforeStatus: before.status as DbComplianceStatus | undefined,
+      afterStatus: after.status as DbComplianceStatus | undefined,
+      actionDate:
+        String(after.action_date || before.action_date || "") || undefined,
+      actionDetail:
+        String(after.action_detail || before.action_detail || "") || undefined,
+      note: String(after.note || before.note || "") || undefined,
+      submittedAt:
+        String(after.submitted_at || before.submitted_at || "") || undefined,
+      updatedAt:
+        String(after.updated_at || before.updated_at || "") || undefined,
+    };
+  });
+}
+
+export async function logComplianceCsvExport(input: {
+  targetRef: string;
+  rowCount: number;
+  fileName: string;
+  actorRole: string;
+  statusFilter?: string;
+  occurredAt?: string;
+}) {
+  if (!supabase) throw new Error("Supabase 연결이 없습니다.");
+  const occurredAt = input.occurredAt || new Date().toISOString();
+  const { data, error } = await supabase.rpc("demo_log_compliance_export", {
+    p_target_ref: input.targetRef,
+    p_period_key: CURRENT_PERIOD,
+    p_row_count: input.rowCount,
+    p_file_name: input.fileName,
+    p_actor_role: input.actorRole,
+    p_filter_snapshot: { status: input.statusFilter || "ALL" },
+    p_occurred_at: occurredAt,
+  });
+  if (error || !data) {
+    throw new Error(error?.message || "CSV 다운로드 로그 저장에 실패했습니다.");
+  }
+  return String(data);
+}
+
+export async function loadComplianceExportEvents(targetRef: string) {
+  if (!supabase) return [] as ComplianceExportEvent[];
+  const { data, error } = await supabase
+    .from("demo_compliance_export_event")
+    .select(
+      "export_event_id,target_ref,period_key,row_count,file_name,actor_role,occurred_at,created_at"
+    )
+    .eq("target_ref", targetRef)
+    .order("occurred_at", { ascending: false })
+    .limit(20);
+  if (error) throw new Error(error.message);
+  return (data || []).map(row => ({
+    exportEventId: row.export_event_id,
+    targetRef: row.target_ref,
+    periodKey: row.period_key,
+    rowCount: row.row_count,
+    fileName: row.file_name,
+    actorRole: row.actor_role || undefined,
+    occurredAt: row.occurred_at,
+    createdAt: row.created_at,
   }));
 }
 

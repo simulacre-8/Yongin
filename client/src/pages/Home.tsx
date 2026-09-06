@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ChevronRight,
   Database,
+  Download,
   Search,
   ShieldCheck,
 } from "lucide-react";
@@ -19,6 +20,7 @@ import {
   type HomeObligationItem,
   type HomeObligationView,
 } from "@/lib/home-obligation-api";
+import { csvDateStamp, downloadCsv, serializeCsv } from "@/lib/csv";
 
 const viewMeta: Record<
   HomeObligationView,
@@ -484,6 +486,29 @@ export default function Home() {
     setAppliedSearch(searchDraft.trim());
   };
 
+  const downloadObligationCsv = () => {
+    if (items.length === 0) return;
+    const csv = serializeCsv(items, [
+      { header: "번호", value: (_, index) => index + 1 },
+      { header: "의무 ID", value: item => item.id },
+      { header: "의무명", value: item => item.title },
+      { header: "세부 점검사항", value: item => item.detail },
+      { header: "법률명", value: item => item.lawName },
+      { header: "조항·호·목", value: item => item.article },
+      { header: "성격", value: item => item.nature },
+      { header: "주기", value: item => item.frequency },
+      {
+        header: "증빙",
+        value: item => (item.evidenceRequired ? "필요" : "미지정"),
+      },
+      { header: "목록분류", value: () => meta.title },
+    ]);
+    downloadCsv(
+      csv,
+      `용인시_${meta.title.replace(/[·\s]/g, "_")}_의무_${csvDateStamp()}.csv`
+    );
+  };
+
   const quickFilters: Array<{ view: HomeObligationView; label: string }> = [
     { view: "all", label: "전체" },
     { view: "safety-system", label: "안전보건관리체계" },
@@ -639,14 +664,24 @@ export default function Home() {
                     의무 체크리스트{" "}
                     <strong>{totalCount.toLocaleString("ko-KR")}건</strong>
                   </h2>
-                  <span>
-                    {loading
-                      ? "조회 중"
-                      : items.length < totalCount
-                        ? `상위 ${items.length}건 표시`
-                        : `${items.length}건 표시`}
-                    {reason ? ` · ${reason}` : ""}
-                  </span>
+                  <div className="obligation-home-list-actions">
+                    <span>
+                      {loading
+                        ? "조회 중"
+                        : items.length < totalCount
+                          ? `상위 ${items.length}건 표시`
+                          : `${items.length}건 표시`}
+                      {reason ? ` · ${reason}` : ""}
+                    </span>
+                    <button
+                      type="button"
+                      className="adoms-csv-button"
+                      onClick={downloadObligationCsv}
+                      disabled={loading || items.length === 0}
+                    >
+                      <Download size={14} aria-hidden="true" /> CSV 내려받기
+                    </button>
+                  </div>
                 </div>
                 <div className="obligation-home-table-wrap">
                   <table className="obligation-home-table">

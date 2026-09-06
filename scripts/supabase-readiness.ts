@@ -47,6 +47,7 @@ const tables = [
   "target_obligation",
   "compliance_record",
   "evidence",
+  "demo_compliance_export_event",
   "inspection_run",
   "inspection_scope",
   "inspection_result",

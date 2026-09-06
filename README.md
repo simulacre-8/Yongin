@@ -43,17 +43,17 @@ pnpm dev
 
 ## 화면
 
-| Route                     | Function                                                |
-| ------------------------- | ------------------------------------------------------- |
-| `/`, `/home/*`            | 카테고리·재해유형별 의무 목록, 하위 점검사항, 상태 집계 |
-| `/settings/applicability` | 설정 사실값 기반 적용범위 판정과 근거 경로              |
-| `/dashboard`              | 역할·조직별 내 업무 배정·수락·위임·완료·완료 확인       |
-| `/targets`                | 관리대상 검색·선택·법령 조문 원문·개정/시행일 팝업      |
-| `/laws`                   | 핵심 법령 축소본 검색·근거                              |
-| `/obligations`            | 의무 체크리스트와 검수된 대상별 이행시기                |
-| `/evidence`               | 조치일자·상태·증빙·비고                                 |
-| `/inspection`             | 점검 상태·점검내용                                      |
-| `/summary`                | O/△/X/- 총괄표와 이행률                                 |
+| Route                     | Function                                                    |
+| ------------------------- | ----------------------------------------------------------- |
+| `/`, `/home/*`            | 카테고리·재해유형별 의무 목록, 하위 점검사항, 상태 집계·CSV |
+| `/settings/applicability` | 설정 사실값 기반 적용범위 판정과 근거 경로                  |
+| `/dashboard`              | 역할·조직별 내 업무 배정·수락·위임·완료·완료 확인           |
+| `/targets`                | 관리대상 검색·선택·CSV·법령 조문 원문·개정/시행일 팝업      |
+| `/laws`                   | 핵심 법령 축소본 검색·근거                                  |
+| `/obligations`            | 시설명·주소·소속 통합검색, 대상별 의무·이행시기·CSV         |
+| `/evidence`               | 조치일자·상태·증빙·CSV·시정조치/다운로드 로그               |
+| `/inspection`             | 점검 상태·점검내용                                          |
+| `/summary`                | O/△/X/- 총괄표와 이행률                                     |
 
 프로젝트 추진현황은 웹앱과 Supabase에서 제거했습니다. 클라이언트 공개 일정은 별도 Excel/Google Sheets WBS로 관리합니다.
 
@@ -78,14 +78,15 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 15. `supabase/migrations/016_index_demo_my_work_foreign_keys.sql`
 16. `supabase/migrations/017_harden_demo_work_delegation.sql`
 17. `supabase/migrations/018_guard_demo_work_status_transitions.sql`
-18. `supabase/seed.sql`
-19. `supabase/seed_adoms.sql`
-20. `supabase/seed_facility_catalog.sql`
-21. `supabase/seed_yongin_obligation_pool.sql`
-22. `supabase/seed_facility_workflow.sql`
-23. `supabase/seed_legal_source_popup.sql`
-24. `supabase/seed_yongin_org.sql`
-25. `supabase/seed_my_work_runtime.sql`
+18. `supabase/migrations/019_compliance_export_log.sql`
+19. `supabase/seed.sql`
+20. `supabase/seed_adoms.sql`
+21. `supabase/seed_facility_catalog.sql`
+22. `supabase/seed_yongin_obligation_pool.sql`
+23. `supabase/seed_facility_workflow.sql`
+24. `supabase/seed_legal_source_popup.sql`
+25. `supabase/seed_yongin_org.sql`
+26. `supabase/seed_my_work_runtime.sql`
 
 `seed_adoms.sql`은 스키마 변경 없이 ADOMS 그래프 식별자를 보존한 법령 104건·조문 304건·의무 216건·규칙 128건·연결 128건을 추가합니다. 실제 SQL에서 `demo_approved=true`인 ADOMS 규칙·연결은 31건이며, 첫 화면에서는 용인시청 시연과 직접 관련된 승인 규칙 4개를 실행합니다.
 
@@ -98,6 +99,8 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 `seed_yongin_org.sql`은 용인특례시 공식 조직도 3개 화면과 공개 부서 상세에서 파싱한 활성 조직 단위 792건을 적재한다. 공식 구조인 시청 2실·13국·66과, 직속기관 4기관·9과, 사업소 5개·14과, 3개 구청·38과·39읍면동을 보존하며, 팀 590건은 공개 직위의 고유한 `…팀장` 명칭에서만 파생한다. 개인 이름은 적재하지 않는다.
 
 `012`~`018`은 법령·시설·조직 기준정보와 분리된 **내 업무 시연 런타임 계층**을 구성한다. `seed_my_work_runtime.sql`은 공식 조직도와 시설 workflow 시드가 끝난 뒤 시연 내부 소관규칙과 기준 업무를 생성한다. 초기 2,891건 중 2,235건을 자동배정하고 656건을 수동 선택 대기로 둔다. 배정·수락·위임·재배정·완료·완료 확인은 각각 사건 시각과 DB 기록 시각을 분리해 저장한다. 최초 `assigned_at`은 재배정 때 덮어쓰지 않고 `reassigned_at`을 별도로 기록한다. 완료 업무는 재배정·위임하거나 실행 상태로 되돌릴 수 없다. 물리 테이블은 PostgREST 호환을 위해 `public.demo_work_*`를 사용하며 논리 도메인은 `demo_runtime`이다.
+
+`019_compliance_export_log.sql`은 의무이행 전체 목록 CSV 다운로드를 `demo_compliance_export_event`에 기록한다. 관리대상·의무 체크리스트·홈 의무 목록은 현재 필터 결과를 CSV로 내보내며, 의무이행 CSV는 시설의 전체 적용 의무와 상태·조치·증빙·점검 필드를 포함한다. 증빙을 저장할 때 기존 상태가 미이행이면 이행완료로 자동 전환하고, 보완필요·해당없음처럼 사용자가 명시한 상태는 유지한다.
 
 ## 검증
 
