@@ -16,6 +16,8 @@
 | 점검·총괄              | `inspection_scope/result`와 `v_facility_workflow` 연결           |
 | 법령 원문              | ADOMS 정식 원문·법령 최근 개정일·현행법령 시행일 팝업 연결       |
 | 용인시 조직            | 공식 조직 구조 202건 + 공개 팀 590건, 총 활성 792건              |
+| 내 업무 런타임         | 2,891건 = 자동배정 2,235 + 수동 선택 대기 656                    |
+| 업무 사건 시각         | 배정·수락·위임·재배정·완료·완료 확인과 기록 시각 분리            |
 | 감사                   | 대상·의무·이행·증빙·점검 변경 이벤트 기록                        |
 | RLS                    | 익명 시연 역할별 읽기·쓰기 정책 적용                             |
 | 비밀정보               | 서비스 역할 키·PAT·DB 비밀번호를 프런트와 Git에 포함하지 않음    |
@@ -32,13 +34,21 @@
 8. `supabase/migrations/009_legal_source_popup.sql`
 9. `supabase/migrations/010_yongin_org_catalog.sql`
 10. `supabase/migrations/011_yongin_org_tree_view.sql`
-11. `supabase/seed.sql`
-12. `supabase/seed_adoms.sql`
-13. `supabase/seed_facility_catalog.sql`
-14. `supabase/seed_yongin_obligation_pool.sql`
-15. `supabase/seed_facility_workflow.sql`
-16. `supabase/seed_legal_source_popup.sql`
-17. `supabase/seed_yongin_org.sql`
+11. `supabase/migrations/012_demo_my_work.sql`
+12. `supabase/migrations/013_fix_demo_my_work_reset.sql`
+13. `supabase/migrations/014_demo_my_work_confirmation.sql`
+14. `supabase/migrations/015_harden_demo_my_work_transitions.sql`
+15. `supabase/migrations/016_index_demo_my_work_foreign_keys.sql`
+16. `supabase/migrations/017_harden_demo_my_work_delegation.sql`
+17. `supabase/migrations/018_guard_demo_work_status_transitions.sql`
+18. `supabase/seed.sql`
+19. `supabase/seed_adoms.sql`
+20. `supabase/seed_facility_catalog.sql`
+21. `supabase/seed_yongin_obligation_pool.sql`
+22. `supabase/seed_facility_workflow.sql`
+23. `supabase/seed_legal_source_popup.sql`
+24. `supabase/seed_yongin_org.sql`
+25. `supabase/seed_my_work_runtime.sql`
 
 `seed_yongin_obligation_pool.sql`은 클라이언트가 제공한 전체 용인 의무 3,688건을 적재한다. 원천 파일에는 인용문 내부 줄바꿈이 있어 5,057개 물리 줄이 있지만, 헤더를 제외한 CSV 논리 레코드는 3,688건이다. `008_yongin_obligation_pool.sql`은 `law_id`, `doc_id`, `unit_path`, 조문 정보와 원문 인용을 `ref_obligation`의 정식 열로 추가한다.
 
@@ -47,6 +57,8 @@
 `009_legal_source_popup.sql`은 법령 문서 스냅숏과 의무-조문 연결 테이블을 추가한다. `seed_legal_source_popup.sql`은 화면에 필요한 ADOMS 정식 원문 89행과 용인시청 별칭 원문 11행을 적재한다. 별칭 10개 중 `OBL-10`은 두 조문을 연결한다. 문서 최근 개정일과 현행법령 시행일은 국가법령정보센터 2026-09-06 조회값이며 원문과 조문 효력일은 ADOMS 사실층을 보존한다.
 
 `010_yongin_org_catalog.sql`과 `011_yongin_org_tree_view.sql`은 공식 조직 스냅숏·조직 단위·현재 계층 읽기 모델을 추가한다. `seed_yongin_org.sql`은 공식 조직도 세 화면과 공개 부서 상세를 2026-09-06 기준으로 파싱한 활성 792건을 적재한다. 구조 단위 202건은 공식 수량과 일치하고, 팀 590건은 개인 이름 없이 공개 `…팀장` 직위에서 파생한다.
+
+`012_demo_my_work.sql`은 `public.demo_work_*` 테이블을 추가한다. 물리 위치는 브라우저 PostgREST 호환을 위한 것이며 논리적으로는 초기화 가능한 `demo_runtime` 도메인이다. `013`은 Supabase 안전 삭제 규칙과 호환되도록 초기화 RPC를 보정한다. `014`는 완료와 최종 확인을 분리해 `completed_at`, `confirmed_at`, `confirmed_by_profile_id`, `CONFIRMED` 이력을 각각 저장한다. `015`는 최초 `assigned_at`을 재배정 때 보존하고 `reassigned_at`을 별도 기록하며 수락 전 상태 변경과 완료 후 재배정·상태 변경을 거부한다. `016`은 내 업무 FK 조인과 초기화 cascade를 위한 보조 인덱스를 추가한다. `017`은 위임을 수락된 실행 업무에만 허용하고 `018`은 같은 상태 전이를 테이블 trigger로 재검증한다. `seed_my_work_runtime.sql`은 조직과 시설 workflow 시드 이후 규칙 7건과 기준 업무 2,891건을 생성한다.
 
 ## 원격 수량
 
@@ -67,6 +79,10 @@
 | `ref_yongin_org_snapshot`       |     1 | 공식 조직도 2026-09-06 스냅숏           |
 | `ref_yongin_org_unit` 활성      |   792 | 구조 202 + 공개 팀 590                  |
 | `v_yongin_org_tree`             |   792 | 부모명·자식 수 포함 현재 조직 계층      |
+| `demo_work_assignment_rule`     |     7 | 시연 내부 자동배정 규칙                 |
+| `demo_work_item`                | 2,891 | 초기화 가능한 내 업무                   |
+| `demo_work_assignment_event`    | 2,891 | 기준상태 자동배정·생성 이력             |
+| `v_demo_my_work`                | 2,891 | 조직·담당·첨부·완료 확인 통합 조회      |
 
 `compliance_record`, `evidence`, `inspection_scope`, `inspection_result`는 사용자가 저장할 때 증가하는 업무 데이터다. 2026-09-06 브라우저 검증 후 `고기상수도 + OBL-0002590 + 2026-H2`의 이행기록 한 건을 시연 레코드로 남겼다. 자동 스모크 테스트가 생성하는 임시 데이터와 `demo/smoke/` 파일은 종료 시 삭제한다.
 
@@ -90,15 +106,18 @@ pnpm smoke:core
 pnpm smoke:facility
 pnpm smoke:legal-source
 pnpm smoke:org
+pnpm smoke:my-work
 pnpm smoke:supabase
 pnpm smoke:workflow
 ```
 
-`smoke:core`는 공개키로 전체 의무풀 3,688건, FMS 시설 150건, CSV 매핑 2,906건과 그래프 식별자 보존을 검증한다. `smoke:facility`는 153개 대상·2,929개 매핑, 경전철의 공중교통수단 분류, 고기상수도 31개 의무를 검증한다. `smoke:legal-source`는 용인시청 10개 별칭, 11개 원문 연결, `OBL-07` 직접 조문 연결, `OBL-10` 두 조문, 공식 날짜와 링크를 검증한다. `smoke:org`는 공식 조직 구조 수량, 활성 792건, 중대재해예방팀·도시철도과 계층, 부팀 오인식 0건을 검증한다. `smoke:workflow`는 한 의무에서 이행시기 → 실적 → Storage 증빙 → 점검 → 총괄 뷰까지 왕복한 뒤 임시 데이터를 정리한다.
+`smoke:core`는 공개키로 전체 의무풀 3,688건, FMS 시설 150건, CSV 매핑 2,906건과 그래프 식별자 보존을 검증한다. `smoke:facility`는 153개 대상·2,929개 매핑, 경전철의 공중교통수단 분류, 고기상수도 31개 의무를 검증한다. `smoke:legal-source`는 용인시청 10개 별칭, 11개 원문 연결, `OBL-07` 직접 조문 연결, `OBL-10` 두 조문, 공식 날짜와 링크를 검증한다. `smoke:org`는 공식 조직 구조 수량, 활성 792건, 중대재해예방팀·도시철도과 계층, 부팀 오인식 0건을 검증한다. `smoke:my-work`는 수동배정 → 수락 → 진행 → 첨부 업·다운로드 → 완료 → 완료 확인 → 위임요청 → 이력 조회 → 초기화를 왕복한다. 완료시각과 확인자·확인시각, `occurred_at`과 `created_at`, 기존 증빙 보존을 각각 검증한다. `smoke:workflow`는 한 의무에서 이행시기 → 실적 → Storage 증빙 → 점검 → 총괄 뷰까지 왕복한 뒤 임시 데이터를 정리한다.
 
 ## 권한과 종료 절차
 
-`target_manager`는 대상·적용판정·의무이행·증빙을 기록한다. `inspector`는 점검 회차·범위·결과를 기록한다. `executive`는 두 업무 영역을 수행한다. `ref_*`는 브라우저 읽기 전용이다.
+`target_manager`는 대상·적용판정·의무이행·증빙을 기록한다. `inspector`는 점검 회차·범위·결과와 내 업무 완료 확인을 기록한다. `executive`는 두 업무 영역과 내 업무 완료 확인을 수행한다. `ref_*`는 브라우저 읽기 전용이다.
+
+현재 역할 전환과 프로필 ID는 익명 공유 시연 흐름이다. 사용자별 인증·조직별 RLS를 제공하지 않으며 실사용 권한으로 설명하지 않는다. Storage의 기존 `demo/**` 읽기 정책 때문에 `demo/my-work/**`만 세분화 보안됐다고 주장해서도 안 된다. 초기화는 Storage 삭제 후 DB 재구성을 순서대로 수행하므로 원자적 파일 삭제라고 표현하지 않는다.
 
 시연 종료 직후 익명 쓰기를 비활성화한다.
 
@@ -119,3 +138,4 @@ where key = 'demo_write_enabled';
 [1]: https://github.com/simulacre-8/Yongin/blob/main/supabase/migrations/008_yongin_obligation_pool.sql "Yongin obligation pool migration"
 [2]: https://github.com/simulacre-8/Yongin/blob/main/supabase/seed_yongin_obligation_pool.sql "Yongin obligation pool seed"
 [3]: https://github.com/simulacre-8/Yongin/blob/main/scripts/facility-workflow-smoke.ts "Facility workflow smoke test"
+[4]: https://github.com/simulacre-8/Yongin/blob/main/docs/MY_WORK_OPERATING_MODEL.md "My Work demo runtime operating model"

@@ -47,7 +47,7 @@ pnpm dev
 | ------------------------- | ------------------------------------------------------- |
 | `/`, `/home/*`            | 카테고리·재해유형별 의무 목록, 하위 점검사항, 상태 집계 |
 | `/settings/applicability` | 설정 사실값 기반 적용범위 판정과 근거 경로              |
-| `/dashboard`              | 역할별 대시보드와 집계                                  |
+| `/dashboard`              | 역할·조직별 내 업무 배정·수락·위임·완료·완료 확인       |
 | `/targets`                | 관리대상 검색·선택·법령 조문 원문·개정/시행일 팝업      |
 | `/laws`                   | 핵심 법령 축소본 검색·근거                              |
 | `/obligations`            | 의무 체크리스트와 검수된 대상별 이행시기                |
@@ -71,13 +71,21 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 8. `supabase/migrations/009_legal_source_popup.sql`
 9. `supabase/migrations/010_yongin_org_catalog.sql`
 10. `supabase/migrations/011_yongin_org_tree_view.sql`
-11. `supabase/seed.sql`
-12. `supabase/seed_adoms.sql`
-13. `supabase/seed_facility_catalog.sql`
-14. `supabase/seed_yongin_obligation_pool.sql`
-15. `supabase/seed_facility_workflow.sql`
-16. `supabase/seed_legal_source_popup.sql`
-17. `supabase/seed_yongin_org.sql`
+11. `supabase/migrations/012_demo_my_work.sql`
+12. `supabase/migrations/013_fix_demo_my_work_reset.sql`
+13. `supabase/migrations/014_demo_my_work_confirmation.sql`
+14. `supabase/migrations/015_harden_demo_my_work_transitions.sql`
+15. `supabase/migrations/016_index_demo_my_work_foreign_keys.sql`
+16. `supabase/migrations/017_harden_demo_work_delegation.sql`
+17. `supabase/migrations/018_guard_demo_work_status_transitions.sql`
+18. `supabase/seed.sql`
+19. `supabase/seed_adoms.sql`
+20. `supabase/seed_facility_catalog.sql`
+21. `supabase/seed_yongin_obligation_pool.sql`
+22. `supabase/seed_facility_workflow.sql`
+23. `supabase/seed_legal_source_popup.sql`
+24. `supabase/seed_yongin_org.sql`
+25. `supabase/seed_my_work_runtime.sql`
 
 `seed_adoms.sql`은 스키마 변경 없이 ADOMS 그래프 식별자를 보존한 법령 104건·조문 304건·의무 216건·규칙 128건·연결 128건을 추가합니다. 실제 SQL에서 `demo_approved=true`인 ADOMS 규칙·연결은 31건이며, 첫 화면에서는 용인시청 시연과 직접 관련된 승인 규칙 4개를 실행합니다.
 
@@ -88,6 +96,8 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 `seed_legal_source_popup.sql`은 관리대상 화면에서 사용하는 ADOMS 정식 조문 원문 100행과 법령 문서 13건을 적재합니다. 용인시청 로컬 의무 `OBL-01`~`OBL-10`은 별칭 브리지로 정식 `unit_id`에 연결되며 `OBL-10`은 제6조·제11조 두 원문을 함께 보여준다. 법령 최근 개정일·현행법령 시행일은 2026-09-06 국가법령정보센터 조회 스냅숏이고, 조문 효력일과 원문은 ADOMS 사실층 기준이다.
 
 `seed_yongin_org.sql`은 용인특례시 공식 조직도 3개 화면과 공개 부서 상세에서 파싱한 활성 조직 단위 792건을 적재한다. 공식 구조인 시청 2실·13국·66과, 직속기관 4기관·9과, 사업소 5개·14과, 3개 구청·38과·39읍면동을 보존하며, 팀 590건은 공개 직위의 고유한 `…팀장` 명칭에서만 파생한다. 개인 이름은 적재하지 않는다.
+
+`012`~`018`은 법령·시설·조직 기준정보와 분리된 **내 업무 시연 런타임 계층**을 구성한다. `seed_my_work_runtime.sql`은 공식 조직도와 시설 workflow 시드가 끝난 뒤 시연 내부 소관규칙과 기준 업무를 생성한다. 초기 2,891건 중 2,235건을 자동배정하고 656건을 수동 선택 대기로 둔다. 배정·수락·위임·재배정·완료·완료 확인은 각각 사건 시각과 DB 기록 시각을 분리해 저장한다. 최초 `assigned_at`은 재배정 때 덮어쓰지 않고 `reassigned_at`을 별도로 기록한다. 완료 업무는 재배정·위임하거나 실행 상태로 되돌릴 수 없다. 물리 테이블은 PostgREST 호환을 위해 `public.demo_work_*`를 사용하며 논리 도메인은 `demo_runtime`이다.
 
 ## 검증
 
@@ -104,6 +114,7 @@ pnpm smoke:home
 pnpm smoke:facility
 pnpm smoke:legal-source
 pnpm smoke:org
+pnpm smoke:my-work
 pnpm smoke:workflow
 ```
 
@@ -126,6 +137,7 @@ pnpm smoke:workflow
 - `docs/YONGIN_CORE_DATA_VERIFICATION.md`: 세 CSV 해시·논리 행·조인 무결성·원격 적재 검증
 - `docs/LEGAL_SOURCE_POPUP.md`: ADOMS 원문·국가법령정보센터 날짜·별칭 연결 기준
 - `docs/YONGIN_ORG_IMPORT.md`: 용인시 공식 조직도 파싱·수량·Supabase 계층·재현 절차
+- `docs/MY_WORK_OPERATING_MODEL.md`: 시연 런타임 계층·사건별 시각·자동배정·초기화·보안 경계
 - `docs/IA_IMPLEMENTATION_NOTES_20260906.md`: 기능 IA 메뉴·색상·조직 데이터 공백 반영 기준
 - `docs/REDESIGN_BRIEF_20260906.md`: 초기 용인시 브랜드 톤 복원과 공통 디자인 토큰
 - `docs/FONT_SIZE_SPEC.md`: Inter·Noto Sans KR 기반 통일 폰트 규격
@@ -149,7 +161,7 @@ where key = 'demo_write_enabled';
 
 ## 2026-09-06 UI 재구성
 
-현재 검수용 GNB는 `홈`, `관리대상`, `의무 체크리스트`, `의무이행`, `내 업무`, `설정` 순서입니다. `내 업무`는 현재 기존 이행현황 대시보드로 연결하며, `이행점검`은 GNB에서 숨기되 기존 라우트와 데이터 흐름은 후속 프로세스 검수용으로 유지합니다. 메뉴명과 중처법 의무이행 프로시저는 다음 검수 단계에서 다시 확정합니다. 상단의 중복 DB 상태 배지는 제거하고, 홈·의무 체크리스트·설정의 데이터 원천 영역에서 실제 조회 상태를 표시합니다. 홈은 본문 안의 **중처법 카테고리별**과 **중대재해 유형별** 두 구역만 로컬 내비게이션으로 유지합니다. 중대산업재해는 14개 하위 메뉴를 다시 펼치지 않고, 오른쪽 의무 행 아래에 법령 원문의 세부 점검사항을 번호와 들여쓰기로 표시합니다. 의무 행을 선택하면 실제 workflow 상태의 이행률·O/△/X/- 집계와 조직 배정 현황을 확인할 수 있습니다.
+현재 검수용 GNB는 `홈`, `관리대상`, `의무 체크리스트`, `의무이행`, `내 업무`, `설정` 순서입니다. `/dashboard`의 기존 대시보드는 공식 조직도와 실제 대상별 의무 2,891건을 연결한 `내 업무`로 교체했습니다. 역할·조직 범위 조회, 자동·수동 배정, 수락, 상태 변경, 위임요청과 필수 근거파일, 완료, 완료 확인, 첨부 다운로드, 이력, 선택 CSV를 실제 Supabase에 기록합니다. 완료와 완료 확인은 `completed_at`과 `confirmed_at`·`confirmed_by`로 분리합니다. `이행점검`은 GNB에서 숨기되 기존 라우트와 데이터 흐름은 후속 프로세스 검수용으로 유지합니다.
 
 `설정`은 적용범위 판정에 사용하는 대상 프로필·상시근로자 수·연면적·효력 기준일·시설물안전법 대상 여부를 관리합니다. 저장하면 브라우저 설정과 Supabase `target_applicability` 판정기록이 함께 갱신됩니다. `적용범위 판정`은 설정값을 읽는 결과·근거 전용 화면으로 축소했으며, 프리셋과 용인시청 기본값 입력 영역은 제거했습니다.
 

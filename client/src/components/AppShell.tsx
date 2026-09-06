@@ -1,8 +1,20 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { ChevronDown, RefreshCcw } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Role } from "@/lib/demo-data";
 import type { HomeNavigationData } from "@/lib/home-obligation-api";
+import { resetMyWork } from "@/lib/my-work-api";
 import { useDemo } from "@/contexts/DemoContext";
 
 type LnbItem = {
@@ -136,12 +148,12 @@ function menuFor(
       };
     case "dashboard":
       return {
-        title: "이행현황",
+        title: "내 업무",
         groups: [
           {
-            title: "이행현황",
+            title: "배정·이행",
             items: [
-              { label: "전체 이행현황", href: "/dashboard", selected: true },
+              { label: "나의 할 일", href: "/dashboard", selected: true },
             ],
           },
         ],
@@ -408,7 +420,30 @@ const shellStyles = `
 export default function AppShell({ children }: { children: ReactNode }) {
   const [location, navigate] = useLocation();
   const { role, setRole, resetDemo } = useDemo();
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const homeHref = "/home";
+
+  const handleReset = async () => {
+    setResetting(true);
+    try {
+      const result = await resetMyWork(role);
+      resetDemo();
+      setResetOpen(false);
+      navigate(homeHref);
+      toast.success(
+        `내 업무 시연 런타임 DB가 초기화되었습니다. ${result.deletedWorkItems.toLocaleString()}건 삭제 후 ${result.seededWorkItems.toLocaleString()}건을 다시 구성했습니다.`
+      );
+    } catch (reason) {
+      toast.error(
+        reason instanceof Error
+          ? reason.message
+          : "내 업무 시연 런타임 DB 초기화에 실패했습니다."
+      );
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const activeHref =
     location === "/" || location === "/home" || location.startsWith("/home/")
@@ -469,12 +504,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <ChevronDown size={13} />
           </div>
           <div className="header-actions">
-            <button
-              onClick={() => {
-                resetDemo();
-                navigate(homeHref);
-              }}
-            >
+            <button onClick={() => setResetOpen(true)}>
               <RefreshCcw size={12} /> 초기화
             </button>
           </div>
@@ -489,6 +519,40 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <span>용인시청 : (우 17019) 경기도 용인시 처인구 중부대로 1199</span>
         <span>Copyright © YONGIN SPECIAL CITY. ALL RIGHTS RESERVED.</span>
       </footer>
+
+      <AlertDialog
+        open={resetOpen}
+        onOpenChange={open => {
+          if (!resetting) setResetOpen(open);
+        }}
+      >
+        <AlertDialogContent className="demo-reset-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              시연 운영값을 초기화하시겠습니까?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>내 업무 시연 런타임 DB와 내 업무 첨부파일만</strong>{" "}
+              삭제한 뒤 기준 업무를 다시 구성합니다. 법령·시설·조직도·기존
+              실적증빙 환경은 유지됩니다. 내 업무 첨부 삭제와 DB 재구성은 하나의
+              트랜잭션이 아닌 순차 작업입니다. 중간 실패 메시지가 나오면
+              초기화를 다시 실행해야 합니다. 초기화 기록은 감사용으로 남습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetting}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={resetting}
+              onClick={event => {
+                event.preventDefault();
+                void handleReset();
+              }}
+            >
+              {resetting ? "초기화 중" : "초기화"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

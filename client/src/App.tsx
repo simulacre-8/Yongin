@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { DemoProvider } from "@/contexts/DemoContext";
 import AppShell from "@/components/AppShell";
 import Home from "@/pages/Home";
-import Dashboard from "@/pages/Dashboard";
+import MyWork from "@/pages/MyWork";
 import Targets from "@/pages/Targets";
 import Laws from "@/pages/Laws";
 import Obligations from "@/pages/Obligations";
@@ -28,7 +28,7 @@ function Router() {
         <Route path="/settings/applicability" component={Applicability} />
         <Route path="/applicability" component={Applicability} />
         <Route path="/settings" component={Settings} />
-        <Route path="/dashboard" component={Dashboard} />
+        <Route path="/dashboard" component={MyWork} />
         <Route path="/targets" component={Targets} />
         <Route path="/laws" component={Laws} />
         <Route path="/obligations" component={Obligations} />
