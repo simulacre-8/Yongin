@@ -53,8 +53,9 @@ const viewMeta: Record<
     basis: "중대재해처벌법 제4조제1항제4호·제9조제1항제4호",
   },
   industrial: {
-    title: "중대산업재해",
-    description: "중대산업재해 관련 제4조·제5조의 14개 의무를 확인합니다.",
+    title: "사업·사업장",
+    description:
+      "사업·사업장에 적용되는 중대산업재해 관련 제4조·제5조의 14개 의무를 확인합니다.",
     basis: "중대재해처벌법 제4조·제5조",
   },
   "citizen-facility": {
@@ -80,9 +81,9 @@ const homeStyles = `
   .obligation-local-group { padding: 14px 11px 10px; border-top: 1px solid #e8edf2; }
   .obligation-local-group:first-of-type { border-top: 0; }
   .obligation-local-group h2 { margin: 0 5px 7px; color: #6c7789; font-size: 11px; font-weight: 800; letter-spacing: .05em; }
-  .obligation-local-link, .obligation-local-label { position: relative; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px; width: 100%; min-height: 34px; padding: 7px 9px; border: 1px solid transparent; border-radius: 7px; color: #495468; font-size: 12px; }
-  .obligation-local-link:hover { border-color: #cbdce9; background: #f4f8fb; color: #1d6fa3; }
-  .obligation-local-link.active { border-color: #b9d3e6; background: #e7f1f8; color: #155985; font-weight: 800; }
+  .obligation-local-link, .obligation-local-label { position: relative; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px; width: 100%; min-height: 34px; padding: 7px 9px; border: 1px solid transparent; border-radius: 7px; color: #495468; font-size: 12px; line-height: 1.4; transition: background-color 160ms cubic-bezier(.23,1,.32,1), color 160ms cubic-bezier(.23,1,.32,1), box-shadow 160ms cubic-bezier(.23,1,.32,1); }
+  .obligation-local-link:hover { background: #f4f8fb; color: #1d6fa3; box-shadow: inset 3px 0 #9fc2da; }
+  .obligation-local-link.active { background: #e7f1f8; color: #155985; box-shadow: inset 3px 0 #1d6fa3; font-weight: 800; }
   .obligation-local-link.nested { padding-left: 24px; font-size: 11px; }
   .obligation-local-link.nested::before { content: ""; position: absolute; left: 11px; width: 5px; height: 5px; border-radius: 50%; background: #7fa9c5; }
   .obligation-local-label { color: #253b5c; font-weight: 800; }
@@ -228,11 +229,17 @@ function LocalNavigation({
       </section>
       <section className="obligation-local-group">
         <h2>중대재해 유형별</h2>
+        <div className="obligation-local-label">
+          <span>중대산업재해</span>
+          <strong className="obligation-local-count">
+            {accidentCounts.industrial}
+          </strong>
+        </div>
         <Link
           href="/home/industrial"
-          className={`obligation-local-link${route.view === "industrial" ? " active" : ""}`}
+          className={`obligation-local-link nested${route.view === "industrial" ? " active" : ""}`}
         >
-          <span>중대산업재해</span>
+          <span>사업·사업장</span>
           <strong className="obligation-local-count">
             {accidentCounts.industrial}
           </strong>

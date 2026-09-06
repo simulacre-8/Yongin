@@ -367,7 +367,7 @@ function AttachmentCell({
   return (
     <div
       className="adoms-attachment-cell"
-      style={{ display: "grid", gap: 5, minWidth: 178 }}
+      style={{ display: "grid", gap: 5, minWidth: 178, justifyItems: "end" }}
     >
       <input
         id={inputId}
@@ -384,6 +384,7 @@ function AttachmentCell({
             gridTemplateColumns: "minmax(0, 1fr) 26px 26px",
             gap: 3,
             alignItems: "center",
+            width: "100%",
           }}
         >
           <span
@@ -428,7 +429,7 @@ function AttachmentCell({
       ))}
       <div
         className="adoms-file-actions"
-        style={{ display: "flex", justifyContent: "flex-start" }}
+        style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}
       >
         <label
           htmlFor={inputId}
@@ -886,12 +887,12 @@ export default function Evidence() {
           <th colSpan={2} style={tableHeaderStyle}>
             인적사항
           </th>
+          <th style={tableHeaderStyle}>비고</th>
           <th style={tableHeaderStyle}>
             증빙자료
             <br />
             <small style={{ fontWeight: 500 }}>※개당 10MB 이하</small>
           </th>
-          <th style={tableHeaderStyle}>비고</th>
           <th style={tableHeaderStyle} aria-label="삭제" />
         </tr>
         <tr>
@@ -950,7 +951,6 @@ export default function Evidence() {
                 }
               />
             </td>
-            <td style={tableCellStyle}>{renderAttachment(row)}</td>
             <td style={tableCellStyle}>
               <input
                 style={inputStyle}
@@ -961,6 +961,7 @@ export default function Evidence() {
                 }
               />
             </td>
+            <td style={tableCellStyle}>{renderAttachment(row)}</td>
             <td style={{ ...tableCellStyle, textAlign: "center" }}>
               <button
                 className="adoms-row-delete"
@@ -991,13 +992,13 @@ export default function Evidence() {
           </th>
           <th style={tableHeaderStyle}>집행 일자</th>
           <th style={tableHeaderStyle}>집행 내역</th>
+          <th style={tableHeaderStyle}>집행액</th>
+          <th style={tableHeaderStyle}>비고</th>
           <th style={tableHeaderStyle}>
             증빙자료
             <br />
             <small style={{ fontWeight: 500 }}>※개당 10MB 이하</small>
           </th>
-          <th style={tableHeaderStyle}>집행액</th>
-          <th style={tableHeaderStyle}>비고</th>
           <th style={tableHeaderStyle} aria-label="삭제" />
         </tr>
       </thead>
@@ -1047,7 +1048,6 @@ export default function Evidence() {
                 }
               />
             </td>
-            <td style={tableCellStyle}>{renderAttachment(row)}</td>
             <td style={tableCellStyle}>
               <input
                 style={{ ...inputStyle, textAlign: "right" }}
@@ -1072,6 +1072,7 @@ export default function Evidence() {
                 }
               />
             </td>
+            <td style={tableCellStyle}>{renderAttachment(row)}</td>
             <td style={{ ...tableCellStyle, textAlign: "center" }}>
               <button
                 className="adoms-row-delete"
@@ -1097,12 +1098,12 @@ export default function Evidence() {
           <th style={tableHeaderStyle}>점검 항목</th>
           <th style={tableHeaderStyle}>점검 일자</th>
           <th style={tableHeaderStyle}>점검결과 및 조치내역</th>
+          <th style={tableHeaderStyle}>비고</th>
           <th style={tableHeaderStyle}>
             증빙자료
             <br />
             <small style={{ fontWeight: 500 }}>※개당 10MB 이하</small>
           </th>
-          <th style={tableHeaderStyle}>비고</th>
           <th style={tableHeaderStyle} aria-label="삭제" />
         </tr>
       </thead>
@@ -1140,7 +1141,6 @@ export default function Evidence() {
                 }
               />
             </td>
-            <td style={tableCellStyle}>{renderAttachment(row)}</td>
             <td style={tableCellStyle}>
               <input
                 style={inputStyle}
@@ -1151,6 +1151,7 @@ export default function Evidence() {
                 }
               />
             </td>
+            <td style={tableCellStyle}>{renderAttachment(row)}</td>
             <td style={{ ...tableCellStyle, textAlign: "center" }}>
               <button
                 className="adoms-row-delete"
@@ -1176,12 +1177,12 @@ export default function Evidence() {
           <th style={tableHeaderStyle}>안전계획 항목</th>
           <th style={tableHeaderStyle}>이행 일자</th>
           <th style={tableHeaderStyle}>이행 내역</th>
+          <th style={tableHeaderStyle}>비고</th>
           <th style={tableHeaderStyle}>
             증빙자료
             <br />
             <small style={{ fontWeight: 500 }}>※개당 10MB 이하</small>
           </th>
-          <th style={tableHeaderStyle}>비고</th>
           <th style={tableHeaderStyle} aria-label="삭제" />
         </tr>
       </thead>
@@ -1219,7 +1220,6 @@ export default function Evidence() {
                 }
               />
             </td>
-            <td style={tableCellStyle}>{renderAttachment(row)}</td>
             <td style={tableCellStyle}>
               <input
                 style={inputStyle}
@@ -1230,6 +1230,7 @@ export default function Evidence() {
                 }
               />
             </td>
+            <td style={tableCellStyle}>{renderAttachment(row)}</td>
             <td style={{ ...tableCellStyle, textAlign: "center" }}>
               <button
                 className="adoms-row-delete"
@@ -1257,12 +1258,12 @@ export default function Evidence() {
           <th style={tableHeaderStyle}>확인 일자</th>
           <th style={tableHeaderStyle}>조치사항</th>
           <th style={tableHeaderStyle}>조치일자</th>
+          <th style={tableHeaderStyle}>비고</th>
           <th style={tableHeaderStyle}>
             증빙자료
             <br />
             <small style={{ fontWeight: 500 }}>※개당 10MB 이하</small>
           </th>
-          <th style={tableHeaderStyle}>비고</th>
           <th style={tableHeaderStyle} aria-label="삭제" />
         </tr>
       </thead>
@@ -1323,7 +1324,6 @@ export default function Evidence() {
                 }
               />
             </td>
-            <td style={tableCellStyle}>{renderAttachment(row)}</td>
             <td style={tableCellStyle}>
               <input
                 style={inputStyle}
@@ -1334,6 +1334,7 @@ export default function Evidence() {
                 }
               />
             </td>
+            <td style={tableCellStyle}>{renderAttachment(row)}</td>
             <td style={{ ...tableCellStyle, textAlign: "center" }}>
               <button
                 className="adoms-row-delete"
@@ -1361,12 +1362,12 @@ export default function Evidence() {
           <th style={tableHeaderStyle}>조항·호·목</th>
           <th style={tableHeaderStyle}>조치내용</th>
           <th style={tableHeaderStyle}>조치 일자</th>
+          <th style={tableHeaderStyle}>비고</th>
           <th style={tableHeaderStyle}>
             증빙자료
             <br />
             <small style={{ fontWeight: 500 }}>※개당 10MB 이하</small>
           </th>
-          <th style={tableHeaderStyle}>비고</th>
           <th style={tableHeaderStyle} aria-label="삭제" />
         </tr>
       </thead>
@@ -1421,7 +1422,6 @@ export default function Evidence() {
                 }
               />
             </td>
-            <td style={tableCellStyle}>{renderAttachment(row)}</td>
             <td style={tableCellStyle}>
               <input
                 style={inputStyle}
@@ -1432,6 +1432,7 @@ export default function Evidence() {
                 }
               />
             </td>
+            <td style={tableCellStyle}>{renderAttachment(row)}</td>
             <td style={{ ...tableCellStyle, textAlign: "center" }}>
               <button
                 className="adoms-row-delete"
@@ -1465,12 +1466,12 @@ export default function Evidence() {
               <th style={tableHeaderStyle}>교육대상</th>
               <th style={tableHeaderStyle}>교육기관</th>
               <th style={tableHeaderStyle}>교육 일자</th>
+              <th style={tableHeaderStyle}>비고</th>
               <th style={tableHeaderStyle}>
                 증빙자료
                 <br />
                 <small style={{ fontWeight: 500 }}>※개당 10MB 이하</small>
               </th>
-              <th style={tableHeaderStyle}>비고</th>
               <th style={tableHeaderStyle} aria-label="삭제" />
             </tr>
           </thead>
@@ -1547,6 +1548,16 @@ export default function Evidence() {
                   />
                 </td>
                 <td style={tableCellStyle}>
+                  <input
+                    style={inputStyle}
+                    value={row.note}
+                    aria-label="비고"
+                    onChange={event =>
+                      updateEducationRow(row.id, { note: event.target.value })
+                    }
+                  />
+                </td>
+                <td style={tableCellStyle}>
                   <div
                     className="adoms-roster-control"
                     style={{ display: "grid", gap: 5, minWidth: 190 }}
@@ -1609,16 +1620,6 @@ export default function Evidence() {
                     </div>
                     {renderAttachment(row, "education")}
                   </div>
-                </td>
-                <td style={tableCellStyle}>
-                  <input
-                    style={inputStyle}
-                    value={row.note}
-                    aria-label="비고"
-                    onChange={event =>
-                      updateEducationRow(row.id, { note: event.target.value })
-                    }
-                  />
                 </td>
                 <td style={{ ...tableCellStyle, textAlign: "center" }}>
                   <button
@@ -1753,15 +1754,10 @@ export default function Evidence() {
               workflowItems.map(duty => (
                 <button
                   key={duty.obligationId}
-                  className="adoms-step-button"
+                  className={`adoms-step-button${activeId === duty.obligationId ? " active" : ""}`}
                   type="button"
                   onClick={() => setActiveId(duty.obligationId)}
-                  style={{
-                    ...stepButtonStyle,
-                    ...(activeId === duty.obligationId
-                      ? activeStepButtonStyle
-                      : {}),
-                  }}
+                  style={stepButtonStyle}
                 >
                   {duty.title}
                 </button>
@@ -2067,13 +2063,6 @@ const stepButtonStyle: CSSProperties = {
   fontSize: 12,
   lineHeight: 1.35,
   cursor: "pointer",
-};
-
-const activeStepButtonStyle: CSSProperties = {
-  borderColor: "#b9d3e6",
-  background: "#e7f1f8",
-  color: "#155985",
-  fontWeight: 700,
 };
 
 const saveButtonStyle: CSSProperties = {

@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import { Building2, Database, ShieldCheck, Users } from "lucide-react";
+import {
+  Building2,
+  Database,
+  Network,
+  Search,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import {
   loadApplicabilityDataset,
   loadStoredFacts,
@@ -13,6 +20,16 @@ import {
   type ApplicabilityDataset,
   type ApplicabilityFacts,
 } from "@/lib/applicability";
+import { loadYonginOrgUnits, type OrgUnit } from "@/lib/my-work-api";
+
+const topOrganizationTypes = new Set([
+  "OFFICE",
+  "BUREAU",
+  "DIRECT_AGENCY",
+  "SERVICE_OFFICE",
+  "DISTRICT",
+  "COUNCIL_OFFICE",
+]);
 
 function formatRecordedAt(value: string | null) {
   if (!value) return "";
@@ -35,6 +52,11 @@ export default function Settings() {
     "idle" | "saving" | "saved" | "local" | "error"
   >("idle");
   const [recordedAt, setRecordedAt] = useState<string | null>(null);
+  const [orgUnits, setOrgUnits] = useState<OrgUnit[]>([]);
+  const [orgLoading, setOrgLoading] = useState(true);
+  const [orgError, setOrgError] = useState("");
+  const [selectedOrgKey, setSelectedOrgKey] = useState("");
+  const [orgSearch, setOrgSearch] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -57,6 +79,36 @@ export default function Settings() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    loadYonginOrgUnits()
+      .then(units => {
+        if (!active) return;
+        setOrgUnits(units);
+        const topUnits = units.filter(unit =>
+          topOrganizationTypes.has(unit.orgType)
+        );
+        setSelectedOrgKey(
+          topUnits.find(unit => unit.name === "기획조정실")?.orgKey ||
+            topUnits[0]?.orgKey ||
+            ""
+        );
+        setOrgLoading(false);
+      })
+      .catch(error => {
+        if (!active) return;
+        setOrgError(
+          error instanceof Error
+            ? error.message
+            : "조직도를 불러오지 못했습니다."
+        );
+        setOrgLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     storeFacts(facts);
     setSaveStatus(current => (current === "saving" ? current : "idle"));
   }, [facts]);
@@ -65,6 +117,35 @@ export default function Settings() {
     () => assessApplicability(facts, dataset),
     [dataset, facts]
   );
+
+  const topOrganizations = useMemo(
+    () => orgUnits.filter(unit => topOrganizationTypes.has(unit.orgType)),
+    [orgUnits]
+  );
+  const selectedOrganization = useMemo(
+    () => topOrganizations.find(unit => unit.orgKey === selectedOrgKey),
+    [selectedOrgKey, topOrganizations]
+  );
+  const visibleOrganizations = useMemo(() => {
+    const keyword = orgSearch.trim().toLocaleLowerCase("ko-KR");
+    if (keyword) {
+      return orgUnits
+        .filter(unit =>
+          `${unit.name} ${unit.hierarchyPath}`
+            .toLocaleLowerCase("ko-KR")
+            .includes(keyword)
+        )
+        .slice(0, 120);
+    }
+    if (!selectedOrganization) return [];
+    return orgUnits
+      .filter(
+        unit =>
+          unit.orgKey !== selectedOrganization.orgKey &&
+          unit.hierarchyPath.startsWith(selectedOrganization.hierarchyPath)
+      )
+      .slice(0, 120);
+  }, [orgSearch, orgUnits, selectedOrganization]);
 
   const setNumericFact = (key: "workerCount" | "grossArea", value: string) => {
     setFacts(current => ({
@@ -261,6 +342,100 @@ export default function Settings() {
           </p>
         </aside>
       </div>
+
+      <section
+        className="settings-card settings-org-card"
+        aria-labelledby="settings-org-title"
+      >
+        <header>
+          <div>
+            <span className="settings-step">02</span>
+            <div>
+              <h2 id="settings-org-title">조직도</h2>
+              <p>
+                용인특례시 공식 조직도에서 수집한 활성 조직{" "}
+                {orgUnits.length.toLocaleString("ko-KR")}개를 확인합니다.
+              </p>
+            </div>
+          </div>
+          <span className="settings-org-source">
+            <Network size={14} aria-hidden="true" /> 공식 조직도 · Supabase
+          </span>
+        </header>
+
+        <label className="settings-org-search">
+          <Search size={15} aria-hidden="true" />
+          <input
+            type="search"
+            value={orgSearch}
+            onChange={event => setOrgSearch(event.target.value)}
+            placeholder="부서명 또는 조직 경로를 검색하세요"
+            aria-label="조직도 검색"
+          />
+        </label>
+
+        {orgLoading ? (
+          <p className="settings-org-state">공식 조직도를 불러오고 있습니다.</p>
+        ) : orgError ? (
+          <p className="settings-org-state error">{orgError}</p>
+        ) : (
+          <div className="settings-org-browser">
+            <nav className="settings-org-roots" aria-label="상위 조직 선택">
+              {topOrganizations.map(unit => (
+                <button
+                  key={unit.orgKey}
+                  type="button"
+                  className={
+                    selectedOrgKey === unit.orgKey && !orgSearch ? "active" : ""
+                  }
+                  onClick={() => {
+                    setSelectedOrgKey(unit.orgKey);
+                    setOrgSearch("");
+                  }}
+                >
+                  <span>{unit.name}</span>
+                  <small>{unit.childCount}</small>
+                </button>
+              ))}
+            </nav>
+            <div className="settings-org-children">
+              <div className="settings-org-result-head">
+                <strong>
+                  {orgSearch
+                    ? `“${orgSearch}” 검색 결과`
+                    : selectedOrganization?.name}
+                </strong>
+                <span>
+                  {visibleOrganizations.length.toLocaleString("ko-KR")}개 표시
+                </span>
+              </div>
+              <div className="settings-org-list">
+                {visibleOrganizations.length ? (
+                  visibleOrganizations.map(unit => (
+                    <div
+                      key={unit.orgKey}
+                      className="settings-org-row"
+                      style={{
+                        paddingLeft: `${12 + Math.max(0, unit.hierarchyLevel - 1) * 14}px`,
+                      }}
+                    >
+                      <span>
+                        <strong>{unit.name}</strong>
+                        <small>{unit.hierarchyPath}</small>
+                      </span>
+                      <em>{unit.orgType}</em>
+                    </div>
+                  ))
+                ) : (
+                  <p className="settings-org-empty">
+                    표시할 하위 조직이 없습니다.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
