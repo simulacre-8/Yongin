@@ -5537,31 +5537,35 @@ a {
 
 .adoms-evidence-page .adoms-action-entry-table {
   table-layout: fixed;
-  min-width: 980px !important;
+  min-width: 1180px !important;
 }
 
 .adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(1) {
-  width: 88px;
+  width: 126px;
 }
 
 .adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(2) {
-  width: 230px;
+  width: 86px;
 }
 
 .adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(3) {
-  width: 125px;
+  width: 210px;
 }
 
 .adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(4) {
-  width: auto;
+  width: 120px;
 }
 
 .adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(5) {
-  width: 132px;
+  width: auto;
 }
 
 .adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(6) {
-  width: 150px;
+  width: 158px;
+}
+
+.adoms-evidence-page .adoms-action-entry-table :is(th, td):nth-child(7) {
+  width: 180px;
 }
 
 .adoms-evidence-page .adoms-action-detail-input {
@@ -5619,10 +5623,69 @@ a {
   text-align: center;
 }
 
-.adoms-evidence-page .adoms-correction-kind.is-urgent {
+.adoms-evidence-page .adoms-correction-kind.is-correction {
   border-color: #e5a39d;
   background: #fff0ef;
   color: #b42318;
+}
+
+.adoms-evidence-page .adoms-action-period-inputs {
+  display: grid;
+  gap: 6px;
+}
+
+.adoms-evidence-page .adoms-action-period-inputs label {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 5px;
+}
+
+.adoms-evidence-page .adoms-action-period-inputs label > span {
+  color: #5d6e7c;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.adoms-evidence-page .adoms-form-download {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 9px;
+  border: 1px solid #b9d3e6;
+  border-radius: 7px;
+  background: #f1f7fb;
+  color: #155985;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+  text-decoration: none;
+}
+
+.adoms-evidence-page .adoms-form-download:hover {
+  border-color: #1d6fa3;
+  background: #e5f1f8;
+}
+
+.adoms-evidence-page .adoms-log-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 7px 0;
+}
+
+.adoms-evidence-page .adoms-log-metadata span {
+  padding: 4px 7px;
+  border: 1px solid #d8e2eb;
+  border-radius: 5px;
+  background: #f7f9fb;
+  color: #526578;
+  font-size: 9px;
+  font-weight: 700;
 }
 
 .adoms-evidence-page .adoms-log-attachments {

@@ -495,6 +495,10 @@ async function getActorProfileId(role: Role) {
   return data.profile_id as string;
 }
 
+export async function getDemoActorProfileId(role: Role) {
+  return getActorProfileId(role);
+}
+
 function nowIso() {
   return new Date().toISOString();
 }

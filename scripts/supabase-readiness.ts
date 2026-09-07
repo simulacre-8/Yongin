@@ -75,6 +75,80 @@ for (const table of tables) {
   });
 }
 
+const { error: complianceActionModelError } = await supabase
+  .from("demo_compliance_action_event")
+  .select(
+    "work_category,action_kind,action_start_date,action_end_date,document_form_name,actor_employee_no,actor_org_name,actor_display_name,work_origin,delegated_at,occurred_at,created_at"
+  )
+  .limit(1);
+results.push({
+  resource: "contract:compliance-action-document-model",
+  ready: !complianceActionModelError,
+  ...(complianceActionModelError
+    ? { error: complianceActionModelError.message }
+    : {}),
+});
+
+function rpcExists(error?: { code?: string; message?: string } | null) {
+  return !(
+    error?.code === "PGRST202" ||
+    error?.message?.includes("Could not find the function")
+  );
+}
+
+const { error: documentActionRpcError } = await supabase.rpc(
+  "demo_log_compliance_action",
+  {
+    p_request_id: null,
+    p_compliance_id: null,
+    p_target_obligation_id: null,
+    p_period_key: null,
+    p_work_category: null,
+    p_action_kind: null,
+    p_status_before: null,
+    p_status_after: null,
+    p_action_start_date: null,
+    p_action_end_date: null,
+    p_action_detail: null,
+    p_document_form_name: null,
+    p_actor_profile_id: null,
+    p_evidence_ids: [],
+    p_occurred_at: null,
+  }
+);
+results.push({
+  resource: "contract:compliance-action-document-rpc",
+  ready: rpcExists(documentActionRpcError),
+  ...(!rpcExists(documentActionRpcError)
+    ? { error: documentActionRpcError?.message || "RPC not found" }
+    : {}),
+});
+
+const { error: legacyActionRpcError } = await supabase.rpc(
+  "demo_log_compliance_action",
+  {
+    p_compliance_id: null,
+    p_target_obligation_id: null,
+    p_period_key: null,
+    p_action_kind: null,
+    p_status_before: null,
+    p_status_after: null,
+    p_action_date: null,
+    p_action_detail: null,
+    p_note: null,
+    p_actor_role: null,
+    p_evidence_ids: [],
+    p_occurred_at: null,
+  }
+);
+results.push({
+  resource: "contract:compliance-action-legacy-rpc",
+  ready: rpcExists(legacyActionRpcError),
+  ...(!rpcExists(legacyActionRpcError)
+    ? { error: legacyActionRpcError?.message || "RPC not found" }
+    : {}),
+});
+
 const { error: storageError } = await supabase.storage
   .from("evidence-private")
   .list("demo", { limit: 1 });

@@ -39,9 +39,16 @@ import {
   MY_WORK_FILE_GUIDE,
   validateMyWorkFile,
 } from "@/lib/my-work-files";
+import { getDemoActorProfileId } from "@/lib/my-work-api";
 
 type StepId = string;
-type ComplianceActionType = "이행" | "변경" | "긴급";
+type ComplianceWorkCategory =
+  | "계획"
+  | "계약"
+  | "정밀안전진단"
+  | "안전점검"
+  | "기타";
+type ComplianceActionType = "변경" | "이행" | "시정";
 type TableKind =
   | "personnel"
   | "budget"
@@ -69,6 +76,7 @@ type EvidenceRow = {
   executionAmount?: string;
   lawName?: string;
   article?: string;
+  workCategory: ComplianceWorkCategory;
   actionType: ComplianceActionType;
   attachments: Attachment[];
   roster?: Attachment;
@@ -87,7 +95,57 @@ type DutyStep = {
   requiredItems: string[];
 };
 
-const DEFAULT_DATE = "2026-09-05";
+function currentLocalDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+const DEFAULT_DATE = currentLocalDate();
+
+const COMPLIANCE_ACTION_FORM_BASE_URL =
+  "https://raw.githubusercontent.com/simulacre-8/Yongin/main/docs/compliance-action-forms/";
+
+function formDownloadUrl(fileName: string) {
+  return `${COMPLIANCE_ACTION_FORM_BASE_URL}${encodeURIComponent(fileName)}`;
+}
+
+const COMPLIANCE_ACTION_FORMS: Record<
+  ComplianceWorkCategory,
+  {
+    formName: string;
+    dbValue: ComplianceActionLogEntry["workCategory"];
+    url: string;
+  }
+> = {
+  계획: {
+    formName: "양식 1 안전 및 유지관리계획서",
+    dbValue: "PLAN",
+    url: formDownloadUrl("양식_1_안전 및 유지관리계획서.docx"),
+  },
+  계약: {
+    formName: "양식 2 도급·용역·위탁 계약관리서",
+    dbValue: "CONTRACT",
+    url: formDownloadUrl("양식_2_도급·용역·위탁 계약관리서.docx"),
+  },
+  정밀안전진단: {
+    formName: "양식 3 정밀안전진단 실시·결과서",
+    dbValue: "PRECISION_DIAGNOSIS",
+    url: formDownloadUrl("양식_3_정밀안전진단 실시·결과서.docx"),
+  },
+  안전점검: {
+    formName: "양식 4 안전점검 실시·결과서",
+    dbValue: "SAFETY_INSPECTION",
+    url: formDownloadUrl("양식_4_안전점검 실시·결과서.docx"),
+  },
+  기타: {
+    formName: "양식 5 기타 조치 및 증빙자료서",
+    dbValue: "OTHER",
+    url: formDownloadUrl("양식_5_기타 조치 및 증빙자료서.docx"),
+  },
+};
 
 const DUTY_STEPS: DutyStep[] = [
   {
@@ -266,7 +324,9 @@ function getSeedRows(
   const common = {
     id: createId(id),
     date: saved?.actionDate || DEFAULT_DATE,
+    secondaryDate: saved?.actionDate || DEFAULT_DATE,
     note: saved?.note || "",
+    workCategory: "기타" as ComplianceWorkCategory,
     actionType: "이행" as ComplianceActionType,
     attachments: savedAttachment(saved?.fileName),
   };
@@ -352,6 +412,7 @@ function getEducationSeed(): EvidenceRow[] {
       content: "시설관리 담당자",
       detail: "용인시 안전교육센터",
       note: "",
+      workCategory: "기타",
       actionType: "이행",
       attachments: [],
     },
@@ -386,6 +447,39 @@ function formatActionDate(value?: string) {
   return value.replace(/-/g, ".");
 }
 
+function formatActionPeriod(startDate?: string, endDate?: string) {
+  if (!startDate && !endDate) return "기간 미입력";
+  const start = formatActionDate(startDate || endDate);
+  const end = formatActionDate(endDate || startDate);
+  return start === end ? start : `${start}~${end}`;
+}
+
+function defaultWorkCategory(title: string): ComplianceWorkCategory {
+  if (title.includes("계획")) return "계획";
+  if (
+    title.includes("계약") ||
+    title.includes("도급") ||
+    title.includes("용역") ||
+    title.includes("위탁")
+  )
+    return "계약";
+  if (title.includes("정밀안전진단")) return "정밀안전진단";
+  if (title.includes("점검")) return "안전점검";
+  return "기타";
+}
+
+function toWorkCategory(
+  workCategory: ComplianceActionLogEntry["workCategory"]
+): ComplianceWorkCategory {
+  return {
+    PLAN: "계획",
+    CONTRACT: "계약",
+    PRECISION_DIAGNOSIS: "정밀안전진단",
+    SAFETY_INSPECTION: "안전점검",
+    OTHER: "기타",
+  }[workCategory] as ComplianceWorkCategory;
+}
+
 function toEvidenceStatus(status?: string | null) {
   const label = toKoreanStatus(
     status as FacilityWorkflowItem["complianceStatus"]
@@ -399,7 +493,7 @@ function toActionType(
   return {
     IMPLEMENT: "이행",
     CHANGE: "변경",
-    URGENT: "긴급",
+    CORRECTION: "시정",
   }[actionKind] as ComplianceActionType;
 }
 
@@ -565,10 +659,15 @@ export default function Evidence() {
         tableTitle: activeWorkflow.title,
         kind: "law",
         inputGuide:
-          "이번 이행·변경·긴급 조치의 일자·내용·상태·비고와 증빙을 등록합니다. 저장된 내용은 아래 시정조치 로그로 이동하고 입력창은 비워집니다.",
+          "업무구분과 기록구분을 선택하고 실제 조치이행 기간, 첨부문서의 요약과 증빙을 등록합니다. 등록일은 DB 기록시각으로 별도 저장되며 저장 후 입력창은 비워집니다.",
         addLabel: "이행 내역 추가",
         evidenceExamples: [activeWorkflow.evidenceRequirement],
-        requiredItems: ["조치일자", "조치내용", "상태", "증빙자료"],
+        requiredItems: [
+          "업무구분·기록구분",
+          "조치이행 시작일·종료일",
+          "조치내용 요약",
+          "작성 양식 또는 증빙문서",
+        ],
       }
     : dutyMap[activeId] || dutyMap["OBL-10"];
 
@@ -621,12 +720,14 @@ export default function Evidence() {
             {
               ...seed,
               date: DEFAULT_DATE,
+              secondaryDate: DEFAULT_DATE,
               category: activeWorkflow.documentType,
               lawName: activeWorkflow.lawName,
               article: activeWorkflow.article,
               content: "",
               detail: "",
               note: "",
+              workCategory: defaultWorkCategory(activeWorkflow.title),
               actionType: "이행",
               attachments: [],
             },
@@ -668,8 +769,8 @@ export default function Evidence() {
       entries: actionLog.map(event => ({
         event,
         sequence: event.sequenceNo,
+        workCategory: toWorkCategory(event.workCategory),
         actionType: toActionType(event.actionKind),
-        note: event.note || "",
         files: event.evidence,
       })),
     };
@@ -831,7 +932,15 @@ export default function Evidence() {
       return;
     }
     if (!firstRow.content.trim()) {
-      toast.error("조치내용을 입력해 주세요.");
+      toast.error("첨부문서의 조치내용 요약을 입력해 주세요.");
+      return;
+    }
+    if (!firstRow.date || !firstRow.secondaryDate) {
+      toast.error("조치이행 시작일과 종료일을 입력해 주세요.");
+      return;
+    }
+    if (firstRow.secondaryDate < firstRow.date) {
+      toast.error("조치이행 종료일은 시작일보다 빠를 수 없습니다.");
       return;
     }
 
@@ -843,18 +952,22 @@ export default function Evidence() {
           .filter(attachment => Boolean(attachment.file))
           .map(attachment => attachment.file as File)
       );
+      if (files.length === 0) {
+        throw new Error("작성한 양식 또는 증빙문서를 첨부해 주세요.");
+      }
       const selectedStatus =
         statusByObligation[activeWorkflow.obligationId] || "미이행";
       const effectiveStatus = resolveEvidenceSaveStatus(
         selectedStatus,
         files.length
       );
+      const selectedForm = COMPLIANCE_ACTION_FORMS[firstRow.workCategory];
       const payload = {
-        actionDate: firstRow.date,
+        actionDate: firstRow.secondaryDate,
         actionDetail: [firstRow.content, firstRow.detail]
           .filter(Boolean)
           .join(" · "),
-        note: firstRow.note,
+        note: "",
         status: effectiveStatus,
       };
       let saveItem: FacilityWorkflowItem = activeWorkflow;
@@ -885,21 +998,24 @@ export default function Evidence() {
         throw new Error("저장된 이행기록 식별자를 확인하지 못했습니다.");
       }
       try {
+        const actorProfileId = await getDemoActorProfileId(role);
         await logComplianceAction({
           requestId,
           complianceId: saveItem.complianceId,
           targetObligationId: activeWorkflow.targetObligationId,
+          workCategory: selectedForm.dbValue,
           actionKind: {
-            이행: "IMPLEMENT",
             변경: "CHANGE",
-            긴급: "URGENT",
+            이행: "IMPLEMENT",
+            시정: "CORRECTION",
           }[firstRow.actionType] as ComplianceActionLogEntry["actionKind"],
           statusBefore: activeWorkflow.complianceStatus || "NONE",
           statusAfter: saveItem.complianceStatus,
-          actionDate: firstRow.date,
+          actionStartDate: firstRow.date,
+          actionEndDate: firstRow.secondaryDate,
           actionDetail: payload.actionDetail,
-          note: firstRow.note,
-          actorRole: role,
+          documentFormName: selectedForm.formName,
+          actorProfileId,
           evidenceIds: savedEvidence.map(metadata => metadata.evidenceId),
           occurredAt: saveItem.submittedAt,
         });
@@ -948,6 +1064,7 @@ export default function Evidence() {
           content: "",
           detail: "",
           note: "",
+          workCategory: defaultWorkCategory(activeWorkflow.title),
           actionType: "이행",
           attachments: [],
         },
@@ -980,7 +1097,7 @@ export default function Evidence() {
         workflowItems.map(item => [item.targetObligationId, item])
       );
       const safeTargetName = target.name.replace(/[\\/:*?"<>|]/g, "_");
-      const fileName = `용인시_${safeTargetName}_시정조치로그_${csvDateStamp()}.csv`;
+      const fileName = `용인시_${safeTargetName}_의무이행로그_${csvDateStamp()}.csv`;
       const csv = serializeCsv(events, [
         { header: "번호", value: (_, index) => index + 1 },
         { header: "관리대상명", value: () => target.name },
@@ -996,9 +1113,13 @@ export default function Evidence() {
             workflowByTargetObligation.get(event.targetObligationId)?.title,
         },
         {
-          header: "시정조치 제목",
+          header: "기록 제목",
           value: event =>
-            `${event.sequenceNo}차 시정조치 (${formatActionDate(event.actionDate)})`,
+            `${event.sequenceNo}차 ${toWorkCategory(event.workCategory)} (${formatActionPeriod(event.actionStartDate, event.actionEndDate)})`,
+        },
+        {
+          header: "업무구분",
+          value: event => toWorkCategory(event.workCategory),
         },
         {
           header: "기록유형",
@@ -1008,12 +1129,16 @@ export default function Evidence() {
           header: "이행상태",
           value: event => toEvidenceStatus(event.statusAfter),
         },
-        { header: "조치일자", value: event => event.actionDate },
-        { header: "조치내용", value: event => event.actionDetail },
         {
-          header: "비고",
-          value: event => event.note,
+          header: "조치이행 시작일",
+          value: event => event.actionStartDate,
         },
+        {
+          header: "조치이행 종료일",
+          value: event => event.actionEndDate,
+        },
+        { header: "조치내용 요약", value: event => event.actionDetail },
+        { header: "문서양식명", value: event => event.documentFormName },
         {
           header: "첨부파일명",
           value: event =>
@@ -1024,8 +1149,17 @@ export default function Evidence() {
           value: event =>
             event.evidence.map(file => file.uploadedAt).join(" | "),
         },
-        { header: "발생시각", value: event => event.occurredAt },
-        { header: "DB기록시각", value: event => event.createdAt },
+        { header: "직원번호", value: event => event.actorEmployeeNo },
+        { header: "조직", value: event => event.actorOrgName },
+        { header: "담당자", value: event => event.actorDisplayName },
+        {
+          header: "업무출처",
+          value: event =>
+            event.workOrigin === "DELEGATED" ? "위임업무" : "본래업무",
+        },
+        { header: "업무위임일", value: event => event.delegatedAt },
+        { header: "저장 발생시각", value: event => event.occurredAt },
+        { header: "등록일시", value: event => event.createdAt },
       ]);
       await logComplianceCsvExport({
         targetRef: target.id,
@@ -1036,7 +1170,7 @@ export default function Evidence() {
       downloadCsv(csv, fileName);
       setExportLog(await loadComplianceExportEvents(target.id));
       toast.success(
-        `${target.name} 시정조치 로그 ${events.length}건을 내려받고 기록했습니다.`
+        `${target.name} 의무이행 로그 ${events.length}건을 내려받고 기록했습니다.`
       );
     } catch (error) {
       toast.error(
@@ -1628,12 +1762,13 @@ export default function Evidence() {
     >
       <thead>
         <tr>
-          <th style={tableHeaderStyle}>기록유형</th>
+          <th style={tableHeaderStyle}>업무구분</th>
+          <th style={tableHeaderStyle}>기록구분</th>
           <th style={tableHeaderStyle}>법률명</th>
           <th style={tableHeaderStyle}>조항·호·목</th>
-          <th style={tableHeaderStyle}>조치내용·증빙자료</th>
-          <th style={tableHeaderStyle}>조치 일자</th>
-          <th style={tableHeaderStyle}>비고</th>
+          <th style={tableHeaderStyle}>조치내용 요약·증빙자료</th>
+          <th style={tableHeaderStyle}>조치이행 기간</th>
+          <th style={tableHeaderStyle}>양식 다운로드</th>
         </tr>
       </thead>
       <tbody>
@@ -1642,17 +1777,35 @@ export default function Evidence() {
             <td style={tableCellStyle}>
               <select
                 style={inputStyle}
+                value={row.workCategory}
+                aria-label="업무구분"
+                onChange={event =>
+                  updateRow(activeId, row.id, {
+                    workCategory: event.target.value as ComplianceWorkCategory,
+                  })
+                }
+              >
+                <option>계획</option>
+                <option>계약</option>
+                <option>정밀안전진단</option>
+                <option>안전점검</option>
+                <option>기타</option>
+              </select>
+            </td>
+            <td style={tableCellStyle}>
+              <select
+                style={inputStyle}
                 value={row.actionType}
-                aria-label="기록유형"
+                aria-label="기록구분"
                 onChange={event =>
                   updateRow(activeId, row.id, {
                     actionType: event.target.value as ComplianceActionType,
                   })
                 }
               >
-                <option>이행</option>
                 <option>변경</option>
-                <option>긴급</option>
+                <option>이행</option>
+                <option>시정</option>
               </select>
             </td>
             <td style={tableCellStyle}>
@@ -1677,8 +1830,8 @@ export default function Evidence() {
               <textarea
                 className="adoms-action-detail-input"
                 value={row.content}
-                aria-label="조치내용"
-                placeholder="이번 이행·변경·긴급 조치내용을 입력하세요"
+                aria-label="조치내용 요약"
+                placeholder="첨부문서의 핵심 조치내용을 간략히 입력하세요"
                 onChange={event =>
                   updateRow(activeId, row.id, { content: event.target.value })
                 }
@@ -1686,25 +1839,46 @@ export default function Evidence() {
               {renderAttachment(row)}
             </td>
             <td style={tableCellStyle}>
-              <input
-                style={inputStyle}
-                type="date"
-                value={row.date}
-                aria-label="조치 일자"
-                onChange={event =>
-                  updateRow(activeId, row.id, { date: event.target.value })
-                }
-              />
+              <div className="adoms-action-period-inputs">
+                <label>
+                  <span>시작</span>
+                  <input
+                    style={inputStyle}
+                    type="date"
+                    value={row.date}
+                    aria-label="조치이행 시작일"
+                    onChange={event =>
+                      updateRow(activeId, row.id, { date: event.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  <span>종료</span>
+                  <input
+                    style={inputStyle}
+                    type="date"
+                    value={row.secondaryDate || row.date}
+                    aria-label="조치이행 종료일"
+                    onChange={event =>
+                      updateRow(activeId, row.id, {
+                        secondaryDate: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+              </div>
             </td>
             <td style={tableCellStyle}>
-              <input
-                style={inputStyle}
-                value={row.note}
-                aria-label="비고"
-                onChange={event =>
-                  updateRow(activeId, row.id, { note: event.target.value })
-                }
-              />
+              <a
+                className="adoms-form-download"
+                href={COMPLIANCE_ACTION_FORMS[row.workCategory].url}
+                download
+              >
+                <Download size={14} aria-hidden="true" />
+                <span>
+                  {COMPLIANCE_ACTION_FORMS[row.workCategory].formName}
+                </span>
+              </a>
             </td>
           </tr>
         ))}
@@ -2102,7 +2276,7 @@ export default function Evidence() {
                   }
                 >
                   <Download size={14} aria-hidden="true" />
-                  {exporting ? "로그 저장 중" : "시정조치 로그 CSV"}
+                  {exporting ? "로그 저장 중" : "의무이행 로그 CSV"}
                 </button>
               </div>
             </div>
@@ -2220,13 +2394,13 @@ export default function Evidence() {
             </div>
           </section>
 
-          {activeId === "OBL-10" && renderEducationTable()}
+          {!activeWorkflow && activeId === "OBL-10" && renderEducationTable()}
 
           <section className="adoms-correction-log">
             <div className="adoms-correction-log-heading">
               <div>
                 <Clock3 size={16} aria-hidden="true" />
-                <h2>시정조치 로그</h2>
+                <h2>의무이행 로그</h2>
               </div>
               <span>
                 {activeDuty.title} · 저장 {actionLog.length}건 · 첨부{" "}
@@ -2236,24 +2410,28 @@ export default function Evidence() {
 
             {actionLog.length === 0 ? (
               <div className="adoms-log-empty">
-                아직 저장된 시정조치 또는 증빙 이력이 없습니다.
+                아직 저장된 의무이행 또는 증빙 이력이 없습니다.
               </div>
             ) : (
               <div className="adoms-log-list">
                 {actionLogPresentation.entries.map(
-                  ({ event, sequence, actionType, note, files }) => (
+                  ({ event, sequence, workCategory, actionType, files }) => (
                     <article
                       className="adoms-correction-entry"
                       key={`action-${event.actionEventId}`}
                     >
                       <header>
                         <strong>
-                          {sequence}차 시정조치 (
-                          {formatActionDate(event.actionDate)})
+                          {sequence}차 {workCategory} (
+                          {formatActionPeriod(
+                            event.actionStartDate,
+                            event.actionEndDate
+                          )}
+                          )
                         </strong>
                         <span
                           className={`adoms-correction-kind${
-                            actionType === "긴급" ? " is-urgent" : ""
+                            actionType === "시정" ? " is-correction" : ""
                           }`}
                         >
                           {actionType}
@@ -2266,8 +2444,20 @@ export default function Evidence() {
                           : ""}
                         {toEvidenceStatus(event.statusAfter)}
                         {event.actionDetail ? ` · ${event.actionDetail}` : ""}
-                        {note ? ` · ${note}` : ""}
                       </p>
+                      <div className="adoms-log-metadata">
+                        <span>{event.documentFormName}</span>
+                        <span>
+                          등록자 {event.actorDisplayName} · 직원번호{" "}
+                          {event.actorEmployeeNo}
+                        </span>
+                        <span>조직 {event.actorOrgName}</span>
+                        <span>
+                          {event.workOrigin === "DELEGATED"
+                            ? `위임업무 · 위임일 ${formatLogDateTime(event.delegatedAt)}`
+                            : "본래업무"}
+                        </span>
+                      </div>
                       {files.length > 0 && (
                         <div className="adoms-log-attachments">
                           {files.map(file => (
@@ -2292,9 +2482,9 @@ export default function Evidence() {
                         </div>
                       )}
                       <small>
-                        조치일 {event.actionDate || "-"} · 발생시각{" "}
-                        {formatLogDateTime(event.occurredAt)} · DB 기록시각{" "}
-                        {formatLogDateTime(event.createdAt)}
+                        조치이행 {event.actionStartDate}~{event.actionEndDate} ·
+                        등록일시 {formatLogDateTime(event.createdAt)} · 저장
+                        발생시각 {formatLogDateTime(event.occurredAt)}
                       </small>
                     </article>
                   )

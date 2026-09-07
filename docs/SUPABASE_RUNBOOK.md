@@ -19,7 +19,7 @@
 | 내 업무 런타임         | 2,891건 = 자동배정 2,235 + 수동 선택 대기 656                    |
 | 업무 사건 시각         | 배정·수락·위임·재배정·완료·완료 확인과 기록 시각 분리            |
 | 의무이행 CSV           | 선택 대상의 차수별 시정조치·증빙 로그 내보내기와 다운로드 기록   |
-| 반복 시정조치          | 이행·변경·긴급 유형, 차수, 사건/DB 시각, 증빙 FK 분리            |
+| 반복 의무이행          | 업무 5종·기록 3종, 차수, 이행기간/등록시각, 증빙 FK 분리         |
 | 감사                   | 대상·의무·이행·증빙·점검 변경 이벤트 기록                        |
 | RLS                    | 익명 시연 역할별 읽기·쓰기 정책 적용                             |
 | 비밀정보               | 서비스 역할 키·PAT·DB 비밀번호를 프런트와 Git에 포함하지 않음    |
@@ -46,15 +46,20 @@
 18. `supabase/migrations/019_compliance_export_log.sql`
 19. `supabase/migrations/020_compliance_action_events.sql`
 20. `supabase/migrations/021_harden_compliance_action_logging.sql`
-21. `supabase/seed.sql`
-22. `supabase/seed_adoms.sql`
-23. `supabase/seed_facility_catalog.sql`
-24. `supabase/seed_yongin_obligation_pool.sql`
-25. `supabase/seed_facility_workflow.sql`
-26. `supabase/seed_legal_source_popup.sql`
-27. `supabase/seed_yongin_org.sql`
-28. `supabase/seed_my_work_runtime.sql`
-29. `supabase/seed_compliance_action_runtime.sql`
+21. `supabase/migrations/022_compliance_action_document_model.sql`
+22. `supabase/migrations/023_backfill_compliance_work_categories.sql`
+23. `supabase/migrations/024_confirm_compliance_work_origin.sql`
+24. `supabase/migrations/025_sync_compliance_work_categories.sql`
+25. `supabase/migrations/026_compat_compliance_action_rpc.sql`
+26. `supabase/seed.sql`
+27. `supabase/seed_adoms.sql`
+28. `supabase/seed_facility_catalog.sql`
+29. `supabase/seed_yongin_obligation_pool.sql`
+30. `supabase/seed_facility_workflow.sql`
+31. `supabase/seed_legal_source_popup.sql`
+32. `supabase/seed_yongin_org.sql`
+33. `supabase/seed_my_work_runtime.sql`
+34. `supabase/seed_compliance_action_runtime.sql`
 
 `seed_yongin_obligation_pool.sql`은 클라이언트가 제공한 전체 용인 의무 3,688건을 적재한다. 원천 파일에는 인용문 내부 줄바꿈이 있어 5,057개 물리 줄이 있지만, 헤더를 제외한 CSV 논리 레코드는 3,688건이다. `008_yongin_obligation_pool.sql`은 `law_id`, `doc_id`, `unit_path`, 조문 정보와 원문 인용을 `ref_obligation`의 정식 열로 추가한다.
 
@@ -68,9 +73,9 @@
 
 `019_compliance_export_log.sql`은 의무이행 CSV 다운로드 사건을 저장하는 `demo_compliance_export_event`와 익명 시연용 기록 RPC를 추가한다. 한 행은 관리대상, 기간, 파일명, 내려받은 행 수, 시연 역할, 필터 스냅숏, 브라우저 발생시각 `occurred_at`, DB 기록시각 `created_at`을 분리해 보존한다. 이는 공유 시연 감사 로그이며 실사용 사용자 인증을 의미하지 않는다.
 
-`020_compliance_action_events.sql`은 반복 가능한 `demo_compliance_action_event`와 증빙 연결 `demo_compliance_action_evidence`를 추가한다. 동일한 `target_obligation_id + period_key`에서 `sequence_no`가 1차·2차 순서로 증가하고 `action_kind`는 `IMPLEMENT/CHANGE/URGENT`로 저장된다. 사건에는 변경 전·후 상태, 조치일, 조치내용, 비고, 시연 역할, 발생시각과 DB 기록시각을 분리한다. 증빙은 추정 시각 매칭이 아니라 `evidence_id` 외래키로 정확히 한 사건에 연결한다. 저장 이력이 없는 대상도 헤더 전용 CSV를 받을 수 있도록 다운로드 로그의 `row_count=0`을 허용한다.
+`020_compliance_action_events.sql`은 반복 가능한 `demo_compliance_action_event`와 증빙 연결 `demo_compliance_action_evidence`를 추가한다. `022_compliance_action_document_model.sql`은 업무구분을 `PLAN/CONTRACT/PRECISION_DIAGNOSIS/SAFETY_INSPECTION/OTHER`, 기록구분을 `CHANGE/IMPLEMENT/CORRECTION`으로 분리한다. 사건에는 조치이행 시작일·종료일, 첨부문서 요약, 양식명, 프로필에서 파생한 시연 직원번호·조직·담당자, 본래업무/위임업무와 위임일, 발생시각·DB 등록시각을 각각 저장한다. 자유 비고는 새 사건에 저장하지 않는다. 증빙은 `evidence_id` 외래키로 정확히 한 사건에 연결한다. `023`·`025`는 기존 사건과 후행 시드의 자동 업무구분 우선순서를 화면과 동일하게 유지한다. `024_confirm_compliance_work_origin.sql`은 위임요청 대기 상태를 본래업무로 유지하고, 요청 이후 실제 `REASSIGNED` 사건이 있을 때만 위임업무와 그 재배정 시각을 업무위임일로 저장한다. `026_compat_compliance_action_rpc.sql`은 캐시된 구버전 화면의 020·021 RPC를 새 모델로 안전하게 변환한다.
 
-`021_harden_compliance_action_logging.sql`은 클라이언트가 한 저장 시도에 생성한 `request_id`를 유일키로 사용해 응답 유실 뒤 재호출도 같은 사건을 반환한다. 이미 다른 사건에 연결된 증빙 ID는 조용히 누락시키지 않고 RPC 전체를 거부한다. `seed_compliance_action_runtime.sql`은 모든 이행·증빙 생성 시드가 완료된 후 실행하여 기존 `compliance_record`와 `evidence`를 1차 사건에 멱등 백필한다.
+`021_harden_compliance_action_logging.sql`은 클라이언트가 한 저장 시도에 생성한 `request_id`를 유일키로 사용해 응답 유실 뒤 재호출도 같은 사건을 반환한다. 이미 다른 사건에 연결된 증빙 ID는 조용히 누락시키지 않고 RPC 전체를 거부한다. `seed_compliance_action_runtime.sql`은 모든 이행·증빙 생성 시드가 완료된 후 실행하여 기존 `compliance_record`와 `evidence`를 022 필수 컬럼까지 포함한 1차 사건에 멱등 백필한다.
 
 증빙 저장은 Storage 객체 업로드 → 이행기록 upsert → 증빙 메타데이터 insert 순서로 처리한다. 업로드 이후 후속 단계가 실패하면 새 객체와 메타데이터를 제거하고 기존 `compliance_record` 스냅숏을 복원한다. 이는 브라우저 기반 보상 처리이며 DB와 Storage를 포괄하는 원자적 트랜잭션이라고 설명하지 않는다.
 

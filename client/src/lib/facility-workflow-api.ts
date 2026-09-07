@@ -107,15 +107,28 @@ export type ComplianceActionLogEntry = {
   targetObligationId: string;
   periodKey: string;
   sequenceNo: number;
-  actionKind: "IMPLEMENT" | "CHANGE" | "URGENT";
+  workCategory:
+    | "PLAN"
+    | "CONTRACT"
+    | "PRECISION_DIAGNOSIS"
+    | "SAFETY_INSPECTION"
+    | "OTHER";
+  actionKind: "CHANGE" | "IMPLEMENT" | "CORRECTION";
   occurredAt: string;
   createdAt: string;
   statusBefore?: DbComplianceStatus;
   statusAfter: DbComplianceStatus;
-  actionDate?: string;
+  actionStartDate: string;
+  actionEndDate: string;
   actionDetail: string;
-  note?: string;
+  documentFormName: string;
   actorRole?: string;
+  actorProfileId?: string;
+  actorEmployeeNo: string;
+  actorOrgName: string;
+  actorDisplayName: string;
+  workOrigin: "ORIGINAL" | "DELEGATED";
+  delegatedAt?: string;
   evidence: EvidenceMetadata[];
 };
 
@@ -667,21 +680,31 @@ async function mapComplianceActionEvents(rows: Array<Record<string, unknown>>) {
     targetObligationId: String(row.target_obligation_id),
     periodKey: String(row.period_key),
     sequenceNo: Number(row.sequence_no),
+    workCategory: row.work_category as ComplianceActionLogEntry["workCategory"],
     actionKind: row.action_kind as ComplianceActionLogEntry["actionKind"],
     occurredAt: String(row.occurred_at),
     createdAt: String(row.created_at),
     statusBefore: row.status_before as DbComplianceStatus | undefined,
     statusAfter: row.status_after as DbComplianceStatus,
-    actionDate: row.action_date ? String(row.action_date) : undefined,
+    actionStartDate: String(row.action_start_date),
+    actionEndDate: String(row.action_end_date),
     actionDetail: String(row.action_detail),
-    note: row.note ? String(row.note) : undefined,
+    documentFormName: String(row.document_form_name),
     actorRole: row.actor_role ? String(row.actor_role) : undefined,
+    actorProfileId: row.actor_profile_id
+      ? String(row.actor_profile_id)
+      : undefined,
+    actorEmployeeNo: String(row.actor_employee_no),
+    actorOrgName: String(row.actor_org_name),
+    actorDisplayName: String(row.actor_display_name),
+    workOrigin: row.work_origin as ComplianceActionLogEntry["workOrigin"],
+    delegatedAt: row.delegated_at ? String(row.delegated_at) : undefined,
     evidence: evidenceByEvent.get(String(row.action_event_id)) || [],
   }));
 }
 
 const COMPLIANCE_ACTION_COLUMNS =
-  "action_event_id,compliance_id,target_obligation_id,period_key,sequence_no,action_kind,status_before,status_after,action_date,action_detail,note,actor_role,occurred_at,created_at";
+  "action_event_id,compliance_id,target_obligation_id,period_key,sequence_no,work_category,action_kind,status_before,status_after,action_start_date,action_end_date,action_detail,document_form_name,actor_role,actor_profile_id,actor_employee_no,actor_org_name,actor_display_name,work_origin,delegated_at,occurred_at,created_at";
 
 export async function loadComplianceActionLog(targetObligationId?: string) {
   if (!supabase || !targetObligationId) return [] as ComplianceActionLogEntry[];
@@ -719,13 +742,15 @@ export async function logComplianceAction(input: {
   requestId: string;
   complianceId: string;
   targetObligationId: string;
+  workCategory: ComplianceActionLogEntry["workCategory"];
   actionKind: ComplianceActionLogEntry["actionKind"];
   statusBefore?: DbComplianceStatus;
   statusAfter: DbComplianceStatus;
-  actionDate?: string;
+  actionStartDate: string;
+  actionEndDate: string;
   actionDetail: string;
-  note?: string;
-  actorRole: string;
+  documentFormName: string;
+  actorProfileId: string;
   evidenceIds: string[];
   occurredAt?: string;
 }) {
@@ -735,13 +760,15 @@ export async function logComplianceAction(input: {
     p_compliance_id: input.complianceId,
     p_target_obligation_id: input.targetObligationId,
     p_period_key: CURRENT_PERIOD,
+    p_work_category: input.workCategory,
     p_action_kind: input.actionKind,
     p_status_before: input.statusBefore || null,
     p_status_after: input.statusAfter,
-    p_action_date: input.actionDate || null,
+    p_action_start_date: input.actionStartDate,
+    p_action_end_date: input.actionEndDate,
     p_action_detail: input.actionDetail,
-    p_note: input.note || null,
-    p_actor_role: input.actorRole,
+    p_document_form_name: input.documentFormName,
+    p_actor_profile_id: input.actorProfileId,
     p_evidence_ids: input.evidenceIds,
     p_occurred_at: input.occurredAt || new Date().toISOString(),
   });

@@ -81,15 +81,20 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 18. `supabase/migrations/019_compliance_export_log.sql`
 19. `supabase/migrations/020_compliance_action_events.sql`
 20. `supabase/migrations/021_harden_compliance_action_logging.sql`
-21. `supabase/seed.sql`
-22. `supabase/seed_adoms.sql`
-23. `supabase/seed_facility_catalog.sql`
-24. `supabase/seed_yongin_obligation_pool.sql`
-25. `supabase/seed_facility_workflow.sql`
-26. `supabase/seed_legal_source_popup.sql`
-27. `supabase/seed_yongin_org.sql`
-28. `supabase/seed_my_work_runtime.sql`
-29. `supabase/seed_compliance_action_runtime.sql`
+21. `supabase/migrations/022_compliance_action_document_model.sql`
+22. `supabase/migrations/023_backfill_compliance_work_categories.sql`
+23. `supabase/migrations/024_confirm_compliance_work_origin.sql`
+24. `supabase/migrations/025_sync_compliance_work_categories.sql`
+25. `supabase/migrations/026_compat_compliance_action_rpc.sql`
+26. `supabase/seed.sql`
+27. `supabase/seed_adoms.sql`
+28. `supabase/seed_facility_catalog.sql`
+29. `supabase/seed_yongin_obligation_pool.sql`
+30. `supabase/seed_facility_workflow.sql`
+31. `supabase/seed_legal_source_popup.sql`
+32. `supabase/seed_yongin_org.sql`
+33. `supabase/seed_my_work_runtime.sql`
+34. `supabase/seed_compliance_action_runtime.sql`
 
 `seed_adoms.sql`은 스키마 변경 없이 ADOMS 그래프 식별자를 보존한 법령 104건·조문 304건·의무 216건·규칙 128건·연결 128건을 추가합니다. 실제 SQL에서 `demo_approved=true`인 ADOMS 규칙·연결은 31건이며, 첫 화면에서는 용인시청 시연과 직접 관련된 승인 규칙 4개를 실행합니다.
 
@@ -103,7 +108,7 @@ Docker는 필요하지 않습니다. 호스팅형 Supabase에 아래 파일을 �
 
 `012`~`018`은 법령·시설·조직 기준정보와 분리된 **내 업무 시연 런타임 계층**을 구성한다. `seed_my_work_runtime.sql`은 공식 조직도와 시설 workflow 시드가 끝난 뒤 시연 내부 소관규칙과 기준 업무를 생성한다. 초기 2,891건 중 2,235건을 자동배정하고 656건을 수동 선택 대기로 둔다. 배정·수락·위임·재배정·완료·완료 확인은 각각 사건 시각과 DB 기록 시각을 분리해 저장한다. 최초 `assigned_at`은 재배정 때 덮어쓰지 않고 `reassigned_at`을 별도로 기록한다. 완료 업무는 재배정·위임하거나 실행 상태로 되돌릴 수 없다. 물리 테이블은 PostgREST 호환을 위해 `public.demo_work_*`를 사용하며 논리 도메인은 `demo_runtime`이다.
 
-`019_compliance_export_log.sql`은 의무이행 CSV 다운로드를 `demo_compliance_export_event`에 기록한다. `020_compliance_action_events.sql`은 같은 시설·의무에 반복 등록되는 시정조치를 `1차·2차…`, `이행·변경·긴급`, 사건 발생시각과 DB 기록시각으로 분리하고 각 증빙을 해당 차수에 외래키로 연결한다. 관리대상·의무 체크리스트·홈은 현재 필터 결과를 CSV로 내보내며, 의무이행은 현재 선택한 관리대상의 시정조치 로그만 CSV로 내보낸다. 증빙과 조치를 저장하면 입력칸은 비워지고 파일 다운로드는 시정조치 로그에서 제공한다.
+`019_compliance_export_log.sql`은 의무이행 CSV 다운로드를 `demo_compliance_export_event`에 기록한다. `020`~`022`는 같은 시설·의무에 반복 등록되는 의무이행을 `1차·2차…` 사건으로 저장한다. 업무구분은 `계획·계약·정밀안전진단·안전점검·기타`, 기록구분은 `변경·이행·시정`이며 실제 조치이행 시작일·종료일, DB 등록시각, 양식명, 첨부 증빙을 각각 분리한다. 화면은 업무구분별 다운로드 가능한 Word 양식 1~5를 제공하고 자유 비고 대신 첨부문서의 핵심내용 요약을 받는다. 선택 대상 CSV에는 직원번호·조직·담당자와 본래업무/위임업무·업무위임일을 포함한다. `023`·`025`는 기존 로그와 후행 시드의 업무구분 우선순서를 화면과 동일하게 동기화한다. `024`는 위임요청 대기만으로 위임업무로 표시하지 않고, 요청 이후 실제 `REASSIGNED` 사건이 있는 경우에만 위임업무와 업무위임일을 확정한다. `026`은 캐시된 구버전 화면의 020·021 RPC 호출을 새 문서형 사건으로 변환하는 전환기 호환 계층이다.
 
 `021_harden_compliance_action_logging.sql`은 저장 요청 UUID로 시정조치 기록을 멱등 처리하고 이미 다른 차수에 연결된 증빙을 조용히 무시하지 않고 거부한다. `seed_compliance_action_runtime.sql`은 `seed.sql` 등 모든 이행·증빙 생성 시드가 끝난 뒤 기존 기록을 1차 시정조치와 정확한 증빙 링크로 보존한다.
 
@@ -142,6 +147,9 @@ pnpm smoke:workflow
 - `docs/README_ADOMS_SEED.md`: ADOMS 시드 구성·검수 수준·적용 주의사항
 - `docs/DB_GRAPH_HANDOFF.md`: 축소 법령 데이터와 RDB/그래프 경계
 - `docs/SUPABASE_RUNBOOK.md`: 원격 DB·RLS·Storage·스모크 테스트 운영 기록
+- `docs/COMPLIANCE_ACTION_MODEL_BASIS.md`: 시설물안전법·첨부 양식을 반영한 의무이행 기록모델 근거
+- `docs/compliance-action-forms/`: 계획·계약·정밀안전진단·안전점검·기타 Word 양식 1~5
+- `scripts/build-compliance-action-forms.py`: `pip install -r scripts/requirements-docs.txt` 후 실행하는 Word 양식 1~5 재생성 스크립트
 - `docs/FACILITY_DATA_IMPORT.md`: FMS 시설·의무 매핑·공중교통수단·도급 시연값 구분
 - `docs/YONGIN_CORE_DATA_VERIFICATION.md`: 세 CSV 해시·논리 행·조인 무결성·원격 적재 검증
 - `docs/LEGAL_SOURCE_POPUP.md`: ADOMS 원문·국가법령정보센터 날짜·별칭 연결 기준
