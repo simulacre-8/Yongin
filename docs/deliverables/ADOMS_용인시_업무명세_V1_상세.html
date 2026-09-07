@@ -1,0 +1,1132 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>용인특례시 안전보건체계 통합관리 시연 업무명세 V1</title>
+    <meta
+      name="description"
+      content="클라이언트 전달용 상세 업무범위·WBS 변경·마무리 일정·인수인계 명세"
+    />
+    <style>
+      :root {
+        --navy: #172b4d;
+        --blue: #1d6fa3;
+        --blue2: #2f7fb4;
+        --sky: #eaf3f9;
+        --ice: #f5f8fb;
+        --ink: #26364d;
+        --muted: #64748b;
+        --line: #d9e2ec;
+        --white: #fff;
+        --green: #24796f;
+        --amber: #a66a00;
+        --red: #a33a3a;
+        --radius: 14px;
+        --shadow: 0 12px 34px rgba(23, 43, 77, 0.08);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: #edf2f6;
+        color: var(--ink);
+        font-family:
+          Inter, "Noto Sans KR", "Apple SD Gothic Neo", Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.65;
+      }
+      a {
+        color: var(--blue);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .page {
+        width: min(1180px, calc(100% - 40px));
+        margin: 32px auto 72px;
+        background: var(--white);
+        box-shadow: var(--shadow);
+        border-radius: 20px;
+        overflow: hidden;
+      }
+      .cover {
+        min-height: 520px;
+        padding: 68px 72px;
+        background: linear-gradient(
+          135deg,
+          #132642 0%,
+          #172b4d 62%,
+          #1d6fa3 100%
+        );
+        color: white;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .cover:after {
+        content: "";
+        position: absolute;
+        right: -120px;
+        bottom: -160px;
+        width: 500px;
+        height: 500px;
+        border-radius: 50%;
+        border: 90px solid rgba(255, 255, 255, 0.055);
+      }
+      .wordmark {
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+      }
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #bcd7ea;
+      }
+      .cover h1 {
+        font-size: 42px;
+        line-height: 1.25;
+        margin: 18px 0 14px;
+        max-width: 820px;
+        letter-spacing: -0.035em;
+      }
+      .cover .lead {
+        font-size: 18px;
+        max-width: 780px;
+        color: #dceaf4;
+      }
+      .cover-meta {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        position: relative;
+        z-index: 1;
+      }
+      .cover-meta div {
+        border-top: 1px solid rgba(255, 255, 255, 0.28);
+        padding-top: 12px;
+      }
+      .cover-meta strong {
+        display: block;
+        font-size: 12px;
+        color: #bcd7ea;
+      }
+      .cover-meta span {
+        font-weight: 700;
+      }
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        padding: 10px 22px;
+        background: rgba(255, 255, 255, 0.94);
+        border-bottom: 1px solid var(--line);
+        backdrop-filter: blur(10px);
+      }
+      .toolbar a,
+      .toolbar button {
+        border: 1px solid #b9c9d8;
+        background: white;
+        color: var(--navy);
+        height: 34px;
+        padding: 0 14px;
+        border-radius: 8px;
+        font: inherit;
+        font-weight: 750;
+        cursor: pointer;
+      }
+      .toolbar .primary {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: white;
+      }
+      main {
+        padding: 44px 64px 72px;
+      }
+      section {
+        margin: 0 0 44px;
+      }
+      .section-kicker {
+        color: var(--blue);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+      }
+      .section-title {
+        margin: 4px 0 18px;
+        color: var(--navy);
+        font-size: 26px;
+        letter-spacing: -0.025em;
+        line-height: 1.35;
+      }
+      .section-intro {
+        max-width: 930px;
+        color: #4b5d73;
+        margin: -8px 0 20px;
+      }
+      .rule {
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          var(--navy),
+          var(--blue),
+          transparent
+        );
+        margin-bottom: 24px;
+      }
+      .callout {
+        border: 1px solid #c7d9e7;
+        border-left: 5px solid var(--blue);
+        background: #f3f8fc;
+        border-radius: 10px;
+        padding: 18px 20px;
+        margin: 16px 0;
+      }
+      .callout strong {
+        color: var(--navy);
+      }
+      .callout.warning {
+        border-left-color: var(--amber);
+        background: #fff9eb;
+      }
+      .callout.success {
+        border-left-color: var(--green);
+        background: #f0f8f6;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin: 18px 0;
+      }
+      .metric {
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: linear-gradient(180deg, #fff, #f8fbfd);
+      }
+      .metric strong {
+        display: block;
+        font-size: 26px;
+        color: var(--navy);
+        line-height: 1.2;
+      }
+      .metric span {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        margin: 16px 0 26px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th {
+        background: var(--navy);
+        color: white;
+        text-align: left;
+        padding: 11px 12px;
+        white-space: nowrap;
+      }
+      td {
+        padding: 11px 12px;
+        border-bottom: 1px solid #e7edf2;
+        vertical-align: top;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      tbody tr:nth-child(even) {
+        background: #f8fafc;
+      }
+      .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .total td {
+        font-size: 15px;
+        font-weight: 800;
+        background: #eaf3f9;
+        color: var(--navy);
+      }
+      .badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--sky);
+        color: var(--blue);
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+      .badge.done {
+        background: #e9f6f3;
+        color: var(--green);
+      }
+      .badge.hold {
+        background: #fff2d6;
+        color: var(--amber);
+      }
+      .badge.scope {
+        background: #edf0f7;
+        color: var(--navy);
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 20px;
+        background: white;
+      }
+      .card h3 {
+        margin: 0 0 10px;
+        color: var(--navy);
+        font-size: 16px;
+      }
+      .card p {
+        margin: 6px 0;
+        color: #53657a;
+      }
+      .checklist {
+        list-style: none;
+        margin: 12px 0 0;
+        padding: 0;
+      }
+      .checklist li {
+        position: relative;
+        padding: 7px 0 7px 24px;
+        border-bottom: 1px dashed #dde5ed;
+      }
+      .checklist li:last-child {
+        border-bottom: 0;
+      }
+      .checklist li:before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: var(--green);
+        font-weight: 900;
+      }
+      .money {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        font-weight: 750;
+      }
+      .price-hero {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 20px;
+        align-items: stretch;
+      }
+      .price-total {
+        border-radius: 16px;
+        padding: 28px;
+        background: var(--navy);
+        color: #fff;
+      }
+      .price-total span {
+        display: block;
+        color: #bcd7ea;
+        font-weight: 700;
+      }
+      .price-total strong {
+        display: block;
+        font-size: 38px;
+        margin: 4px 0;
+      }
+      .price-total small {
+        color: #dceaf4;
+      }
+      .price-note {
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #f7fafc;
+      }
+      .timeline {
+        position: relative;
+        margin: 20px 0;
+        padding-left: 24px;
+      }
+      .timeline:before {
+        content: "";
+        position: absolute;
+        left: 7px;
+        top: 10px;
+        bottom: 10px;
+        width: 2px;
+        background: #b8d0e1;
+      }
+      .timeline-item {
+        position: relative;
+        padding: 0 0 20px 18px;
+      }
+      .timeline-item:before {
+        content: "";
+        position: absolute;
+        left: -22px;
+        top: 7px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 4px #e7f1f7;
+      }
+      .timeline-item strong {
+        color: var(--navy);
+      }
+      .signature {
+        margin-top: 42px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        color: var(--muted);
+      }
+      footer {
+        padding: 22px 64px;
+        background: #f4f7fa;
+        border-top: 1px solid var(--line);
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+      }
+      @media (max-width: 820px) {
+        .page {
+          width: 100%;
+          margin: 0;
+          border-radius: 0;
+        }
+        .cover {
+          padding: 44px 28px;
+        }
+        .cover h1 {
+          font-size: 32px;
+        }
+        .cover-meta,
+        .metrics,
+        .grid-2,
+        .price-hero {
+          grid-template-columns: 1fr;
+        }
+        main {
+          padding: 34px 24px;
+        }
+        footer {
+          padding: 20px 24px;
+          display: block;
+        }
+        .toolbar {
+          position: static;
+        }
+      }
+      @media print {
+        body {
+          background: #fff;
+        }
+        .page {
+          width: 100%;
+          margin: 0;
+          box-shadow: none;
+          border-radius: 0;
+        }
+        .toolbar {
+          display: none;
+        }
+        .cover {
+          min-height: 260mm;
+          break-after: page;
+        }
+        main {
+          padding: 18mm 15mm;
+        }
+        section {
+          break-inside: avoid;
+        }
+        .page-break {
+          break-before: page;
+        }
+        .table-wrap {
+          overflow: visible;
+        }
+        a {
+          color: inherit;
+          text-decoration: none;
+        }
+        footer {
+          display: none;
+        }
+        @page {
+          size: A4;
+          margin: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <article class="page">
+      <header class="cover">
+        <div>
+          <div class="wordmark">ADOMS</div>
+          <div class="eyebrow">
+            YONGIN SPECIAL CITY · SAFETY COMPLIANCE DEMO
+          </div>
+          <h1>용인특례시 안전보건체계 통합관리 시연 업무명세 V1</h1>
+          <p class="lead">
+            클라이언트 전달용 상세 업무범위·WBS 변경·마무리 일정·인수인계 명세
+          </p>
+        </div>
+        <div class="cover-meta">
+          <div>
+            <strong>문서번호</strong><span>ADOMS-YI-SOW-V1-20260907</span>
+          </div>
+          <div><strong>기준일</strong><span>2026.09.07</span></div>
+          <div>
+            <strong>납품대상</strong
+            ><span>용인특례시 안전보건체계 통합관리 영업 시연</span>
+          </div>
+        </div>
+      </header>
+      <nav class="toolbar">
+        <a href="https://sapa-yongin.netlify.app" target="_blank">최종 사이트</a
+        ><a
+          href="https://docs.google.com/spreadsheets/d/1ANXqyyiZapvX4dChgZqkHlqxq2TL5_JVZME-bPHEwwM/edit?gid=1873876074#gid=1873876074"
+          target="_blank"
+          >WBS</a
+        ><button class="primary" onclick="window.print()">인쇄·PDF 저장</button>
+      </nav>
+      <main>
+        <section>
+          <div class="section-kicker">01 · EXECUTIVE SUMMARY</div>
+          <h2 class="section-title">납품 범위 요약</h2>
+          <div class="rule"></div>
+          <p class="section-intro">
+            본 업무는 기존 ADOMS 화면·업무 흐름을 참고해 용인특례시 영업 시연에
+            필요한 범위만 React/Vite와 hosted Supabase로 재구성한
+            프로젝트입니다. 화면 시연에 그치지 않고
+            법령·시설·조직·업무·이행·증빙·점검 값이 실제 데이터베이스와
+            Storage에 남도록 구현했습니다.
+          </p>
+          <div class="metrics">
+            <div class="metric">
+              <strong>3,688</strong><span>용인시 관련 전체 의무풀</span>
+            </div>
+            <div class="metric">
+              <strong>153</strong><span>참조 관리대상</span>
+            </div>
+            <div class="metric">
+              <strong>2,929</strong><span>시설·의무 매핑</span>
+            </div>
+            <div class="metric">
+              <strong>2,891</strong><span>내 업무 런타임 항목</span>
+            </div>
+          </div>
+          <div class="callout success">
+            <strong>최종 결과물:</strong>
+            <a href="https://sapa-yongin.netlify.app" target="_blank"
+              >https://sapa-yongin.netlify.app</a
+            >
+            · GitHub main과 hosted Supabase가 연결된 상태이며, 정민하 전무가
+            저장소와 DB 접근권한을 보유하고 있어 모든 산출물을 정본에서 직접
+            인수할 수 있습니다.
+          </div>
+        </section>
+        <section>
+          <div class="section-kicker">02 · CONTRACT OBJECTIVE</div>
+          <h2 class="section-title">업무 목적과 완료 기준</h2>
+          <div class="rule"></div>
+          <div class="grid-2">
+            <div class="card">
+              <h3>업무 목적</h3>
+              <ul class="checklist">
+                <li>화요일 영업 시연에 필요한 핵심 업무 흐름 완성</li>
+                <li>ADOMS UI 위치와 화면 구성의 유사 재현</li>
+                <li>Supabase에 실제 저장·재조회·이력·첨부 구현</li>
+                <li>타 업종 시연으로 복제 가능한 데이터·문서 구조 확보</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>완료 기준</h3>
+              <ul class="checklist">
+                <li>다른 PC와 일반 브라우저에서 동일 DB 조회</li>
+                <li>대상·의무·증빙·점검이 같은 식별자로 연결</li>
+                <li>초기화 후 동일 시연 대본을 반복 수행</li>
+                <li>GitHub·Supabase·Netlify·WBS 인수 가능</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        <section class="page-break">
+          <div class="section-kicker">03 · DETAILED SCOPE</div>
+          <h2 class="section-title">V1 상세 업무명세</h2>
+          <div class="rule"></div>
+          <div class="table-wrap">
+            <table class="">
+              <thead>
+                <tr>
+                  <th>구분</th>
+                  <th>업무영역</th>
+                  <th>상세 수행내용</th>
+                  <th>납품 산출물</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge scope">WP-01</span></td>
+                  <td><strong>시연 범위·업무분석</strong></td>
+                  <td>
+                    MOCKUP·화면설계·ADOMS IA와 변경 WBS를 분석하고 시연 핵심
+                    경로와 제외 범위를 고정
+                  </td>
+                  <td>범위표, 화면 흐름, WBS, 오인방지 문구</td>
+                </tr>
+                <tr>
+                  <td><span class="badge scope">WP-02</span></td>
+                  <td><strong>Supabase 기반 구축</strong></td>
+                  <td>
+                    호스팅형 Supabase에 법령·대상·의무·이행·증빙·점검·감사
+                    계층과 private Storage를 구성
+                  </td>
+                  <td>마이그레이션 001~026, RLS, Storage, smoke scripts</td>
+                </tr>
+                <tr>
+                  <td><span class="badge scope">WP-03</span></td>
+                  <td><strong>법령·시설·의무 데이터</strong></td>
+                  <td>
+                    클라이언트 제공 CSV 3종과 ADOMS 축소 데이터를 식별자 보존
+                    방식으로 적재·검증
+                  </td>
+                  <td>의무풀 3,688건, 대상 153건, 매핑 2,929건</td>
+                </tr>
+                <tr>
+                  <td><span class="badge scope">WP-04</span></td>
+                  <td><strong>적용범위·근거 조회</strong></td>
+                  <td>
+                    사실값 변경에 따른 규칙기반 후보 판정,
+                    조건충족·추가확인·원천검수, 조문 원문·개정/시행일 표시
+                  </td>
+                  <td>설정, 적용범위, 법령 원문 팝업</td>
+                </tr>
+                <tr>
+                  <td><span class="badge scope">WP-05</span></td>
+                  <td><strong>관리대상·의무 체크리스트</strong></td>
+                  <td>
+                    대상 분류·검색·상세 의무 연결, 법령명·한글 조문·주기·증빙
+                    분리, CSV 제공
+                  </td>
+                  <td>관리대상 151개 업무투영, 시설별 의무 목록</td>
+                </tr>
+                <tr>
+                  <td><span class="badge scope">WP-06</span></td>
+                  <td><strong>의무이행·증빙·점검</strong></td>
+                  <td>
+                    시설×의무 단위의 이행기간, 문서요약, 증빙 업로드·다운로드,
+                    점검 및 총괄 연결
+                  </td>
+                  <td>반복 의무이행 사건, Word 양식 1~5, 점검·총괄표</td>
+                </tr>
+                <tr>
+                  <td><span class="badge scope">WP-07</span></td>
+                  <td><strong>내 업무 런타임</strong></td>
+                  <td>
+                    공식 조직도 기반 자동·수동 배정,
+                    수락·상태·위임·첨부·완료·확인·선택 CSV·초기화 구현
+                  </td>
+                  <td>업무 2,891건, 자동 2,235건, 수동대기 656건</td>
+                </tr>
+                <tr>
+                  <td><span class="badge scope">WP-08</span></td>
+                  <td><strong>UI 재구성</strong></td>
+                  <td>
+                    원본 ADOMS 위치·표·업무 흐름을 유지하면서 남색·행정 블루
+                    공공기관 톤과 와이드 본문 적용
+                  </td>
+                  <td>React/Vite 화면, Inter 중심 타이포, 공통 컴포넌트</td>
+                </tr>
+                <tr>
+                  <td><span class="badge scope">WP-09</span></td>
+                  <td><strong>배포·검증</strong></td>
+                  <td>
+                    GitHub main 자동배포, Netlify 환경변수 가드, build-info,
+                    타입·테스트·브라우저·원격 DB 검증
+                  </td>
+                  <td>운영 URL, 검증 문서, 복구 절차</td>
+                </tr>
+                <tr>
+                  <td><span class="badge scope">WP-10</span></td>
+                  <td><strong>인수인계</strong></td>
+                  <td>
+                    소스·DB·Storage·배포·WBS·운영문서를 접근권한 보유자에게 인계
+                  </td>
+                  <td>GitHub, Supabase, Netlify, WBS, README·런북</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <section>
+          <div class="section-kicker">04 · DATA & TRACEABILITY</div>
+          <h2 class="section-title">데이터 구성 및 추적성</h2>
+          <div class="rule"></div>
+          <div class="table-wrap">
+            <table class="">
+              <thead>
+                <tr>
+                  <th>데이터 계층</th>
+                  <th>구축 내용</th>
+                  <th>추적 기준</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>법령·정본</td>
+                  <td>
+                    ADOMS 법령/조문/규칙/의무 식별자와 국가법령정보센터 기준일
+                    보존
+                  </td>
+                  <td>law_id · unit_id · rul_id · obl_id</td>
+                </tr>
+                <tr>
+                  <td>관리대상</td>
+                  <td>
+                    FMS 150건, 공중교통수단 1건, DEMO_VIRTUAL 도급·용역 2건
+                  </td>
+                  <td>target_ref</td>
+                </tr>
+                <tr>
+                  <td>시설·의무</td>
+                  <td>참조 매핑 2,929건, 운영 투영 2,891건</td>
+                  <td>target_ref + obl_id + 2026-H2</td>
+                </tr>
+                <tr>
+                  <td>공식 조직도</td>
+                  <td>용인시 공개 조직도 792개 활성 단위</td>
+                  <td>org_key · hierarchy_path</td>
+                </tr>
+                <tr>
+                  <td>내 업무</td>
+                  <td>배정·수락·상태·위임·재배정·완료·확인을 사건별 저장</td>
+                  <td>occurred_at / created_at 분리</td>
+                </tr>
+                <tr>
+                  <td>의무이행</td>
+                  <td>
+                    업무구분·기록구분·이행기간·문서요약·증빙·등록자/조직·업무출처
+                  </td>
+                  <td>반복 차수와 request_id</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout">
+            <strong>제공자료와 수행범위의 구분:</strong> 의무 3,688건, FMS 시설
+            150건, 시설–의무 원천 매핑 2,906건과 ADOMS 화면·IA는 클라이언트
+            제공자료입니다. 본 업무의 수행범위는 원천자료 신규 작성이 아니라
+            데이터 검증·정규화·식별자 보존 적재, Supabase 스키마·Storage·이력
+            설계, React 화면 구현, 업무 흐름 연결, 테스트·배포·인수인계입니다.
+          </div>
+        </section>
+        <section>
+          <div class="section-kicker">05 · WBS REBASELINE</div>
+          <h2 class="section-title">변경 WBS 반영</h2>
+          <div class="rule"></div>
+          <p class="section-intro">
+            클라이언트 공개 WBS의 최초 기준선은 전체 41개 작업과 총 31시간의
+            압축 실행 일정으로 작성됐습니다. 이는 가격 산정을 위한 인력
+            타임시트가 아니라 화요일 시연까지의 작업 순서표입니다. 실제 구현
+            과정에서는 고객 제공 데이터와 반복 검수 결과를 반영해 아래와 같이
+            재기준화했습니다.
+          </p>
+          <div class="table-wrap">
+            <table class="">
+              <thead>
+                <tr>
+                  <th>변경영역</th>
+                  <th>기존 WBS</th>
+                  <th>최종 반영</th>
+                  <th>효과</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>GraphDB/API</td>
+                  <td>외부 Graph API 수령을 P0로 계획</td>
+                  <td>
+                    외부 API 없이 Supabase RDB에 필요한 ADOMS 식별자·법령·의무를
+                    투영
+                  </td>
+                  <td>신규 GraphDB 구매·개인 PC 서버 없이 시연 가능</td>
+                </tr>
+                <tr>
+                  <td>데이터 범위</td>
+                  <td>핵심 50~150개 중심</td>
+                  <td>
+                    클라이언트 CSV 전체 의무풀 3,688건과 대상별 매핑 2,929건
+                    적재
+                  </td>
+                  <td>실제 필터·시설별 의무 조회 가능</td>
+                </tr>
+                <tr>
+                  <td>시설 구분</td>
+                  <td>대표 대상 3개</td>
+                  <td>
+                    FMS 150 + 공중교통수단 1 + 도급/용역 2를 출처 구분하여 관리
+                  </td>
+                  <td>경전철을 공중교통수단으로 분류</td>
+                </tr>
+                <tr>
+                  <td>내 업무</td>
+                  <td>기존 이행현황·점검 페이지</td>
+                  <td>
+                    공식 조직도 792단위와 2,891개 업무를 연결한 별도 런타임 구축
+                  </td>
+                  <td>자동·수동 배정과 위임·완료·초기화 실데이터</td>
+                </tr>
+                <tr>
+                  <td>의무이행</td>
+                  <td>단일 조치일·증빙</td>
+                  <td>
+                    업무구분 5종, 기록구분 3종, 이행기간, 문서요약, Word 양식,
+                    반복 사건으로 확장
+                  </td>
+                  <td>차수별 로그·증빙·CSV 추적</td>
+                </tr>
+                <tr>
+                  <td>배포</td>
+                  <td>프런트 선배포 후 환경 점검</td>
+                  <td>
+                    Netlify의 공개 Supabase 변수 누락을 가드하고 build-info로
+                    커밋 추적
+                  </td>
+                  <td>다른 PC·일반 브라우저에서도 DB 조회</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout warning">
+            <strong>대외 표기:</strong> 이 시스템은 제한된 정본과 대상 프로필을
+            바탕으로 한 규칙 기반 적용 가능성 및 업무관리 시연입니다. 법률
+            자문이나 용인시 전체의 최종 법적 의무 확정을 대신하지 않습니다.
+          </div>
+        </section>
+        <section>
+          <div class="section-kicker">06 · FINAL SCHEDULE</div>
+          <h2 class="section-title">마무리 일정</h2>
+          <div class="rule"></div>
+          <div class="table-wrap">
+            <table class="">
+              <thead>
+                <tr>
+                  <th>일시</th>
+                  <th>단계</th>
+                  <th>수행내용</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>09/07 21:50~22:20</td>
+                  <td>납품문서 고정</td>
+                  <td>V1 업무명세·WBS 변경 반영·인수인계 경로 확정</td>
+                </tr>
+                <tr>
+                  <td>09/07 22:20~23:00</td>
+                  <td>Release Candidate 동결</td>
+                  <td>
+                    GitHub main·Netlify commitSha·Supabase 연결·대표 시연상태
+                    확인, 신규 기능 중단
+                  </td>
+                </tr>
+                <tr>
+                  <td>09/08 08:30~09:00</td>
+                  <td>환경 점검</td>
+                  <td>배포 URL·DB·Storage·화면 해상도·초기화 범위 확인</td>
+                </tr>
+                <tr>
+                  <td>09/08 09:00~09:40</td>
+                  <td>리허설 1회차</td>
+                  <td>
+                    적용범위→관리대상→의무→이행/증빙→내 업무 전체 대본 수행
+                  </td>
+                </tr>
+                <tr>
+                  <td>09/08 09:40~10:20</td>
+                  <td>P0 결함 수정</td>
+                  <td>
+                    중단·저장실패·오판정만 수정하고 디자인·신규 기능 변경 금지
+                  </td>
+                </tr>
+                <tr>
+                  <td>09/08 10:20~11:15</td>
+                  <td>리허설 2회차</td>
+                  <td>초기화 후 동일 대본·동일 결과 두 번째 성공</td>
+                </tr>
+                <tr>
+                  <td>09/08 11:15~11:35</td>
+                  <td>인수인계·복구 확인</td>
+                  <td>
+                    GitHub·Supabase·Netlify 권한, seed·런북·Word 양식·WBS 링크
+                    확인
+                  </td>
+                </tr>
+                <tr>
+                  <td>09/08 11:35~12:00</td>
+                  <td>최종 동결</td>
+                  <td>
+                    대표 대상을 시작 상태로 복원하고 배포·DB 상태 최종 고정
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout">
+            <strong>변경통제 원칙:</strong> 09/07 23:00 이후에는 신규 기능을
+            추가하지 않습니다. 리허설 중에는 시연 중단, 저장 실패, 데이터
+            오판정과 같은 P0 결함만 수정합니다.
+          </div>
+        </section>
+        <section class="page-break">
+          <div class="section-kicker">07 · HANDOVER</div>
+          <h2 class="section-title">인수인계 방법</h2>
+          <div class="rule"></div>
+          <div class="table-wrap">
+            <table class="">
+              <thead>
+                <tr>
+                  <th>항목</th>
+                  <th>인수 경로</th>
+                  <th>설명</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>최종 사이트</td>
+                  <td>
+                    <a href="https://sapa-yongin.netlify.app" target="_blank"
+                      >https://sapa-yongin.netlify.app</a
+                    >
+                  </td>
+                  <td>시연자가 사용하는 최종 결과물</td>
+                </tr>
+                <tr>
+                  <td>GitHub 정본</td>
+                  <td>
+                    <a
+                      href="https://github.com/simulacre-8/Yongin"
+                      target="_blank"
+                      >simulacre-8/Yongin</a
+                    >
+                    · main 최신 커밋
+                  </td>
+                  <td>
+                    Code → Download ZIP으로 소스·SQL·테스트·문서·Word 양식 일괄
+                    인수
+                  </td>
+                </tr>
+                <tr>
+                  <td>Supabase</td>
+                  <td>project ref <code>gxpfnszbwvfyogwshvas</code></td>
+                  <td>법령·시설·조직·업무·이행·증빙·점검 데이터와 Storage</td>
+                </tr>
+                <tr>
+                  <td>Netlify</td>
+                  <td>GitHub main 연동 자동배포</td>
+                  <td>공개 Vite 환경변수와 build-info로 배포 식별</td>
+                </tr>
+                <tr>
+                  <td>WBS</td>
+                  <td>
+                    <a
+                      href="https://docs.google.com/spreadsheets/d/1ANXqyyiZapvX4dChgZqkHlqxq2TL5_JVZME-bPHEwwM/edit?gid=1873876074#gid=1873876074"
+                      target="_blank"
+                      >클라이언트 공개용 Google Sheets</a
+                    >
+                  </td>
+                  <td>계획 기준선·변경 이력·마무리 일정</td>
+                </tr>
+                <tr>
+                  <td>인수 권한</td>
+                  <td>정민하 전무가 GitHub·DB 접근권한 보유</td>
+                  <td>
+                    별도 파일 전달이 지연되어도 시스템 정본에서 직접 회수 가능
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <h3>인수 순서</h3>
+              <ul class="checklist">
+                <li>GitHub main 최신 커밋과 README 확인</li>
+                <li>Supabase 프로젝트·테이블·Storage 접근 확인</li>
+                <li>Netlify 사이트·환경변수·자동배포 연결 확인</li>
+                <li>WBS와 검증·런북·Word 양식 확인</li>
+                <li>대표 시연 대본 2회 실행 후 최종 인수</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>보안 인계</h3>
+              <ul class="checklist">
+                <li>서비스 역할 키와 토큰은 문서·소스에 포함하지 않음</li>
+                <li>브라우저에는 publishable key만 사용</li>
+                <li>
+                  담당자 변경 시 GitHub·Supabase·Netlify 계정에서 권한 조정
+                </li>
+                <li>시연 종료 후 익명 쓰기 스위치 비활성화 권장</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        <section>
+          <div class="section-kicker">08 · SCOPE BOUNDARY</div>
+          <h2 class="section-title">범위 및 가정</h2>
+          <div class="rule"></div>
+          <div class="table-wrap">
+            <table class="">
+              <thead>
+                <tr>
+                  <th>구분</th>
+                  <th>내용</th>
+                  <th>대외 표현</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>시연 목적</td>
+                  <td>
+                    프로필·사실값 변경 시 검수된 규칙에 따른 적용 가능성 후보와
+                    근거 경로를 보여줌
+                  </td>
+                  <td>최종 법률 판단이 아닌 1차 후보 판정</td>
+                </tr>
+                <tr>
+                  <td>법령 범위</td>
+                  <td>
+                    고객 제공 전체 의무풀 3,688건은 검색·조회하며 자동 판정은
+                    시연용 실행규칙 범위
+                  </td>
+                  <td>전체 DB 조회와 자동 판정 범위를 구분</td>
+                </tr>
+                <tr>
+                  <td>사실값</td>
+                  <td>
+                    상시근로자·연면적·대상여부 등은 필드별 출처·기준일·가정
+                    여부를 구분
+                  </td>
+                  <td>가상 데이터 또는 출처 표시</td>
+                </tr>
+                <tr>
+                  <td>Graph DB</td>
+                  <td>이번 시연은 GraphDB 없이 hosted Supabase RDB로 구현</td>
+                  <td>실시간 외부 GraphDB 연동은 범위 밖</td>
+                </tr>
+                <tr>
+                  <td>미확인 항목</td>
+                  <td>
+                    수범주체 미판정·조건 미구조화·시행일 미확인은 unknown/보류
+                  </td>
+                  <td>적용·비적용으로 자동 단정하지 않음</td>
+                </tr>
+                <tr>
+                  <td>완료 기준</td>
+                  <td>
+                    저장·재조회·증빙 다운로드·이력·초기화·배포 재현성을 검증
+                  </td>
+                  <td>전체 화면 수가 아닌 핵심 시연 흐름 기준</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout">
+            <strong>범위 밖 항목:</strong> 운영용 실명 인증·인사시스템 연동, 전
+            기관 전수 법률검수, 외부 GraphDB 운영, 전자결재·알림·바이러스 검사,
+            상용 SLA는 이번 영업 시연 납품에 포함하지 않습니다. 필요 시 별도
+            요구사항·견적으로 진행합니다.
+          </div>
+        </section>
+        <section>
+          <div class="section-kicker">09 · ACCEPTANCE</div>
+          <h2 class="section-title">납품 확인표</h2>
+          <div class="rule"></div>
+          <div class="table-wrap">
+            <table class="">
+              <thead>
+                <tr>
+                  <th>확인항목</th>
+                  <th>합격 기준</th>
+                  <th>인수 확인</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>사이트</td>
+                  <td>Netlify URL에서 화면 및 Supabase 데이터 조회</td>
+                  <td>□</td>
+                </tr>
+                <tr>
+                  <td>저장</td>
+                  <td>의무이행·증빙·내 업무 변경 후 새로고침 재조회</td>
+                  <td>□</td>
+                </tr>
+                <tr>
+                  <td>첨부</td>
+                  <td>허용 형식 업로드·다운로드와 한글 원본명 보존</td>
+                  <td>□</td>
+                </tr>
+                <tr>
+                  <td>초기화</td>
+                  <td>내 업무 런타임만 초기화하고 기준정보·기존 증빙 보존</td>
+                  <td>□</td>
+                </tr>
+                <tr>
+                  <td>배포</td>
+                  <td>GitHub main push 후 Netlify commitSha 일치</td>
+                  <td>□</td>
+                </tr>
+                <tr>
+                  <td>문서</td>
+                  <td>README·Supabase 런북·검증 기록·WBS·V1 수령</td>
+                  <td>□</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="signature">
+            <span>수행자 확인: ____________________</span
+            ><span>인수자 확인: ____________________</span
+            ><span>확인일: 2026. ____ . ____</span>
+          </div>
+        </section>
+      </main>
+      <footer>
+        <span>ADOMS · 용인특례시 안전보건체계 통합관리 영업 시연</span
+        ><span>ADOMS-YI-SOW-V1-20260907</span>
+      </footer>
+    </article>
+  </body>
+</html>
